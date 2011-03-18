@@ -1,8 +1,7 @@
 CC=gcc
-#-march=pentium4 -malign-double 
 CFLAGS= -O3 -Wall -ffast-math \
         -funroll-all-loops -fomit-frame-pointer -finline-functions  \
-        -march=core2 -msse2 
+        -march=core2 -msse3
         #-mfpmath=sse+387
         #
 #CFLAGS= -g -Wall  
@@ -32,7 +31,6 @@ solvediophant: solvediophant.c diophant.o diophant.h
 #	$(CC) -static $(CFLAGS) -o solvediophant solvediophant.c diophant.o \
 
 diophant.tex: diophant.w
-	#cweave diophant.w 20erVersion.ch 
 	cweave diophant.w
 
 diophant.dvi: diophant.tex

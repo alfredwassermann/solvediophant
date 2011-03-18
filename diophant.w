@@ -664,7 +664,11 @@ void shufflelattice() {
     COEFF *tmp;
     int i, j, r;
     
+#if 0
     srand((unsigned)(time(0))); 
+#else
+    srand(0); 
+#endif
     for (j=0;j<100;j++) {
         for(i=lattice_columns-2; i>0; i--) {
             r = rand() % i;
@@ -1831,11 +1835,12 @@ DOUBLE log_gamma(DOUBLE x) {
 @*Exhaustive enumeration. 
 The algorithm of H.~Ritter.
 @d FINCKEPOHST 1
-@d FINCKEPOHSTEXTREME 0
+@d EIGENBOUND 1
 
 @<overall exhaustive enumeration@>=
     @<globals for enumeration@>;
     @<some vector computations@>;
+    @<update Fincke-Pohst@>;
     @<orthogonalization@>;
     @<matrix inversion for Fincke-Pohst@>;
     @<pruning subroutines and output@>;
@@ -1852,6 +1857,7 @@ DOUBLE explicit_enumeration (COEFF **lattice, int columns, int rows)
 
     @<test the size of the basis@>;
     @<allocate the memory for enumeration@>;
+    @<allocate the memory for Eigen bound@>;
     @<initialize arrays@>;
     @<count nonzero entries in the last rows(s)@>;
 #if 1
@@ -1866,12 +1872,11 @@ DOUBLE explicit_enumeration (COEFF **lattice, int columns, int rows)
     
 #if defined(FINCKEPOHST)
     @<determine Fincke-Pohst bounds@>;
-#if FINCKEPOHSTEXTREME
-    @<sort by Fincke-Pohst bounds@>;
-    @<orthogonalize the basis@>;
-    @<determine Fincke-Pohst bounds@>;
 #endif
+#if defined(EIGENBOUND)
+    @<initialize Eigen bounds@>;
 #endif
+
 
 #if 0
     basis2LP(fipo_l,fipo_u);
@@ -1971,7 +1976,13 @@ static FILE *fp;
     fipo_l=(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
     muinv=(DOUBLE**)calloc(columns,sizeof(DOUBLE*));
     for(i=0;i<columns;++i) muinv[i]=(DOUBLE*)calloc(rows,sizeof(DOUBLE));
-#endif
+
+    fipo_LB=(DOUBLE**)calloc(columns+1,sizeof(DOUBLE*));
+    fipo_UB=(DOUBLE**)calloc(columns+1,sizeof(DOUBLE*));
+    for(i=0;i<=columns;++i) {
+        fipo_LB[i]=(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
+        fipo_UB[i]=(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
+    }
 #if 0
     upb =(mpz_t*)calloc(columns+1,sizeof(mpz_t));
     lowb =(mpz_t*)calloc(columns+1,sizeof(mpz_t));
@@ -1980,23 +1991,58 @@ static FILE *fp;
         mpz_init(lowb[i];
     }
 #endif    
+#endif
 
-@ @<globals for enumeration@>=
+@ Additional variables for Fincke-Pohst bounds.
+@<globals for enumeration@>=
 #if defined(FINCKEPOHST)
     DOUBLE **muinv;    
+    DOUBLE **fipo_UB, **fipo_LB;
 #endif    
     /*|mpz_t *upb,*lowb;|*/
     long fipo_success;
     
+@ The memory for |R| and |Rinv| and the additional arrays for |EIGENBOUND| is allocated.
+@<allocate the memory for Eigen bound@>=
+#if defined(EIGENBOUND)
+    Rinv=(DOUBLE**)calloc(columns,sizeof(DOUBLE*));
+    for(i=0; i<columns; ++i) Rinv[i] = (DOUBLE*)calloc(columns,sizeof(DOUBLE));
+    
+    R=(DOUBLE**)calloc(columns,sizeof(DOUBLE*));
+    for(i=0; i<columns; ++i) R[i] = (DOUBLE*)calloc(columns,sizeof(DOUBLE));
+    
+    eig_f = (DOUBLE**)calloc(columns,sizeof(DOUBLE*));
+    for(i=0; i<columns; ++i) eig_f[i] = (DOUBLE*)calloc(columns,sizeof(DOUBLE));
+    
+    eig_RinvR = (DOUBLE**)calloc(columns,sizeof(DOUBLE*)); 
+    for(i=0; i<columns; ++i) eig_RinvR[i] = (DOUBLE*)calloc(columns,sizeof(DOUBLE));
+
+    eig_min=(DOUBLE*)calloc(columns,sizeof(DOUBLE));
+    eig_bound=(DOUBLE*)calloc(columns,sizeof(DOUBLE));
+
+#endif
+
+@ Additional variables for ``Eigen bounds''.
+@<globals for enumeration@>=
+#if defined(EIGENBOUND)
+    DOUBLE **Rinv;    
+    DOUBLE **R;
+    DOUBLE **eig_f;
+    DOUBLE **eig_RinvR;
+    DOUBLE eig_Rs;
+    DOUBLE *eig_min;
+    DOUBLE *eig_bound;
+#endif
+
 @    The starting positions of the arrays are set.
 @<initialize arrays@>=
     for (i=0;i<=columns;i++) {
         cs[i] = y[i] = us[i] = 0.0;
         delta[i] = 0;
 #if 0                
-                mpz_set_si(v[i],0);
+        mpz_set_si(v[i],0);
 #else
-                v[i] = 0;
+        v[i] = 0;
 #endif                
         eta[i] = d[i] = 1;
         for (l=0;l<rows;l++) w[i][l] = 0.0;
@@ -2093,12 +2139,12 @@ $$
   & & \ldots & \cr
 0 & & \ldots &1/c_n\cr}\right)\cdot \tilde{B}^\top
 $$
-Therefore, the above $\Vert r_i'\Vert^2$ is in our case
+Therefore, the above $\Vert r_i'\Vert^2$ is in our case 
 $$r'_{ij} = \sum_l |muinv[i][l]|\cdot|bd[l][j]|/|c[l]|.$$
 Then we also compute an upper bound with the $\ell_1$ norm and we take 
 the lower of the two bounds.
 $$
-\vert x_i\vert \leq \Vert r_i'\Vert_1 \Vert Rx\Vert_\infty
+\vert x_i\vert \leq \Vert r_i' \Vert_1 \Vert Rx\Vert_\infty %'
 $$
 @<determine Fincke-Pohst bounds@>=
     fipo_success = 0;
@@ -2111,7 +2157,7 @@ $$
 #endif
 
     for (i=0;i<columns;i++) {
-#if 0   /* Symmetric Fincke-Pohst */
+#if 1   /*| Symmetric Fincke-Pohst |*/
         fipo[i] = 0.0;
         dum1 = 0.0;
         for (j=0;j<rows;j++) {
@@ -2121,11 +2167,16 @@ $$
             dum1 += fabs(dum);
         }                
         fipo[i] = SQRT(fipo[i]*Fd);
-
         dum1 =  fabs(dum1*Fq);
         if (dum1 < fipo[i]) fipo[i] = dum1;
 
-/*        |fipo[i] *= (1.0+EPSILON);|*/
+        fipo[i] *= (1.0+EPSILON);
+
+        fipo_LB[columns][i] = -fipo[i]; 
+        fipo_UB[columns][i] =  fipo[i];
+#ifndef NO_OUTPUT
+        /*|printf("%03d: %0.1lf\t%0.1lf\n",i, fipo_LB[columns][i],fipo_UB[columns][i]);|*/
+#endif
 
 #ifndef NO_OUTPUT
 #if VERBOSE > -1    
@@ -2133,7 +2184,7 @@ $$
 #endif
 #endif
 #else
-        /* Asymmetric Fincke-Pohst. */
+        /*| Asymmetric Fincke-Pohst. |*/
         fipo[i] = 0.0;
         fipo_u[i] = 0.0;
         fipo_l[i] = 0.0;
@@ -2151,36 +2202,164 @@ $$
         dum1 = fabs(dum1*Fq);
         if (dum1 < fipo[i]) fipo[i] = dum1;
 
-        fipo_u[i] *= Fq;
-        fipo_l[i] *= Fq;
-#if 0        
-        fipo_u[i] -= 1.0;
-        fipo_l[i] += 1.0;
-        if (fipo[i]<fipo_u[i])  fipo_u[i] = fipo[i];
-        if (-fipo[i]>fipo_l[i]) fipo_l[i] = -fipo[i];
-#endif        
-        fipo_u[i] *= (fipo_u[i]>0)?(1.0+EPSILON):(1.0-EPSILON);
-        fipo_l[i] *= (fipo_l[i]>0)?(1.0-EPSILON):(1.0+EPSILON);
-#if 1  /* NUMERICAL PROBLEMS!!!! */
-        fipo_u[i] = floor(fipo_u[i]);
-        fipo_l[i] = ceil(fipo_l[i]);
-#endif        
+        fipo_u[i] *= Fq*(fipo_u[i]>0)?(1.0+EPSILON):(1.0-EPSILON);
+        fipo_l[i] *= Fq*(fipo_l[i]>0)?(1.0-EPSILON):(1.0+EPSILON);
 #ifndef NO_OUTPUT
-        printf("%03d: %0.3lf\t%0.3lf\n",i, fipo_l[i],fipo_u[i]);
+        printf("%03d: %0.1lf\t%0.1lf\n",i, fipo_l[i],fipo_u[i]);
 #endif
 #endif
     }
 #ifndef NO_OUTPUT
 #if VERBOSE > -1    
-printf("\n");@+ fflush(stdout);
-printf("\n");@+ fflush(stdout);
+	printf("\n\n");@+ fflush(stdout);
 #endif
 #endif
 
+@ Initialize Eigen bounds.
+@<initialize Eigen bounds@>=
+#if defined(EIGENBOUND)
+    /*|printf("rows=%d, columns=%d, Rinv:\n", rows, columns);|*/
+    for (i=0;i<columns;i++) {
+        for (j=0;j<columns;j++) {
+            R[i][j] = mu[j][i]*SQRT(c[i]);
+            Rinv[i][j] = muinv[i][j]/SQRT(c[j]);
+            /*|printf("%0.3lf ", Rinv[i][j]);|*/
+        }
+        /*|printf("\n");|*/
+    }
+#if 0  
+    printf("\nCheck\n");
+    for (i=0;i<columns;i++) {
+        for (j=0;j<columns;j++) {
+            for (l=0, eig_s=0.0; l<columns; l++) eig_s += Rinv[i][l]*R[l][j];
+            printf("%0.3lf\t", eig_s);
+        }
+        printf("\n");
+    }
+    printf("\n");
+#endif    
+
+    for (k=0; k<columns; k++) {
+        for (i=0; i<k; i++) {
+            eig_s = 0.0;
+            for (j=0; j<k; j++) {
+                eig_s += Rinv[i][j]*R[j][k];
+            }
+            eig_RinvR[k][i] = eig_s;
+            /*|printf("%0.3lf ", eig_RinvR[k][i]);|*/
+        }
+        /*|printf("\n");|*/
+    }
+    /*|printf("\n");|*/
+    
+    
+#if 1
+    printf("Min. Eigen values:\n");
+    for (k=0; k<columns; k++) {
+        if (k==0) {
+            eig_min[0] = 0.0;
+        } else if (k==1) {
+            eig_min[k] = c[0];
+        } else {
+            eig_min[k] = (eig_min[k-1]<c[k-1]) ? eig_min[k-1] : c[k-1];
+        }
+        printf("%0.3lf ", eig_min[k]);
+    }
+    printf("\n");
+#else
+    eig_min[0] = c[0];
+    for (k=1; k<columns; k++) {
+        if (c[k]<eig_min[0]) eig_min[0] = c[k];
+    }
+    for (k=1; k<columns; k++) {
+        eig_min[k] = eig_min[0];
+    }
+#endif
+#endif
+
+@ @<local variables for |explicit_enumeration()|@> =
+    int k;
+    DOUBLE eig_s, eig_s0, eig_term2;
+
+@ @<compute new Eigen bound@>=
+#if 1
+    eig_s0 = 0.0;
+    if (level==columns-1) {
+        printf("Oben\n");
+        /*|printf("f_%d: ", level);|*/
+        eig_s = 0.0;
+        for (i=0; i<level; i++) {
+            eig_f[level][i] = eig_RinvR[level][i]*us[level];
+            /*|printf("%0.3f ", eig_f[level][i] );|*/
+            dum1 = fabs(eig_f[level][i]);
+            dum1 -= round(dum1);
+            if (i>0) {
+                eig_s += dum1*dum1;
+            } else {
+                eig_s += dum1*dum1;
+            }
+            printf("%0.3f ", dum1*dum1);
+        }
+        eig_bound[level] = /*|c[0]*eig_s0 +|*/ eig_s*eig_min[level];
+        printf("\n");
+    } else {
+        /*|printf("f_%d: ", level);|*/
+        eig_term2 = 0.0;
+        for (k=level+1; k<columns; k++) {
+            eig_term2 += R[level][k]*us[k];
+        }
+
+        eig_s = 0.0;
+        for (i=0; i<level; i++) {
+            eig_f[level][i] = eig_f[level+1][i] - Rinv[i][level]*eig_term2 + eig_RinvR[level][i]*us[level];
+            /*|printf("(%0.3f,", eig_f[level][i] );|*/
+            dum1 = fabs(eig_f[level][i]);
+            dum1 -= round(dum1);
+            /*|printf("%0.3f ", fabs(dum1));|*/
+            
+            if (i>0) {
+                eig_s += dum1*dum1;
+            } else {
+                eig_s += dum1*dum1;
+            }
+            /*|printf("%0.3f ", dum1*dum1);|*/
+        }
+        eig_bound[level] = /*|c[0]*eig_s0 + |*/eig_s*eig_min[level];
+    } 
+    /*|printf("Bound %d: %0.3lf\n", level, eig_bound[level]);|*/
+#else
+    if (level==0) {
+        eig_bound[level] = 0.0;
+    } else {
+        for (i=0; i<level; i++) {
+            eig_s = 0.0;
+            for (k=level; k<columns; k++) {
+                eig_s += R[i][k]*us[k];
+            }
+            eig_f[0][i] = eig_s;
+        }
+        eig_s = 0.0;
+        for (i=0; i<level; i++) {
+            eig_f[level][i] = 0.0;
+            for (k=0; k<level; k++) {
+                eig_f[level][i] += Rinv[i][k]*eig_f[0][k];
+            }
+            dum1 = fabs(eig_f[level][i]);
+            dum1 -= round(dum1);
+            eig_s += dum1*dum1;
+        }
+        if (fabs(eig_s*eig_min[level]-eig_bound[level])>0.000001) {
+            printf("WRONG: %0.5lf %0.5lf\n",eig_s*eig_min[level],eig_bound[level]);
+        }
+        eig_bound[level] = eig_s*eig_min[level];
+    }
+#endif
+
+
 @ First, find the index of the first non-zero entry
-    in each row.
-    Then, detect in each column which rows have its
-    first non-zero entry in this column.
+in each row.
+Then, detect in each column which rows have its
+first non-zero entry in this column.
 @<initialize first-nonzero arrays@>=
     for (l=0;l<rows;l++) {
         for (i=0; i<columns; i++) if (mpz_sgn(get_entry(i,l))!=0) { 
@@ -2246,7 +2425,7 @@ enough solutions.
             printf("\n");
             |*/
 #if 0
-            /* Write statistics about enumeartion levels */
+            /* Write statistics about enumeration levels */
             for (i=0;i<level_max;i++) {
                 printf("%03d: %ld\n", i, nlow[i]);
             }
@@ -2266,11 +2445,12 @@ enough solutions.
         @<compute new |cs|@>;
         if ( (cs[level]<Fd) && (!prune0(fabs(dum),N[level])) )  {   
 #if defined(FINCKEPOHST)
-#if 0
-            if (fabs(us[level])>fipo[level]*(1.0+EPSILON)) {
+#if 1 
+            if (fabs(us[level])>fipo[level]) {
 #else
             if (level!=columns-1 &&
-                (us[level]>fipo_u[level] || us[level]<fipo_l[level])
+                /*|(us[level]>fipo_u[level] || us[level]<fipo_l[level])|*/
+                (us[level]>fipo_UB[columns][level] || us[level]<fipo_LB[columns][level])
                 ) {
 #endif                
                 fipo_success++;
@@ -2278,6 +2458,19 @@ enough solutions.
             }            
             
 #endif
+#if 1
+            @<compute new Eigen bound@>;
+#if 0
+            if (cs[level]+eig_bound[level]>Fd) {
+                printf("%d:\t%0.3lf %0.3lf %0.3lf %0.1lf -> cut\n", level, cs[level], Fd, Fd-eig_bound[level], us[level]);
+            } else {
+                printf("%d:\t%0.3lf %0.3lf %0.3lf %0.1lf \n", level, cs[level], Fd, Fd-eig_bound[level], us[level]);
+            }
+#endif        
+            if (cs[level]+eig_bound[level]>Fd) {
+                goto side_step;
+            }
+#endif            
             compute_w(w,bd,dum,level,rows);
 
             if (level>0) {
@@ -2323,54 +2516,54 @@ afterloop:
 We test, if we can prune the enumeration, otherwise
 we decrease the |level|.
 @<not at a leave@>=
-                if (prune_only_zeros(w[level],level,rows,Fq,first_nonzero_in_column,firstp))
-                    goto side_step;
+	if (prune_only_zeros(w[level],level,rows,Fq,first_nonzero_in_column,firstp))
+		goto side_step;
 
-                if ( prune(w[level],cs[level],rows,Fq) ) { 
-                    if (eta[level]==1) {
-                        goto step_back;
-                    }
-                    eta[level] = 1;
-                    delta[level] *= -1;
-                    if (delta[level]*d[level]>=0) delta[level] += d[level];
+	if ( prune(w[level],cs[level],rows,Fq) ) { 
+		if (eta[level]==1) {
+			goto step_back;
+		}
+		eta[level] = 1;
+		delta[level] *= -1;
+		if (delta[level]*d[level]>=0) delta[level] += d[level];
 #if 0                                        
-                    us[level] = mpz_get_d(v[level]) + delta[level];
+		us[level] = mpz_get_d(v[level]) + delta[level];
 #else
-                    us[level] = v[level] + delta[level];
+		us[level] = v[level] + delta[level];
 #endif
-                } else {
-                    level--;
-                    eta[level] = 0;
-                    delta[level] = 0;
-                    if (r[level+1]>r[level]) r[level] = r[level+1];
+	} else {
+		level--;
+		eta[level] = 0;
+		delta[level] = 0;
+		if (r[level+1]>r[level]) r[level] = r[level+1];
 
-                    dum = compute_y(mu,us,level,level_max, sigma, r);
-                    y[level] = dum;
+		dum = compute_y(mu,us,level,level_max, sigma, r);
+		y[level] = dum;
 #if 0                                        
-                    mpz_set_d(v[level],ROUND(-dum));
-                    us[level] = mpz_get_si(v[level]);
+		mpz_set_d(v[level],ROUND(-dum));
+		us[level] = mpz_get_si(v[level]);
 #else
-                    v[level] = ROUND(-dum);
-                    us[level] = v[level];
+		v[level] = ROUND(-dum);
+		us[level] = v[level];
 #endif
-                    d[level] = (ROUND(-dum)>-y[level]) ? -1 : 1; 
-                } 
+		d[level] = (ROUND(-dum)>-y[level]) ? -1 : 1; 
+    } 
                 
 @ We arrived at $|level|=0$. We test if we really got a solution and print it.
 @<at $|level|=0$@>=
-                if (exacttest(w[0],rows,Fq)==1) {          
-                    print_solution(w[level],rows,Fq,us,columns); 
+	if (exacttest(w[0],rows,Fq)==1) {          
+		print_solution(w[level],rows,Fq,us,columns); 
 #if 0
-                    printf("us: ");
-                    for (i=columns-1;i>=0;i--) {
-                        printf("%d ",(int)us[i]);
-                    }
-                    printf("after %ld loops\n",loops);
+		printf("us: ");
+		for (i=columns-1;i>=0;i--) {
+			printf("%d ",(int)us[i]);
+		}
+		printf("after %ld loops\n",loops);
 #endif                    
-                    if ((stop_after_solutions>0)&&(stop_after_solutions<=nosolutions)) 
-                        goto afterloop;
-                } 
-                goto side_step;
+		if ((stop_after_solutions>0)&&(stop_after_solutions<=nosolutions)) 
+			goto afterloop;
+	} 
+	goto side_step;
                 
 @ Additional output at the end of the enumeration.
 @<final output@>=
@@ -2430,6 +2623,21 @@ we decrease the |level|.
     for (l=0;l<columns;l++) free (muinv[l]);
     free(muinv);
 #endif
+
+#if defined(EIGENBOUND)
+    for (l=0;l<columns;l++) free (Rinv[l]);
+    free(Rinv);
+    for (l=0;l<columns;l++) free (R[l]);
+    free(R);
+    for (l=0;l<columns;l++) free (eig_f[l]);
+    free(eig_f);
+    for (l=0;l<columns;l++) free (eig_RinvR[l]);
+    free(eig_RinvR);
+    free(eig_min);
+    free(eig_bound);
+    
+#endif
+
 #if 0
     free (upb);
     free (lowb);
@@ -2484,13 +2692,33 @@ void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE dum, int level, int rows) {
     int l;
     
     l = rows-1;
-    do {
-        w[level][l] = w[level+1][l] + dum*bd[level][l]; 
-        l--;
-    } while (l>=0);
+    while (l>=0) {
+        w[level][l] = w[level+1][l] + dum*bd[level][l]; l--;
+    } 
 #endif
 #endif
     return;
+}
+
+@ Update the Fincke-Pohst bounds during enumeration.
+@<update Fincke-Pohst@>=
+void update_fipo(long *us, int level, int columns) {
+#if 0
+    int j;
+	dum1 = 0.0;
+	for (j=0;j<rows;j++) {
+		 for (l=i,dum=0.0;l<columns;l++) dum += muinv[i][l]*bd[l][j]/c[l];
+		 dum2 = muinv[columns-1][columns-1]*bd[columns-1][j]/c[columns-1];
+		 fipo[i] += dum*dum;
+		 dum1 += fabs(dum);
+
+		 fipo_u[i] += fabs(dum+dum2);
+		 fipo_l[i] -= fabs(dum-dum2);
+	 }
+	 fipo[i] = SQRT(fipo[i]*Fd);
+	 dum1 = fabs(dum1*Fq);
+	 if (dum1 < fipo[i]) fipo[i] = dum1;
+#endif
 }
 
 @ The algorithms of Gram-Schmidt and Givens are used
