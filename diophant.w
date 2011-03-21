@@ -2019,7 +2019,6 @@ static FILE *fp;
 
     eig_min=(DOUBLE*)calloc(columns,sizeof(DOUBLE));
     eig_bound=(DOUBLE*)calloc(columns,sizeof(DOUBLE));
-
 #endif
 
 @ Additional variables for ``Eigen bounds''.
@@ -2032,6 +2031,7 @@ static FILE *fp;
     DOUBLE eig_Rs;
     DOUBLE *eig_min;
     DOUBLE *eig_bound;
+    long eig_cut;
 #endif
 
 @    The starting positions of the arrays are set.
@@ -2252,8 +2252,13 @@ $$
     }
     /*|printf("\n");|*/
     
-    
+
+#if 0
 #if 1
+    for (k=0; k<columns; k++) {
+        printf("%0.3lf ", c[k]);
+    }
+    printf("\n");
     printf("Min. Eigen values:\n");
     for (k=0; k<columns; k++) {
         if (k==0) {
@@ -2276,34 +2281,35 @@ $$
     }
 #endif
 #endif
+    printf("Jacobi: \n");
+    for (k=0; k<columns; k++) {
+        eig_s = Jacobi(R,k);
+        eig_min[k] = eig_s;
+        printf("%0.3lf ", eig_s); fflush(stdout);
+    }
+    printf("\n");
+    printf("End Jacobi \n");
+    eig_cut = 0;
+
+#endif
 
 @ @<local variables for |explicit_enumeration()|@> =
     int k;
-    DOUBLE eig_s, eig_s0, eig_term2;
+    DOUBLE eig_s, eig_term2;
 
 @ @<compute new Eigen bound@>=
 #if 1
-    eig_s0 = 0.0;
     if (level==columns-1) {
         printf("Oben\n");
-        /*|printf("f_%d: ", level);|*/
         eig_s = 0.0;
         for (i=0; i<level; i++) {
             eig_f[level][i] = eig_RinvR[level][i]*us[level];
-            /*|printf("%0.3f ", eig_f[level][i] );|*/
             dum1 = fabs(eig_f[level][i]);
             dum1 -= round(dum1);
-            if (i>0) {
-                eig_s += dum1*dum1;
-            } else {
-                eig_s += dum1*dum1;
-            }
-            printf("%0.3f ", dum1*dum1);
+            eig_s += dum1*dum1;
         }
-        eig_bound[level] = /*|c[0]*eig_s0 +|*/ eig_s*eig_min[level];
-        printf("\n");
+        eig_bound[level] = eig_s*eig_min[level];
     } else {
-        /*|printf("f_%d: ", level);|*/
         eig_term2 = 0.0;
         for (k=level+1; k<columns; k++) {
             eig_term2 += R[level][k]*us[k];
@@ -2312,21 +2318,14 @@ $$
         eig_s = 0.0;
         for (i=0; i<level; i++) {
             eig_f[level][i] = eig_f[level+1][i] - Rinv[i][level]*eig_term2 + eig_RinvR[level][i]*us[level];
-            /*|printf("(%0.3f,", eig_f[level][i] );|*/
             dum1 = fabs(eig_f[level][i]);
             dum1 -= round(dum1);
-            /*|printf("%0.3f ", fabs(dum1));|*/
-            
-            if (i>0) {
-                eig_s += dum1*dum1;
-            } else {
-                eig_s += dum1*dum1;
-            }
-            /*|printf("%0.3f ", dum1*dum1);|*/
+            eig_s += dum1*dum1;
         }
-        eig_bound[level] = /*|c[0]*eig_s0 + |*/eig_s*eig_min[level];
+        eig_bound[level] = eig_s*eig_min[level];
     } 
-    /*|printf("Bound %d: %0.3lf\n", level, eig_bound[level]);|*/
+    /*|printf("Bound %d: Eigmin:%0.3lf, %0.3lf ", level, eig_min[level], eig_s);|*/
+    /*|printf("\n");|*/
 #else
     if (level==0) {
         eig_bound[level] = 0.0;
@@ -2414,9 +2413,20 @@ enough solutions.
 #ifndef NO_OUTPUT
 #if VERBOSE > -1              
         if (loops%100000000 ==0) {                 /*10000000*/
+            printf("%ld loops, solutions: %ld ",loops,nosolutions);
 #if defined(FINCKEPOHST)
-            printf("%ld loops, solutions: %ld, fipo: %ld\n",\
-            loops,nosolutions, fipo_success);
+            printf("fipo: %ld ", fipo_success);
+#endif            
+#if defined(EIGENBOUND)
+            printf("eig_bound: %ld ", eig_cut);
+#endif            
+            printf("\n");
+#if 0
+            /* Write statistics about enumeration levels */
+            for (i=0;i<level_max;i++) {
+                printf("%03d: %ld\n", i, nlow[i]);
+            }
+#endif            
             /*|
             printf("us: ");
             for (i=columns-1;i>=0;i--) {
@@ -2424,15 +2434,6 @@ enough solutions.
             }
             printf("\n");
             |*/
-#if 0
-            /* Write statistics about enumeration levels */
-            for (i=0;i<level_max;i++) {
-                printf("%03d: %ld\n", i, nlow[i]);
-            }
-#endif            
-#else            
-            printf("%ld loops, solutions: %ld\n",loops,nosolutions);
-#endif            
             fflush(stdout);
         }
 #endif
@@ -2459,6 +2460,7 @@ enough solutions.
             
 #endif
 #if 1
+           if (2*level>columns) {
             @<compute new Eigen bound@>;
 #if 0
             if (cs[level]+eig_bound[level]>Fd) {
@@ -2468,8 +2470,10 @@ enough solutions.
             }
 #endif        
             if (cs[level]+eig_bound[level]>Fd) {
+                eig_cut++;
                 goto side_step;
             }
+           }
 #endif            
             compute_w(w,bd,dum,level,rows);
 
@@ -2575,6 +2579,9 @@ we decrease the |level|.
 #if defined(FINCKEPOHST)
     printf("Fincke-Pohst: %ld\n",fipo_success); 
 #endif    
+#if defined(EIGENBOUND)
+    printf("Eigen bound: %ld\n", eig_cut);
+#endif
     printf("Loops: %ld\n",loops);
 #endif
     if (( stop_after_solutions<=nosolutions && stop_after_solutions>0 ) ||
@@ -2635,7 +2642,6 @@ we decrease the |level|.
     free(eig_RinvR);
     free(eig_min);
     free(eig_bound);
-    
 #endif
 
 #if 0
@@ -2880,6 +2886,7 @@ void inverse(DOUBLE **mu, DOUBLE **muinv, int columns) {
 @<pruning with H\"older@>;
 @<prune zeros in row@>;
 @<print a solution@>;
+@<Jacobi method@>;
 
 @ Exact test of all entries on $|level|=0$.
 @<exact test@>=
@@ -2964,6 +2971,106 @@ int prune_only_zeros(DOUBLE *w, int level, int rows, DOUBLE Fq,
     }
     return 0;
 }
+
+@ Jacobi method to compute minimum Eigen value of the symmetric matrix $R^topR$.
+@<Jacobi method@>=
+DOUBLE Jacobi(DOUBLE** Ain, int n) {
+    int i, j, k, nloops;
+    DOUBLE aa, si, co, tt, eps;
+    DOUBLE sum, ssum, amax, amin;
+    DOUBLE **V;
+    DOUBLE **A;
+    
+    sum = 0.0;
+    eps = 0.000001;
+    nloops = 0;
+                
+                    
+    V = (DOUBLE**)calloc(n,sizeof(DOUBLE*)); 
+    for(i=0; i<n; ++i) V[i] = (DOUBLE*)calloc(n,sizeof(DOUBLE));
+    A = (DOUBLE**)calloc(n,sizeof(DOUBLE*)); 
+    for(i=0; i<n; ++i) A[i] = (DOUBLE*)calloc(n,sizeof(DOUBLE));
+                
+   /* Initialization. Set initial Eigenvectors. 
+    Compute $A = Ain^top\cdot Ain$
+   */
+    for (i=0; i<n; i++) {
+        for (j=0; j<n; j++) {
+            V[i][j] = 0.0;
+            A[i][j] = 0.0;
+            for (k=0; k<n; k++) {
+                A[i][j] += Ain[k][i]*Ain[k][j];
+            }
+            /*|A[i][j] = Ain[i][j];|*/
+            sum += fabs(A[i][j]);
+        }
+        V[i][i] = 1.0;
+    }
+    
+    /* Trivial problems */
+    if (n == 1) {
+        return A[0][0];
+    }
+            
+    if (sum <= 0.0) {
+        return 0.0;
+    }
+
+    sum /= (n * n);
+
+    /* Reduce matrix to diagonal */
+    do {
+        ssum = 0.0;
+        amax = 0.0;
+        for (j=1; j<n; j++) {
+            for (i=0; i<j; i++) {
+            /* Check if |A[i][j]| is to be reduced */
+                aa = fabs(A[i][j]);
+                if (aa > amax) {
+                    amax = aa;
+                }
+                ssum += aa;
+                if (aa >= eps) {
+                    /* calculate rotation angle */
+                    aa = atan2(2.0 * A[i][j], A[i][i] - A[j][j]) * 0.5;
+                    si = sin(aa);
+                    co = cos(aa);
+                    /* Modify |i| and |j| columns */
+                    for (k = 0; k < n; k++) {
+                        tt = A[k][i];
+                        A[k][i] = co * tt + si * A[k][j];
+                        A[k][j] = -si * tt + co * A[k][j];
+                        tt = V[k][i];
+                        V[k][i] = co * tt + si * V[k][j];
+                        V[k][j] = -si * tt + co * V[k][j];
+                    }
+                    /* Modify diagonal terms */
+                    A[i][i] =  co * A[i][i] + si * A[j][i];
+                    A[j][j] = -si * A[i][j] + co * A[j][j];
+                    A[i][j] = 0.0;
+                    /* Make |A| matrix symmetrical */
+                    for (k = 0; k < n; k++) {
+                        A[i][k] = A[k][i];
+                        A[j][k] = A[k][j];
+                    }
+                    /* |A[i][j]| made zero by rotation */
+               }
+            }
+        }
+        nloops++;
+    } 
+    while (fabs(ssum) / sum > eps && nloops<100000);
+    amin = A[0][0];
+    for (i=1; i<n; i++) if (A[i][i]<amin) amin = A[i][i];
+    
+    for (i=0;i<n;i++) free (A[i]);
+    free(A);
+    for (i=0;i<n;i++) free (V[i]);
+    free(V);
+    
+    return amin;
+}
+
 @ Output of solutions.
 There are difficulties if there are integers bigger than
 64 bit integers, even in the 
