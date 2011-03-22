@@ -663,12 +663,16 @@ int cutlattice() {
 void shufflelattice() {
     COEFF *tmp;
     int i, j, r;
+    unsigned int s;
     
 #if 1
-    srand((unsigned)(time(0))); 
+    s = (unsigned)(time(0));
 #else
-    srand(0); 
+    s = 0;
 #endif
+    fprintf(stderr, "Seed=%u\n",s);
+    srand(s); 
+    
     for (j=0;j<100;j++) {
         for(i=lattice_columns-2; i>0; i--) {
             r = rand() % i;
