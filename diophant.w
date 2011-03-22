@@ -658,13 +658,13 @@ int cutlattice() {
     return 1;
 }
 
-@ Shuffle the coluns of the lattice.
+@ Shuffle the columns of the lattice.
 @<shuffle lattice columns@>=
 void shufflelattice() {
     COEFF *tmp;
     int i, j, r;
     
-#if 0
+#if 1
     srand((unsigned)(time(0))); 
 #else
     srand(0); 
@@ -1835,7 +1835,7 @@ DOUBLE log_gamma(DOUBLE x) {
 @*Exhaustive enumeration. 
 The algorithm of H.~Ritter.
 @d FINCKEPOHST 1
-@d EIGENBOUND 1
+@d EIGENBOUND 0
 
 @<overall exhaustive enumeration@>=
     @<globals for enumeration@>;
@@ -1873,10 +1873,9 @@ DOUBLE explicit_enumeration (COEFF **lattice, int columns, int rows)
 #if defined(FINCKEPOHST)
     @<determine Fincke-Pohst bounds@>;
 #endif
-#if defined(EIGENBOUND)
+#if EIGENBOUND
     @<initialize Eigen bounds@>;
 #endif
-
 
 #if 0
     basis2LP(fipo_l,fipo_u);
@@ -2004,7 +2003,7 @@ static FILE *fp;
     
 @ The memory for |R| and |Rinv| and the additional arrays for |EIGENBOUND| is allocated.
 @<allocate the memory for Eigen bound@>=
-#if defined(EIGENBOUND)
+#if EIGENBOUND
     Rinv=(DOUBLE**)calloc(columns,sizeof(DOUBLE*));
     for(i=0; i<columns; ++i) Rinv[i] = (DOUBLE*)calloc(columns,sizeof(DOUBLE));
     
@@ -2023,7 +2022,7 @@ static FILE *fp;
 
 @ Additional variables for ``Eigen bounds''.
 @<globals for enumeration@>=
-#if defined(EIGENBOUND)
+#if EIGENBOUND
     DOUBLE **Rinv;    
     DOUBLE **R;
     DOUBLE **eig_f;
@@ -2180,7 +2179,7 @@ $$
 
 #ifndef NO_OUTPUT
 #if VERBOSE > -1    
-        printf("%f ",fipo[i]);
+        printf("%0.3lf ",fipo[i]);
 #endif
 #endif
 #else
@@ -2217,7 +2216,7 @@ $$
 
 @ Initialize Eigen bounds.
 @<initialize Eigen bounds@>=
-#if defined(EIGENBOUND)
+#if EIGENBOUND
     /*|printf("rows=%d, columns=%d, Rinv:\n", rows, columns);|*/
     for (i=0;i<columns;i++) {
         for (j=0;j<columns;j++) {
@@ -2294,8 +2293,10 @@ $$
 #endif
 
 @ @<local variables for |explicit_enumeration()|@> =
+#if EIGENBOUND
     int k;
     DOUBLE eig_s, eig_term2;
+#endif    
 
 @ @<compute new Eigen bound@>=
 #if 1
@@ -2389,8 +2390,11 @@ first non-zero entry in this column.
     long N_success;
     
 @ @<more initialization@>=
-    /*|level = first_nonzero[rows-1];|*/
+#if 1
+    level = first_nonzero[rows-1];
+#else    
     level = 0;
+#endif    
     if (level<0) level = 0;
     level_max = level;
     us[level] = 1;
@@ -2417,7 +2421,7 @@ enough solutions.
 #if defined(FINCKEPOHST)
             printf("fipo: %ld ", fipo_success);
 #endif            
-#if defined(EIGENBOUND)
+#if EIGENBOUND
             printf("eig_bound: %ld ", eig_cut);
 #endif            
             printf("\n");
@@ -2459,22 +2463,6 @@ enough solutions.
             }            
             
 #endif
-#if 1
-           if (2*level>columns) {
-            @<compute new Eigen bound@>;
-#if 0
-            if (cs[level]+eig_bound[level]>Fd) {
-                printf("%d:\t%0.3lf %0.3lf %0.3lf %0.1lf -> cut\n", level, cs[level], Fd, Fd-eig_bound[level], us[level]);
-            } else {
-                printf("%d:\t%0.3lf %0.3lf %0.3lf %0.1lf \n", level, cs[level], Fd, Fd-eig_bound[level], us[level]);
-            }
-#endif        
-            if (cs[level]+eig_bound[level]>Fd) {
-                eig_cut++;
-                goto side_step;
-            }
-           }
-#endif            
             compute_w(w,bd,dum,level,rows);
 
             if (level>0) {
@@ -2536,7 +2524,25 @@ we decrease the |level|.
 		us[level] = v[level] + delta[level];
 #endif
 	} else {
-		level--;
+	
+#if EIGENBOUND
+           if (2*level>columns) {
+            @<compute new Eigen bound@>;
+#if 0
+            if (cs[level]+eig_bound[level]>Fd) {
+                printf("%d:\t%0.3lf %0.3lf %0.3lf %0.1lf -> cut\n", level, cs[level], Fd, Fd-eig_bound[level], us[level]);
+            } else {
+                printf("%d:\t%0.3lf %0.3lf %0.3lf %0.1lf \n", level, cs[level], Fd, Fd-eig_bound[level], us[level]);
+            }
+#endif        
+            if (cs[level]+eig_bound[level]>Fd) {
+                eig_cut++;
+                goto side_step;
+            }
+           }
+#endif            
+
+        level--;
 		eta[level] = 0;
 		delta[level] = 0;
 		if (r[level+1]>r[level]) r[level] = r[level+1];
@@ -2579,7 +2585,7 @@ we decrease the |level|.
 #if defined(FINCKEPOHST)
     printf("Fincke-Pohst: %ld\n",fipo_success); 
 #endif    
-#if defined(EIGENBOUND)
+#if EIGENBOUND
     printf("Eigen bound: %ld\n", eig_cut);
 #endif
     printf("Loops: %ld\n",loops);
@@ -2631,7 +2637,7 @@ we decrease the |level|.
     free(muinv);
 #endif
 
-#if defined(EIGENBOUND)
+#if EIGENBOUND
     for (l=0;l<columns;l++) free (Rinv[l]);
     free(Rinv);
     for (l=0;l<columns;l++) free (R[l]);
@@ -2665,7 +2671,7 @@ static FILE* fp;
 @ @<some vector computations@>=
 DOUBLE compute_y(DOUBLE **mu, DOUBLE *us, int level, int level_max, DOUBLE **sigma, int *r) {
     int i;
-#if 0
+#if 1
     DOUBLE dum;
 
     i = level_max;
@@ -2675,11 +2681,13 @@ DOUBLE compute_y(DOUBLE **mu, DOUBLE *us, int level, int level_max, DOUBLE **sig
         i--;
     }
     /*|return dum;|*/
+#if 0    
 if  (fabs(dum - sigma[level+1][level])>0.000001) {
     printf("diff %0.6lf %0.6lf %0.6lf\n", dum, sigma[level+1][level], fabs(dum - sigma[level+1][level]));
     fflush(stdout);
 }
-return dum;
+#endif
+    return dum;
 #else
     for (i=r[level+1];i>level;i--) sigma[i][level] = sigma[i+1][level] + us[i]*mu[i][level];
     return sigma[level+1][level];
