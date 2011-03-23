@@ -2467,6 +2467,23 @@ enough solutions.
             }            
             
 #endif
+#if EIGENBOUND
+           if (2*level>columns) {
+            @<compute new Eigen bound@>;
+#if 0
+            if (cs[level]+eig_bound[level]>Fd) {
+                printf("%d:\t%0.3lf %0.3lf %0.3lf %0.1lf -> cut\n", level, cs[level], Fd, Fd-eig_bound[level], us[level]);
+            } else {
+                printf("%d:\t%0.3lf %0.3lf %0.3lf %0.1lf \n", level, cs[level], Fd, Fd-eig_bound[level], us[level]);
+            }
+#endif        
+            if (cs[level]+eig_bound[level]>Fd) {
+                eig_cut++;
+                goto side_step;
+            }
+           }
+#endif            
+
             compute_w(w,bd,dum,level,rows);
 
             if (level>0) {
@@ -2477,6 +2494,9 @@ enough solutions.
         } else {
             cs_success++;
 step_back:
+#if 0
+printf("up ");
+#endif
 /* Up: we go to $|level|+1$. */
             nlow[level]++;
             level++;
@@ -2484,6 +2504,9 @@ step_back:
             
             if (level_max<level) level_max = level;
 side_step:        
+#if 0
+printf("side ");
+#endif
 /*    
     Side step: the next value in the same level is 
     chosen.
@@ -2515,6 +2538,9 @@ we decrease the |level|.
 	if (prune_only_zeros(w[level],level,rows,Fq,first_nonzero_in_column,firstp))
 		goto side_step;
 
+#if 0
+    printf("%d ", level);
+#endif    
 	if ( prune(w[level],cs[level],rows,Fq) ) { 
 		if (eta[level]==1) {
 			goto step_back;
@@ -2529,23 +2555,6 @@ we decrease the |level|.
 #endif
 	} else {
 	
-#if EIGENBOUND
-           if (2*level>columns) {
-            @<compute new Eigen bound@>;
-#if 0
-            if (cs[level]+eig_bound[level]>Fd) {
-                printf("%d:\t%0.3lf %0.3lf %0.3lf %0.1lf -> cut\n", level, cs[level], Fd, Fd-eig_bound[level], us[level]);
-            } else {
-                printf("%d:\t%0.3lf %0.3lf %0.3lf %0.1lf \n", level, cs[level], Fd, Fd-eig_bound[level], us[level]);
-            }
-#endif        
-            if (cs[level]+eig_bound[level]>Fd) {
-                eig_cut++;
-                goto side_step;
-            }
-           }
-#endif            
-
         level--;
 		eta[level] = 0;
 		delta[level] = 0;
@@ -2932,6 +2941,7 @@ int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fq) {
 #if !defined(BLAS) 
     int i;
 #endif    
+
     hoelder_no++;
     reseite = (-cs/(1.0+EPSILON))/Fq; /* | * (1-eps) | */
 
@@ -2948,8 +2958,11 @@ int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fq) {
     } while (i>=0);
 #endif    
 #endif    
-    if (0.0 < reseite) return 0;
 
+#if 0
+if (reseite>=0.0) printf("RHS: %0.6lf\n", reseite);
+#endif    
+    if (0.0 < reseite) return 0;
     hoelder_success++;
     return 1; 
 }
