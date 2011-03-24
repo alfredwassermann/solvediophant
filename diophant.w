@@ -1877,6 +1877,7 @@ DOUBLE explicit_enumeration (COEFF **lattice, int columns, int rows)
 #if defined(FINCKEPOHST)
     @<determine Fincke-Pohst bounds@>;
 #endif
+
 #if EIGENBOUND
     @<initialize Eigen bounds@>;
 #endif
@@ -2008,10 +2009,10 @@ static FILE *fp;
 @ The memory for |R| and |Rinv| and the additional arrays for |EIGENBOUND| is allocated.
 @<allocate the memory for Eigen bound@>=
 #if EIGENBOUND
-    Rinv=(DOUBLE**)calloc(columns,sizeof(DOUBLE*));
+    Rinv = (DOUBLE**)calloc(columns,sizeof(DOUBLE*));
     for(i=0; i<columns; ++i) Rinv[i] = (DOUBLE*)calloc(columns,sizeof(DOUBLE));
     
-    R=(DOUBLE**)calloc(columns,sizeof(DOUBLE*));
+    R = (DOUBLE**)calloc(columns,sizeof(DOUBLE*));
     for(i=0; i<columns; ++i) R[i] = (DOUBLE*)calloc(columns,sizeof(DOUBLE));
     
     eig_f = (DOUBLE**)calloc(columns,sizeof(DOUBLE*));
@@ -2020,8 +2021,15 @@ static FILE *fp;
     eig_RinvR = (DOUBLE**)calloc(columns,sizeof(DOUBLE*)); 
     for(i=0; i<columns; ++i) eig_RinvR[i] = (DOUBLE*)calloc(columns,sizeof(DOUBLE));
 
-    eig_min=(DOUBLE*)calloc(columns,sizeof(DOUBLE));
-    eig_bound=(DOUBLE*)calloc(columns,sizeof(DOUBLE));
+    eig_min = (DOUBLE*)calloc(columns,sizeof(DOUBLE));
+    eig_bound = (DOUBLE*)calloc(columns,sizeof(DOUBLE));
+
+    Rinvi = (DOUBLE**)calloc(columns,sizeof(DOUBLE*));
+    for(i=0; i<columns; ++i) Rinvi[i] = (DOUBLE*)calloc(columns,sizeof(DOUBLE));
+    bnd_up = (DOUBLE**)calloc(columns,sizeof(DOUBLE*)); 
+    for(i=0; i<columns; ++i) bnd_up[i] = (DOUBLE*)calloc(columns,sizeof(DOUBLE));
+    bnd_lo = (DOUBLE**)calloc(columns,sizeof(DOUBLE*)); 
+    for(i=0; i<columns; ++i) bnd_lo[i] = (DOUBLE*)calloc(columns,sizeof(DOUBLE));
 #endif
 
 @ Additional variables for ``Eigen bounds''.
@@ -2035,6 +2043,10 @@ static FILE *fp;
     DOUBLE *eig_min;
     DOUBLE *eig_bound;
     long eig_cut;
+
+    DOUBLE **Rinvi;
+    DOUBLE **bnd_up;    
+    DOUBLE **bnd_lo;    
 #endif
 
 @    The starting positions of the arrays are set.
@@ -2159,8 +2171,7 @@ $$
 #endif    
 #endif
 
-    for (i=0;i<columns;i++) {
-#if 1   /*| Symmetric Fincke-Pohst |*/
+    for (i=0;i<columns;i++) {         /* Symmetric Fincke-Pohst */
         fipo[i] = 0.0;
         dum1 = 0.0;
         for (j=0;j<rows;j++) {
@@ -2172,7 +2183,6 @@ $$
         fipo[i] = SQRT(fipo[i]*Fd);
         dum1 =  fabs(dum1*Fq);
         if (dum1 < fipo[i]) fipo[i] = dum1;
-
         fipo[i] *= (1.0+EPSILON);
 
         fipo_LB[columns][i] = -fipo[i]; 
@@ -2186,32 +2196,8 @@ $$
         printf("%0.3lf ",fipo[i]);
 #endif
 #endif
-#else
-        /*| Asymmetric Fincke-Pohst. |*/
-        fipo[i] = 0.0;
-        fipo_u[i] = 0.0;
-        fipo_l[i] = 0.0;
-        dum1 = 0.0;
-        for (j=0;j<rows;j++) {
-            for (l=i,dum=0.0;l<columns;l++) dum += muinv[i][l]*bd[l][j]/c[l];
-            dum2 = muinv[columns-1][columns-1]*bd[columns-1][j]/c[columns-1];
-            fipo[i] += dum*dum;
-            dum1 += fabs(dum);
-
-            fipo_u[i] += fabs(dum+dum2);
-            fipo_l[i] -= fabs(dum-dum2);
-        }                
-        fipo[i] = SQRT(fipo[i]*Fd);
-        dum1 = fabs(dum1*Fq);
-        if (dum1 < fipo[i]) fipo[i] = dum1;
-
-        fipo_u[i] *= Fq*(fipo_u[i]>0)?(1.0+EPSILON):(1.0-EPSILON);
-        fipo_l[i] *= Fq*(fipo_l[i]>0)?(1.0-EPSILON):(1.0+EPSILON);
-#ifndef NO_OUTPUT
-        printf("%03d: %0.1lf\t%0.1lf\n",i, fipo_l[i],fipo_u[i]);
-#endif
-#endif
     }
+    
 #ifndef NO_OUTPUT
 #if VERBOSE > -1    
 	printf("\n\n");@+ fflush(stdout);
@@ -2255,35 +2241,16 @@ $$
     }
     /*|printf("\n");|*/
     
+    for (k=0; k<columns; k++) {
+        for (i=0; i<k; i++) {
+            Rinvi[k][i] = 0.0;
+            for (j=i; j<k; j++) {
+                Rinvi[k][i] += Rinv[i][j]*Rinv[i][j];
+            }
+        }
+    }
 
 #if 0
-#if 1
-    for (k=0; k<columns; k++) {
-        printf("%0.3lf ", c[k]);
-    }
-    printf("\n");
-    printf("Min. Eigen values:\n");
-    for (k=0; k<columns; k++) {
-        if (k==0) {
-            eig_min[0] = 0.0;
-        } else if (k==1) {
-            eig_min[k] = c[0];
-        } else {
-            eig_min[k] = (eig_min[k-1]<c[k-1]) ? eig_min[k-1] : c[k-1];
-        }
-        printf("%0.3lf ", eig_min[k]);
-    }
-    printf("\n");
-#else
-    eig_min[0] = c[0];
-    for (k=1; k<columns; k++) {
-        if (c[k]<eig_min[0]) eig_min[0] = c[k];
-    }
-    for (k=1; k<columns; k++) {
-        eig_min[k] = eig_min[0];
-    }
-#endif
-#endif
     printf("Jacobi: \n");
     for (k=0; k<columns; k++) {
         eig_s = Jacobi(R,k);
@@ -2293,7 +2260,7 @@ $$
     printf("\n");
     printf("End Jacobi \n");
     eig_cut = 0;
-
+#endif
 #endif
 
 @ @<local variables for |explicit_enumeration()|@> =
@@ -2314,6 +2281,11 @@ $$
             eig_s += dum1*dum1;
         }
         eig_bound[level] = eig_s*eig_min[level];
+        
+        for (i=0; i<level; i++) {
+            bnd_up[level-1][i] = fipo[i];
+            bnd_lo[level-1][i] = -fipo[i];
+        }
     } else {
         eig_term2 = 0.0;
         for (k=level+1; k<columns; k++) {
@@ -2323,11 +2295,30 @@ $$
         eig_s = 0.0;
         for (i=0; i<level; i++) {
             eig_f[level][i] = eig_f[level+1][i] - Rinv[i][level]*eig_term2 + eig_RinvR[level][i]*us[level];
+/*|            
             dum1 = fabs(eig_f[level][i]);
             dum1 -= round(dum1);
             eig_s += dum1*dum1;
+|*/            
         }
-        eig_bound[level] = eig_s*eig_min[level];
+        /*|eig_bound[level] = eig_s*eig_min[level];|*/
+        
+        for (i=0; i<level; i++) {
+            dum1 = SQRT(Rinvi[level][i]*(Fd-c[level]));
+            
+            bnd_up[level-1][i] = bnd_up[level][i];
+            if (bnd_up[level-1][i]>dum1-eig_f[level][i]) bnd_up[level-1][i] = dum1-eig_f[level][i];
+
+            bnd_lo[level-1][i] = bnd_lo[level][i];
+            if (bnd_lo[level-1][i]<-dum1-eig_f[level][i]) bnd_lo[level-1][i] = -dum1-eig_f[level][i];
+            /*|printf("(%0.1lf, %0.1lf) ", bnd_lo[level-1][i],bnd_up[level-1][i]);|*/
+            
+            if (bnd_lo[level-1][i]>bnd_up[level-1][i]) {
+                printf("CUT\n");
+            }
+        }
+        /*|printf("%d: (%0.1lf, %0.1lf) \n", level-1, bnd_lo[level-1][level-1],bnd_up[level-1][level-1]);|*/
+        /*|printf("\n");|*/
     } 
     /*|printf("Bound %d: Eigmin:%0.3lf, %0.3lf ", level, eig_min[level], eig_s);|*/
     /*|printf("\n");|*/
@@ -2468,21 +2459,11 @@ enough solutions.
             
 #endif
 #if EIGENBOUND
-           if (2*level>columns) {
-            @<compute new Eigen bound@>;
-#if 0
-            if (cs[level]+eig_bound[level]>Fd) {
-                printf("%d:\t%0.3lf %0.3lf %0.3lf %0.1lf -> cut\n", level, cs[level], Fd, Fd-eig_bound[level], us[level]);
-            } else {
-                printf("%d:\t%0.3lf %0.3lf %0.3lf %0.1lf \n", level, cs[level], Fd, Fd-eig_bound[level], us[level]);
-            }
-#endif        
-            if (cs[level]+eig_bound[level]>Fd) {
-                eig_cut++;
+           if (level<columns-1 && (us[level]<bnd_lo[level][level] || us[level]>bnd_up[level][level])) {
+                printf("%d:\t%0.3lf %0.3lf %0.3lf -> cut\n", level, bnd_lo[level][level], us[level], bnd_up[level][level]);
                 goto side_step;
-            }
            }
-#endif            
+#endif
 
             compute_w(w,bd,dum,level,rows);
 
@@ -2554,7 +2535,24 @@ we decrease the |level|.
 		us[level] = v[level] + delta[level];
 #endif
 	} else {
-	
+#if EIGENBOUND
+           if (1||level>columns) {
+            @<compute new Eigen bound@>;
+#if 0
+            if (cs[level]+eig_bound[level]>Fd) {
+                printf("%d:\t%0.3lf %0.3lf %0.3lf %0.1lf -> cut\n", level, cs[level], Fd, Fd-eig_bound[level], us[level]);
+            } else {
+                printf("%d:\t%0.3lf %0.3lf %0.3lf %0.1lf \n", level, cs[level], Fd, Fd-eig_bound[level], us[level]);
+            }
+            if (cs[level]+eig_bound[level]>Fd) {
+                eig_cut++;
+                goto side_step;
+            }
+#endif        
+           }
+#endif            
+
+
         level--;
 		eta[level] = 0;
 		delta[level] = 0;
@@ -2661,6 +2659,13 @@ we decrease the |level|.
     free(eig_RinvR);
     free(eig_min);
     free(eig_bound);
+
+    for (l=0;l<columns;l++) free (Rinvi[l]);
+    free(Rinvi);
+    for (l=0;l<columns;l++) free (bnd_up[l]);
+    free(bnd_up);
+    for (l=0;l<columns;l++) free (bnd_lo[l]);
+    free(bnd_lo);
 #endif
 
 #if 0
