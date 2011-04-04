@@ -6,8 +6,7 @@ CFLAGS= -O3 -Wall -ffast-math \
         #
 #CFLAGS= -g -Wall  
 #ASSEMBLERLIB=-L./blas -lblas1
-ASSEMBLERLIB=
-#GMPLIB=-L../gmp-4.2.1/bin/lib
+ASSEMBLERLIB=./GotoBLAS2/libgoto2_core2p-r1.13.a
 #GMPLIB=-L../gmp-4.2.1/bin/lib
 #GMPINC=-I../gmp-4.2.1/bin/include
 #GMPLIB=
@@ -26,7 +25,8 @@ solvediophant.c: solvediophant.w
 
 solvediophant: solvediophant.c diophant.o diophant.h 
 	$(CC) $(CFLAGS) -o solvediophant solvediophant.c diophant.o \
-	-lm -static -lgmp $(GMPLIB) $(ASSEMBLERLIB)  $(GMPINC)
+	$(ASSEMBLERLIB) \
+	-lm -static -lgmp $(GMPLIB)  $(GMPINC) -lpthread
 	strip solvediophant
 #	$(CC) -static $(CFLAGS) -o solvediophant solvediophant.c diophant.o \
 

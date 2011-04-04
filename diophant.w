@@ -21,6 +21,7 @@ $$x= (1,0,0,1,0,1,0,1,1,0,0,1,0)^\top.$$
 @ Initial definitions. 
 The LLL and BKZ algorithms can be controlled by the following
 declarations.
+@d BLAS 0
 @d DEEPINSERT 1
 @d DEEPINSERT_CONST 2000
 @d VERBOSE 1
@@ -133,7 +134,6 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
 #ifndef _DIOPHANT_H
 #define _DIOPHANT_H
 #include <gmp.h>
-#undef BLAS
 extern long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     int no_columns, int no_rows,
     mpz_t factor_input, mpz_t norm_input, 
@@ -144,9 +144,7 @@ extern long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     int cut_after, int nboundedvars, FILE* solfile);
 #endif
 
-@ The following header files are included. There is a conflict
-between freelip and the BLAS-library. So if we use multiprecision
-integers we cannot use BLAS.
+@ The following header files are included. 
 @<include header files@>=
 #include <stdio.h>
 #include <time.h>
@@ -155,13 +153,9 @@ integers we cannot use BLAS.
 #include <malloc.h>
 #include <math.h>
 #include <gmp.h>
-#undef BLAS
-#if defined(BLAS)
-#include "blas/blas1.h"
-#else
-#if defined(BLAS2)
-#include "blas_intel/cblas.h"
-#endif
+#if BLAS
+#include "GotoBLAS2/common.h"
+#include "GotoBLAS2/cblas.h"
 #endif
 
 @ The data structure of the lattice:
@@ -668,7 +662,7 @@ void shufflelattice() {
 #if 1
     s = (unsigned)(time(0));
 #else
-    s = 0;
+    s = 1300964772;
 #endif
     fprintf(stderr, "Seed=%u\n",s);
     srand(s); 
@@ -1224,17 +1218,13 @@ gleich:    vv = &(v[t1]);
 DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n)
 {
     DOUBLE r;
-#if defined(BLAS)
-    r = ddot(n,v,1,w,1);
-#else
-#if defined(BLAS2)
+#if BLAS
     r = cblas_ddot(n,v,1,w,1);
 #else
     int i;
 
     r = 0.0;
     for (i=n-1;i>=0;i--) r += v[i]*w[i];
-#endif    
 #endif    
     return r;
 }
@@ -1700,7 +1690,9 @@ int start_block, int end_block, int p)
                 us[t] = v[t] = (long)(ROUND(-y[t]));
                 d[t] = (v[t] > -y[t]) ? -1 : 1;
             } else {
+#if 0            
 printf("success %0.4lf %0.4lf %0.8lf\n",cd, cs[start_block], cd-cs[start_block]);
+#endif
                 cd = cs[start_block];
                 for (i=start_block;i<=end_block;i++) u[i] = us[i];
                 goto nextstep;                
@@ -1868,16 +1860,33 @@ DOUBLE explicit_enumeration (COEFF **lattice, int columns, int rows)
     @<sort lattice columns@>;
 #endif    
     @<set the simple pruning bounds@>;
-   @<orthogonalize the basis@>;
+    @<orthogonalize the basis@>;
+    
 #if 0    
-    print_lattice();
     basis2poly();
 #endif    
     
 #if defined(FINCKEPOHST)
     @<determine Fincke-Pohst bounds@>;
 #endif
-
+    
+    /* Remove trailing unnecessary columns. That means, columns
+       whose corresponding Finke-Pohst bounds are equal to 0
+       can be removed.
+       This is important for the Selfdual Bent Functions Problems
+     */
+    for (i=columns-1; i>=0; i--) {
+        if (fipo[i]<0.5) {
+            printf("DEL\n");
+            columns--;
+        } else {
+            break;
+        }
+    }
+    /*|print_lattice();|*/
+    @<orthogonalize the basis@>;
+    @<determine Fincke-Pohst bounds@>;
+    
 #if EIGENBOUND
     @<initialize Eigen bounds@>;
 #endif
@@ -2081,10 +2090,8 @@ static FILE *fp;
 @<sort by Fincke-Pohst bounds@>=
    for (j=columns-3;j>0;j--) {
        for (l=j-1;l>=0;l--) {
-#if 0        
+#if 1
         if (fipo[l]<fipo[j]) {      /* $<$ means: sort in descending order. */
-#else
-        if (fipo_u[l]-fipo_l[l]<fipo_u[j]-fipo_l[j]) {      
 #endif            
             swap_vec = lattice[l];
             for (i=l+1;i<=j;i++) lattice[i-1] = lattice[i];
@@ -2304,7 +2311,7 @@ $$
         /*|eig_bound[level] = eig_s*eig_min[level];|*/
         
         for (i=0; i<level; i++) {
-            dum1 = SQRT(Rinvi[level][i]*(Fd-c[level]));
+            dum1 = SQRT(Rinvi[level][i]*(Fd-cs[level]));
             
             bnd_up[level-1][i] = bnd_up[level][i];
             if (bnd_up[level-1][i]>dum1-eig_f[level][i]) bnd_up[level-1][i] = dum1-eig_f[level][i];
@@ -2383,6 +2390,9 @@ first non-zero entry in this column.
     long only_zeros_no, only_zeros_success, hoelder_no, hoelder_success;
     long cs_success;
     long N_success;
+    long N2_success;
+    long N3_success;
+    
     
 @ @<more initialization@>=
 #if 1
@@ -2402,6 +2412,8 @@ first non-zero entry in this column.
     hoelder_no = hoelder_success = 0;
     cs_success = nosolutions = loops = 0;
     N_success = 0;
+    N2_success = 0;
+    N3_success = 0;
 
 @ Increase the loop counter and test if we already can stop after collecting
 enough solutions. 
@@ -2419,6 +2431,8 @@ enough solutions.
 #if EIGENBOUND
             printf("eig_bound: %ld ", eig_cut);
 #endif            
+            printf("pruneN: %ld ", N2_success);
+            printf("pruneN2: %ld ", N3_success);
             printf("\n");
 #if 0
             /* Write statistics about enumeration levels */
@@ -2522,7 +2536,7 @@ we decrease the |level|.
 #if 0
     printf("%d ", level);
 #endif    
-	if ( prune(w[level],cs[level],rows,Fq) ) { 
+	if (prune(w[level],cs[level],rows,Fq) ) { 
 		if (eta[level]==1) {
 			goto step_back;
 		}
@@ -2535,8 +2549,14 @@ we decrease the |level|.
 		us[level] = v[level] + delta[level];
 #endif
 	} else {
+#if 0	
+        if (pruneN(w, cs, level, rows, columns, Fq)) {
+            goto side_step;
+        }
+#endif
+
 #if EIGENBOUND
-           if (1||level>columns) {
+           if (2*level>0.0*columns) {
             @<compute new Eigen bound@>;
 #if 0
             if (cs[level]+eig_bound[level]>Fd) {
@@ -2593,6 +2613,8 @@ we decrease the |level|.
     printf("Prune_only_zeros: %ld of %ld\n",only_zeros_success,only_zeros_no);
     printf("Prune_hoelder: %ld of %ld\n",hoelder_success,hoelder_no);
     printf("Prune_N: %ld\n",N_success);
+    printf("Prune_N2: %ld\n",N2_success);
+    printf("Prune_N3: %ld\n",N3_success);
 #if defined(FINCKEPOHST)
     printf("Fincke-Pohst: %ld\n",fipo_success); 
 #endif    
@@ -2686,7 +2708,8 @@ we decrease the |level|.
 @ @<global variables@>=
 static FILE* fp;
 
-@ @<some vector computations@>=
+@ 
+@<some vector computations@>=
 DOUBLE compute_y(DOUBLE **mu, DOUBLE *us, int level, int level_max, DOUBLE **sigma, int *r) {
     int i;
 #if 1
@@ -2713,11 +2736,7 @@ if  (fabs(dum - sigma[level+1][level])>0.000001) {
 }
 
 void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE dum, int level, int rows) {
-#if defined(BLAS) 
-    dcopy(rows,w[level+1],1,w[level],1);
-    daxpy(rows,dum,bd[level],1,w[level],1);
-#else
-#if defined(BLAS2) 
+#if 0*BLAS
     cblas_dcopy(rows,w[level+1],1,w[level],1);
     cblas_daxpy(rows,dum,bd[level],1,w[level],1);
 #else
@@ -2727,7 +2746,6 @@ void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE dum, int level, int rows) {
     while (l>=0) {
         w[level][l] = w[level+1][l] + dum*bd[level][l]; l--;
     } 
-#endif
 #endif
     return;
 }
@@ -2943,17 +2961,14 @@ int prune0(DOUBLE li, DOUBLE re) {
 @<pruning with H\"older@>=
 int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fq) {
     DOUBLE reseite;
-#if !defined(BLAS) 
+#if !BLAS
     int i;
 #endif    
 
     hoelder_no++;
     reseite = (-cs/(1.0+EPSILON))/Fq; /* | * (1-eps) | */
-
-#if defined(BLAS) 
-    reseite += dasum(rows,w,1);
-#else
-#if defined(BLAS2) 
+    
+#if BLAS
     reseite += cblas_dasum(rows,w,1);
 #else
     i = rows-1;
@@ -2962,14 +2977,103 @@ int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fq) {
         i--;
     } while (i>=0);
 #endif    
-#endif    
 
 #if 0
 if (reseite>=0.0) printf("RHS: %0.6lf\n", reseite);
 #endif    
+
     if (0.0 < reseite) return 0;
     hoelder_success++;
     return 1; 
+}
+
+int pruneN(DOUBLE **w, DOUBLE *cs, int t, int rows, int cols, DOUBLE Fq) {
+    int i, t_up;
+    DOUBLE sum;
+    DOUBLE r;
+    if (t>=cols-2) return 0;
+
+if (t<cols/2+10) return 0;
+
+    t_up = t+1; /*|cols-1;|*/
+    r = 0.4;
+    sum = 0.0;
+    for (i=0; i<rows; i++) {
+        sum += fabs(w[t][i]-r*w[t_up][i]);
+    }
+    sum *= Fq*(1.000001);
+    sum -= fabs(cs[t]-r*cs[t_up]);
+    if (sum<0.0) {
+        N2_success++;
+#if 0
+        printf("PRUNEN %d %d %0.3lf\n", t, t_up, r);
+#endif    
+        return 1;
+    }
+
+    t_up = t+2; /*|cols-1;|*/
+    r = 0.4;
+    sum = 0.0;
+    for (i=0; i<rows; i++) {
+        sum += fabs(w[t][i]-r*w[t_up][i]);
+    }
+    sum *= Fq*(1.000001);
+    sum -= fabs(cs[t]-r*cs[t_up]);
+    if (sum<0.0) {
+        N2_success++;
+#if 0
+        printf("PRUNEN %d %d %0.3lf\n", t, t_up, r);
+#endif    
+        return 1;
+    }
+
+    t_up = cols-1;
+    r = 0.2;
+    sum = 0.0;
+    for (i=0; i<rows; i++) {
+        sum += fabs(w[t][i]-r*w[t_up][i]);
+    }
+    sum *= Fq*(1.000001);
+    sum -= fabs(cs[t]-r*cs[t_up]);
+    if (sum<0.0) {
+        N2_success++;
+#if 0
+        printf("PRUNEN %d %d %0.3lf\n", t, t_up, r);
+#endif    
+        return 1;
+    }
+
+if (0 && t>cols-20) {
+    r = 0.2;
+    sum = 0.0;
+    for (i=0; i<rows; i++) {
+        sum += fabs(w[t][i]-r*w[t_up][i]);
+    }
+    sum *= Fq*(1.000001);
+    sum -= fabs(cs[t]-r*cs[t_up]);
+    if (sum<0.0) {
+        N3_success++;
+#if 0
+        printf("PRUNEN %d %d %0.3lf\n", t, t_up, r);
+#endif    
+        return 1;
+    }
+    r = 0.3;
+    sum = 0.0;
+    for (i=0; i<rows; i++) {
+        sum += fabs(w[t][i]-r*w[t_up][i]);
+    }
+    sum *= Fq*(1.000001);
+    sum -= fabs(cs[t]-r*cs[t_up]);
+    if (sum<0.0) {
+        N3_success++;
+#if 0
+        printf("PRUNEN %d %d %0.3lf\n", t, t_up, r);
+#endif    
+        return 1;
+    }
+}    
+    return 0;
 }
 
 @ Prune if there remain only zeros in a not finished
