@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS= -O3 -Wall -ffast-math \
         -funroll-all-loops -fomit-frame-pointer -finline-functions  \
-        -mtune=core2 -msse -msse2 -msse3 -m64 \
+        -mtune=core2 -msse -msse2 -msse3 -mssse3 -m64 \
         -ftree-vectorize -ftree-vectorizer-verbose=2 
 	#-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4
 	#-mveclibabi=svml 

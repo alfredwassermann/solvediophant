@@ -2754,37 +2754,41 @@ DOUBLE compute_y(DOUBLE **mu, DOUBLE *us, int level, int level_max, DOUBLE **sig
 void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
 #if 1
     double out[2];
-    __m128d a, x, y, z;
+    __m128d a, x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4;
     int l;
     
     a = _mm_loaddup_pd(&alpha);
     for (l=0;l<rows;l+=8) {
         /*|w[level][l] = w[level+1][l] + alpha*bd[level][l]; |*/
-        x = _mm_set_pd(bd[level][l+1], bd[level][l]);
-        y = _mm_set_pd(w[level+1][l+1], w[level+1][l]);
-        x = _mm_mul_pd(x, a);
-        z = _mm_add_pd(x, y);
-        _mm_storeu_pd((double *)&(w[level][l]), z);
-        
-        #if 0
-        x = _mm_set_pd(bd[level][l+3], bd[level][l+2]);
-        y = _mm_set_pd(w[level+1][l+3], w[level+1][l+2]);
-        x = _mm_mul_pd(x, a);
-        z = _mm_add_pd(x, y);
-        _mm_storeu_pd((double *)&(w[level][l+2]), z);
+        x1 = _mm_load_pd(&(bd[level][l]));
+        y1 = _mm_load_pd(&(w[level+1][l]));
 
-        x = _mm_set_pd(bd[level][l+5], bd[level][l+4]);
-        y = _mm_set_pd(w[level+1][l+5], w[level+1][l+4]);
-        x = _mm_mul_pd(x, a);
-        z = _mm_add_pd(x, y);
-        _mm_storeu_pd((double *)&(w[level][l+4]), z);
+        x2 = _mm_load_pd(&(bd[level][l+2]));
+        y2 = _mm_load_pd(&(w[level+1][l+2]));
 
-        x = _mm_set_pd(bd[level][l+7], bd[level][l+6]);
-        y = _mm_set_pd(w[level+1][l+7], w[level+1][l+6]);
-        x = _mm_mul_pd(x, a);
-        z = _mm_add_pd(x, y);
-        _mm_storeu_pd((double *)&(w[level][l+6]), z);
-        #endif
+        x3 = _mm_load_pd(&(bd[level][l+4]));
+        y3 = _mm_load_pd(&(w[level+1][l+4]));
+
+        x4 = _mm_load_pd(&(bd[level][l+6]));
+        y4 = _mm_load_pd(&(w[level+1][l+6]));
+
+        x1 = _mm_mul_pd(x1, a);
+        z1 = _mm_add_pd(x1, y1);
+        _mm_storeu_pd((double *)&(w[level][l]), z1);
+
+        x2 = _mm_mul_pd(x2, a);
+        z2 = _mm_add_pd(x2, y2);
+        _mm_storeu_pd((double *)&(w[level][l+2]), z2);
+
+        x3 = _mm_mul_pd(x3, a);
+        z3 = _mm_add_pd(x3, y3);
+        _mm_storeu_pd((double *)&(w[level][l+4]), z3);
+
+        x4 = _mm_mul_pd(x4, a);
+        z4 = _mm_add_pd(x4, y4);
+        _mm_storeu_pd((double *)&(w[level][l+6]), z4);
+
+
     } 
     return;
 #endif
