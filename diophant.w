@@ -21,7 +21,7 @@ $$x= (1,0,0,1,0,1,0,1,1,0,0,1,0)^\top.$$
 @ Initial definitions. 
 The LLL and BKZ algorithms can be controlled by the following
 declarations.
-@d BLAS 0
+@d BLAS 1
 @d DEEPINSERT 1
 @d DEEPINSERT_CONST 2000
 @d VERBOSE 1
@@ -153,6 +153,12 @@ extern long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
 #include <malloc.h>
 #include <math.h>
 #include <gmp.h>
+#if 1
+    /* Intrinsic SSE */
+    #include <xmmintrin.h>
+    #include <emmintrin.h>
+#endif
+
 #if BLAS
 #include "GotoBLAS2/common.h"
 #include "GotoBLAS2/cblas.h"
@@ -659,7 +665,7 @@ void shufflelattice() {
     int i, j, r;
     unsigned int s;
     
-#if 1
+#if 0
     s = (unsigned)(time(0));
 #else
     s = 1300964772;
@@ -1217,16 +1223,15 @@ gleich:    vv = &(v[t1]);
 @ @<scalarproduct with doubles@>=
 DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n)
 {
-    DOUBLE r;
 #if BLAS
-    r = cblas_ddot(n,v,1,w,1);
+    return cblas_ddot(n,v,1,w,1);
 #else
+    DOUBLE r;
     int i;
-
     r = 0.0;
     for (i=n-1;i>=0;i--) r += v[i]*w[i];
-#endif    
     return r;
+#endif    
 }
 
 @ Allocation of memory. For the upper triangular matrix $\mu$ a
@@ -1847,18 +1852,19 @@ DOUBLE explicit_enumeration (COEFF **lattice, int columns, int rows)
 {
     @<local variables for |explicit_enumeration()|@>;
     
+    /* Vector to collect enumeration statistics */
     long nlow[1000];
     for (i=0;i<1000;i++) nlow[i] = 0;
-
 
     @<test the size of the basis@>;
     @<allocate the memory for enumeration@>;
     @<allocate the memory for Eigen bound@>;
     @<initialize arrays@>;
     @<count nonzero entries in the last rows(s)@>;
-#if 1
+#if 0
     @<sort lattice columns@>;
 #endif    
+    
     @<set the simple pruning bounds@>;
     @<orthogonalize the basis@>;
     
@@ -1876,7 +1882,7 @@ DOUBLE explicit_enumeration (COEFF **lattice, int columns, int rows)
        This is important for the Selfdual Bent Functions Problems
      */
     for (i=columns-1; i>=0; i--) {
-        if (fipo[i]<0.5) {
+        if (fipo[i]<0.9) {
             printf("DEL\n");
             columns--;
         } else {
@@ -1884,8 +1890,10 @@ DOUBLE explicit_enumeration (COEFF **lattice, int columns, int rows)
         }
     }
     /*|print_lattice();|*/
+#if 0    
     @<orthogonalize the basis@>;
     @<determine Fincke-Pohst bounds@>;
+#endif    
     
 #if EIGENBOUND
     @<initialize Eigen bounds@>;
@@ -1910,6 +1918,8 @@ static FILE *fp;
 #endif 
 
 @ @<local variables for |explicit_enumeration()|@>=
+    /*|__attribute((aligned(16)))|*/
+    
     int level,level_max;
     int i,j,l;
     long loops;
@@ -2076,9 +2086,9 @@ static FILE *fp;
     columns with a nonzero entry in the last row are 
     at the end.    
 @<sort lattice columns@>=
-   for (j=columns-1;j>0;j--) {
-    for (l=j-1;l>=0;l--) {
-        if (mpz_cmpabs(get_entry(l,rows-1),get_entry(j,rows-1))>0) {
+    for (j=columns-1;j>0;j--) {
+        for (l=j-1;l>=0;l--) {
+            if (mpz_cmpabs(get_entry(l,rows-1),get_entry(j,rows-1))>0) {
                 swap_vec = lattice[l];
                 for (i=l+1;i<=j;i++) lattice[i-1] = lattice[i];
                 lattice[j] = swap_vec;
@@ -2393,9 +2403,8 @@ first non-zero entry in this column.
     long N2_success;
     long N3_success;
     
-    
 @ @<more initialization@>=
-#if 1
+#if 0
     level = first_nonzero[rows-1];
 #else    
     level = 0;
@@ -2712,7 +2721,7 @@ static FILE* fp;
 @<some vector computations@>=
 DOUBLE compute_y(DOUBLE **mu, DOUBLE *us, int level, int level_max, DOUBLE **sigma, int *r) {
     int i;
-#if 1
+#if 0
     DOUBLE dum;
 
     i = level_max;
@@ -2722,11 +2731,11 @@ DOUBLE compute_y(DOUBLE **mu, DOUBLE *us, int level, int level_max, DOUBLE **sig
         i--;
     }
     /*|return dum;|*/
-#if 0    
-if  (fabs(dum - sigma[level+1][level])>0.000001) {
-    printf("diff %0.6lf %0.6lf %0.6lf\n", dum, sigma[level+1][level], fabs(dum - sigma[level+1][level]));
-    fflush(stdout);
-}
+#if 0
+    if  (fabs(dum - sigma[level+1][level])>0.000001) {
+        printf("diff %0.6lf %0.6lf %0.6lf\n", dum, sigma[level+1][level], fabs(dum - sigma[level+1][level]));
+        fflush(stdout);
+    }
 #endif
     return dum;
 #else
@@ -2735,16 +2744,32 @@ if  (fabs(dum - sigma[level+1][level])>0.000001) {
 #endif    
 }
 
-void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE dum, int level, int rows) {
+void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
+    __m128 vb = _mm_set_ps(alpha, alpha);
+    
 #if 0*BLAS
     cblas_dcopy(rows,w[level+1],1,w[level],1);
-    cblas_daxpy(rows,dum,bd[level],1,w[level],1);
-#else
+    cblas_daxpy(rows,alpha,bd[level],1,w[level],1);
+#else    
     int l;
-    
+
+  #if 0    
+    for (l=0;l<rows;l++) {
+        w[level][l] = w[level+1][l] + alpha*bd[level][l]; 
+    }
+  #endif
+  
     l = rows-1;
     while (l>=0) {
-        w[level][l] = w[level+1][l] + dum*bd[level][l]; l--;
+        w[level][l] = w[level+1][l] + alpha*bd[level][l]; 
+        l--;
+    } 
+#endif
+
+#if 0
+    while (l>=0) {
+        w[level][l] = w[level+1][l] + alpha*bd[level][l]; 
+        l--;
     } 
 #endif
     return;
@@ -2967,7 +2992,6 @@ int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fq) {
 
     hoelder_no++;
     reseite = (-cs/(1.0+EPSILON))/Fq; /* | * (1-eps) | */
-    
 #if BLAS
     reseite += cblas_dasum(rows,w,1);
 #else

@@ -1,12 +1,15 @@
 CC=gcc
 CFLAGS= -O3 -Wall -ffast-math \
         -funroll-all-loops -fomit-frame-pointer -finline-functions  \
-        -march=core2 -msse3
+        -mtune=core2 -msse -msse2 -msse3 -m64 
+        #-ftree-vectorize -ftree-vectorizer-verbose=2 
+	#-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4
+	#-mveclibabi=svml 
         #-mfpmath=sse+387
         #
 #CFLAGS= -g -Wall  
 #ASSEMBLERLIB=-L./blas -lblas1
-ASSEMBLERLIB=./GotoBLAS2/libgoto2_core2p-r1.13.a
+ASSEMBLERLIB=./GotoBLAS2/libgoto2.a
 #GMPLIB=-L../gmp-4.2.1/bin/lib
 #GMPINC=-I../gmp-4.2.1/bin/include
 #GMPLIB=
@@ -26,7 +29,7 @@ solvediophant.c: solvediophant.w
 solvediophant: solvediophant.c diophant.o diophant.h 
 	$(CC) $(CFLAGS) -o solvediophant solvediophant.c diophant.o \
 	$(ASSEMBLERLIB) \
-	-lm -static -lgmp $(GMPLIB)  $(GMPINC) -lpthread
+	-lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
 	strip solvediophant
 #	$(CC) -static $(CFLAGS) -o solvediophant solvediophant.c diophant.o \
 
