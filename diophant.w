@@ -155,8 +155,11 @@ extern long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
 #include <gmp.h>
 #if 1
     /* Intrinsic SSE */
+    /*|
     #include <xmmintrin.h>
     #include <emmintrin.h>
+    |*/
+    #include <pmmintrin.h>
 #endif
 
 #if BLAS
@@ -1241,6 +1244,7 @@ Gram-Schmidt, Householder and Givens rotation.
 int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z) @;
 {
     int i,m;
+    int zeven;
 
     if ((z < 1) || (s < 1)) return 0;
 
@@ -1252,8 +1256,9 @@ int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z) 
     m = (z>s) ? z : s;
     (*bs)=(DOUBLE**)calloc(m,sizeof(DOUBLE*));
         
+    zeven = (m%8!=0) ? (m/8+1)*8 : m;
     for(i=0;i<m;i++) 
-        (*bs)[i]=(DOUBLE*)calloc(m,sizeof(DOUBLE));
+        (*bs)[i]=(DOUBLE*)calloc(zeven,sizeof(DOUBLE));
 
     return 1;
 }
@@ -1942,6 +1947,7 @@ static FILE *fp;
 
     DOUBLE **sigma;
     int *r;
+    int rowseven;
     
 #if defined(FINCKEPOHST)
     DOUBLE *fipo, *fipo_u, *fipo_l;
@@ -1984,6 +1990,7 @@ static FILE *fp;
     eta=(long*)calloc(columns+1,sizeof(long));
     v=(long*)calloc(columns+1,sizeof(long));
     w=(DOUBLE**)calloc(columns+1,sizeof(DOUBLE*));
+    rowseven = (rows%8!=0)? (rows/8+1)*8 : rows;
     for (i=0;i<=columns;i++) w[i]=(DOUBLE*)calloc(rows,sizeof(DOUBLE));
 
     sigma =(DOUBLE**)calloc(columns+1,sizeof(DOUBLE*));
@@ -2745,21 +2752,51 @@ DOUBLE compute_y(DOUBLE **mu, DOUBLE *us, int level, int level_max, DOUBLE **sig
 }
 
 void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
-    __m128 vb = _mm_set_ps(alpha, alpha);
+#if 1
+    double out[2];
+    __m128d a, x, y, z;
+    int l;
     
+    a = _mm_loaddup_pd(&alpha);
+    for (l=0;l<rows;l+=8) {
+        /*|w[level][l] = w[level+1][l] + alpha*bd[level][l]; |*/
+        x = _mm_set_pd(bd[level][l+1], bd[level][l]);
+        y = _mm_set_pd(w[level+1][l+1], w[level+1][l]);
+        x = _mm_mul_pd(x, a);
+        z = _mm_add_pd(x, y);
+        _mm_storeu_pd((double *)&(w[level][l]), z);
+        
+        #if 0
+        x = _mm_set_pd(bd[level][l+3], bd[level][l+2]);
+        y = _mm_set_pd(w[level+1][l+3], w[level+1][l+2]);
+        x = _mm_mul_pd(x, a);
+        z = _mm_add_pd(x, y);
+        _mm_storeu_pd((double *)&(w[level][l+2]), z);
+
+        x = _mm_set_pd(bd[level][l+5], bd[level][l+4]);
+        y = _mm_set_pd(w[level+1][l+5], w[level+1][l+4]);
+        x = _mm_mul_pd(x, a);
+        z = _mm_add_pd(x, y);
+        _mm_storeu_pd((double *)&(w[level][l+4]), z);
+
+        x = _mm_set_pd(bd[level][l+7], bd[level][l+6]);
+        y = _mm_set_pd(w[level+1][l+7], w[level+1][l+6]);
+        x = _mm_mul_pd(x, a);
+        z = _mm_add_pd(x, y);
+        _mm_storeu_pd((double *)&(w[level][l+6]), z);
+        #endif
+    } 
+    return;
+#endif
+
+#if 0
 #if 0*BLAS
     cblas_dcopy(rows,w[level+1],1,w[level],1);
     cblas_daxpy(rows,alpha,bd[level],1,w[level],1);
 #else    
     int l;
 
-  #if 0    
-    for (l=0;l<rows;l++) {
-        w[level][l] = w[level+1][l] + alpha*bd[level][l]; 
-    }
-  #endif
-  
-    l = rows-1;
+    l = rows;
     while (l>=0) {
         w[level][l] = w[level+1][l] + alpha*bd[level][l]; 
         l--;
@@ -2773,6 +2810,7 @@ void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     } 
 #endif
     return;
+#endif    
 }
 
 @ Update the Fincke-Pohst bounds during enumeration.
