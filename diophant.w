@@ -1942,12 +1942,16 @@ static FILE *fp;
     DOUBLE *N, **mu, *c, **w, **bd;
 
     DOUBLE Fd, Fq; 
-    DOUBLE dum;
+    DOUBLE *dum;
+    DOUBLE tmp;
     COEFF *swap_vec;
 
     DOUBLE **sigma;
     int *r;
     int rowseven;
+	int isSideStep = 0;
+    DOUBLE stepWidth = 0.0;
+    DOUBLE oldus;
     
 #if defined(FINCKEPOHST)
     DOUBLE *fipo, *fipo_u, *fipo_l;
@@ -1999,6 +2003,7 @@ static FILE *fp;
        sigma[i] =(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
        r[i] = i-1;
     }
+    dum = (DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
 
 #if defined(FINCKEPOHST)
     fipo=(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
@@ -2199,10 +2204,10 @@ $$
         fipo[i] = 0.0;
         dum1 = 0.0;
         for (j=0;j<rows;j++) {
-            dum = 0.0;
-            for (l=i;l<columns;l++) dum += muinv[i][l]*bd[l][j]/c[l];
-            fipo[i] += dum*dum;
-            dum1 += fabs(dum);
+            tmp = 0.0;
+            for (l=i;l<columns;l++) tmp += muinv[i][l]*bd[l][j]/c[l];
+            fipo[i] += tmp*tmp;
+            dum1 += fabs(tmp);
         }                
         fipo[i] = SQRT(fipo[i]*Fd);
         dum1 =  fabs(dum1*Fq);
@@ -2473,7 +2478,7 @@ enough solutions.
     do {  
         @<increase loop counter@>;
         @<compute new |cs|@>;
-        if ( (cs[level]<Fd) && (!prune0(fabs(dum),N[level])) )  {   
+        if ( (cs[level]<Fd) && (!prune0(fabs(dum[level]),N[level])) )  {   
 #if defined(FINCKEPOHST)
 #if 1 
             if (fabs(us[level])>fipo[level]) {
@@ -2494,8 +2499,18 @@ enough solutions.
                 goto side_step;
            }
 #endif
-
-            compute_w(w,bd,dum,level,rows);
+			
+#if 1
+			if (isSideStep) {
+/*|printf("%d: %0.3lf %0.3lf \n", level, dum[level], stepWidth);|*/
+            	compute_w2(w,bd,stepWidth,level,rows);
+			} else {
+/*|printf("%ld: %0.3lf \n", level, dum[level]);|*/
+            	compute_w(w,bd,dum[level],level,rows);
+			}
+#else
+            compute_w(w,bd,dum[level],level,rows);
+#endif
 
             if (level>0) {
                 @<not at a leave@>;
@@ -2533,6 +2548,7 @@ printf("side ");
 #else
             us[level] = v[level] + delta[level];
 #endif
+			isSideStep = 1;
         }
     } while (level<columns);     
 afterloop:
@@ -2540,8 +2556,14 @@ afterloop:
 @ Compute the square of the euclidean length of 
     the projection
 @<compute new |cs|@>=
-    dum = us[level] + y[level];                      
-    cs[level] = cs[level+1] + dum*dum*c[level];
+    oldus = dum[level];
+    dum[level] = us[level] + y[level];                      
+    cs[level] = cs[level+1] + dum[level]*dum[level]*c[level];
+
+    if (isSideStep) {
+        stepWidth = dum[level] - oldus;
+    }
+
 @ We are not at a leave. 
 We test, if we can prune the enumeration, otherwise
 we decrease the |level|.
@@ -2594,16 +2616,16 @@ we decrease the |level|.
 		delta[level] = 0;
 		if (r[level+1]>r[level]) r[level] = r[level+1];
 
-		dum = compute_y(mu,us,level,level_max, sigma, r);
-		y[level] = dum;
+		y[level] = compute_y(mu,us,level,level_max, sigma, r);
 #if 0                                        
 		mpz_set_d(v[level],ROUND(-dum));
 		us[level] = mpz_get_si(v[level]);
 #else
-		v[level] = ROUND(-dum);
+		v[level] = ROUND(-y[level]);
 		us[level] = v[level];
 #endif
-		d[level] = (ROUND(-dum)>-y[level]) ? -1 : 1; 
+		d[level] = (v[level]>-y[level]) ? -1 : 1; 
+        isSideStep = 0;
     } 
                 
 @ We arrived at $|level|=0$. We test if we really got a solution and print it.
@@ -2751,8 +2773,13 @@ DOUBLE compute_y(DOUBLE **mu, DOUBLE *us, int level, int level_max, DOUBLE **sig
 #endif    
 }
 
+void compute_w2(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
+    cblas_daxpy(rows,alpha,bd[level],1,w[level],1);
+	return;
+}
+
 void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
-#if 1
+#if 0
     double out[2];
     __m128d a, x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4;
     int l;
@@ -2791,10 +2818,8 @@ void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
 
     } 
     return;
-#endif
-
-#if 0
-#if 0*BLAS
+#else
+#if BLAS
     cblas_dcopy(rows,w[level+1],1,w[level],1);
     cblas_daxpy(rows,alpha,bd[level],1,w[level],1);
 #else    
