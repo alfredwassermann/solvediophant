@@ -2502,7 +2502,7 @@ enough solutions.
 			
 #if 1
 			if (isSideStep) {
-/*|printf("%d: %0.3lf %0.3lf \n", level, dum[level], stepWidth);|*/
+/*|printf("%0.3lf \n", stepWidth);|*/
             	compute_w2(w,bd,stepWidth,level,rows);
 			} else {
 /*|printf("%ld: %0.3lf \n", level, dum[level]);|*/
@@ -2814,8 +2814,6 @@ void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
         x4 = _mm_mul_pd(x4, a);
         z4 = _mm_add_pd(x4, y4);
         _mm_storeu_pd((double *)&(w[level][l+6]), z4);
-
-
     } 
     return;
 #else
