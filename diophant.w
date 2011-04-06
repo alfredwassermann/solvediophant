@@ -22,6 +22,7 @@ $$x= (1,0,0,1,0,1,0,1,1,0,0,1,0)^\top.$$
 The LLL and BKZ algorithms can be controlled by the following
 declarations.
 @d BLAS 1
+@d USE_SSE 0
 @d DEEPINSERT 1
 @d DEEPINSERT_CONST 2000
 @d VERBOSE 1
@@ -1244,7 +1245,9 @@ Gram-Schmidt, Householder and Givens rotation.
 int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z) @;
 {
     int i,m;
+#if USE_SSE    
     int zeven;
+#endif    
 
     if ((z < 1) || (s < 1)) return 0;
 
@@ -1255,10 +1258,14 @@ int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z) 
     
     m = (z>s) ? z : s;
     (*bs)=(DOUBLE**)calloc(m,sizeof(DOUBLE*));
-        
+
+#if USE_SSE
     zeven = (m%8!=0) ? (m/8+1)*8 : m;
     for(i=0;i<m;i++) 
         (*bs)[i]=(DOUBLE*)calloc(zeven,sizeof(DOUBLE));
+#else
+    for(i=0;i<m;i++) (*bs)[i]=(DOUBLE*)calloc(z,sizeof(DOUBLE));
+#endif
 
     return 1;
 }
@@ -1939,7 +1946,7 @@ static FILE *fp;
 #endif        
     int *first_nonzero, *first_nonzero_in_column, *firstp; 
 
-    DOUBLE *N, **mu, *c, **w, **bd;
+    DOUBLE *N, **mu, *c, **w, **bd, **mu_trans;
 
     DOUBLE Fd, Fq; 
     DOUBLE *dum;
@@ -1948,10 +1955,14 @@ static FILE *fp;
 
     DOUBLE **sigma;
     int *r;
+    
+#if USE_SSE    
     int rowseven;
-	int isSideStep = 0;
+#endif    
+
+    int isSideStep = 0;
     DOUBLE stepWidth = 0.0;
-    DOUBLE oldus;
+    DOUBLE olddum;
     
 #if defined(FINCKEPOHST)
     DOUBLE *fipo, *fipo_u, *fipo_l;
@@ -1994,9 +2005,16 @@ static FILE *fp;
     eta=(long*)calloc(columns+1,sizeof(long));
     v=(long*)calloc(columns+1,sizeof(long));
     w=(DOUBLE**)calloc(columns+1,sizeof(DOUBLE*));
+#if USE_SSE    
     rowseven = (rows%8!=0)? (rows/8+1)*8 : rows;
+    for (i=0;i<=columns;i++) w[i]=(DOUBLE*)calloc(rowseven,sizeof(DOUBLE));
+#else
     for (i=0;i<=columns;i++) w[i]=(DOUBLE*)calloc(rows,sizeof(DOUBLE));
+#endif
 
+    mu_trans = (DOUBLE**)calloc(columns+1,sizeof(DOUBLE*));
+    for (i=0;i<=columns;i++) mu_trans[i]=(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
+ 
     sigma =(DOUBLE**)calloc(columns+1,sizeof(DOUBLE*));
     r =(int*)calloc(columns+1+1,sizeof(int));
     for (i=0;i<columns+1;i++) {
@@ -2164,6 +2182,13 @@ DOUBLE dum1, dum2;
     gramschmidt(lattice,columns,rows,mu,bd,c,N,Fq);
 #endif    
 
+    /* compute $mu^\top$, the transpose of $mu$. */
+    for (i=0; i<columns; i++) 
+        for (j=0; j<columns; j++) 
+            mu_trans[j][i] = mu[i][j];
+    
+
+
 @ Compute the Fincke-Pohst bounds. See for example H.~Cohen, ``A course
 in computational number theory'', page 104.
 If we have the quadratic form $Q(x)= x^tR^tRx$, and $r_i$ are the
@@ -2229,7 +2254,7 @@ $$
     
 #ifndef NO_OUTPUT
 #if VERBOSE > -1    
-	printf("\n\n");@+ fflush(stdout);
+    printf("\n\n");@+ fflush(stdout);
 #endif
 #endif
 
@@ -2499,15 +2524,15 @@ enough solutions.
                 goto side_step;
            }
 #endif
-			
+            
 #if 1
-			if (isSideStep) {
+            if (isSideStep) {
 /*|printf("%0.3lf \n", stepWidth);|*/
-            	compute_w2(w,bd,stepWidth,level,rows);
-			} else {
+                compute_w2(w,bd,stepWidth,level,rows);
+            } else {
 /*|printf("%ld: %0.3lf \n", level, dum[level]);|*/
-            	compute_w(w,bd,dum[level],level,rows);
-			}
+                compute_w(w,bd,dum[level],level,rows);
+            }
 #else
             compute_w(w,bd,dum[level],level,rows);
 #endif
@@ -2548,46 +2573,46 @@ printf("side ");
 #else
             us[level] = v[level] + delta[level];
 #endif
-			isSideStep = 1;
+            isSideStep = 1;
         }
     } while (level<columns);     
 afterloop:
 
 @ Compute the square of the euclidean length of 
-    the projection
+    the projection.
 @<compute new |cs|@>=
-    oldus = dum[level];
+    olddum = dum[level];
     dum[level] = us[level] + y[level];                      
     cs[level] = cs[level+1] + dum[level]*dum[level]*c[level];
 
     if (isSideStep) {
-        stepWidth = dum[level] - oldus;
+        stepWidth = dum[level] - olddum;
     }
 
 @ We are not at a leave. 
 We test, if we can prune the enumeration, otherwise
 we decrease the |level|.
 @<not at a leave@>=
-	if (prune_only_zeros(w[level],level,rows,Fq,first_nonzero_in_column,firstp))
-		goto side_step;
+    if (prune_only_zeros(w[level],level,rows,Fq,first_nonzero_in_column,firstp))
+        goto side_step;
 
 #if 0
     printf("%d ", level);
 #endif    
-	if (prune(w[level],cs[level],rows,Fq) ) { 
-		if (eta[level]==1) {
-			goto step_back;
-		}
-		eta[level] = 1;
-		delta[level] *= -1;
-		if (delta[level]*d[level]>=0) delta[level] += d[level];
+    if (prune(w[level],cs[level],rows,Fq) ) { 
+        if (eta[level]==1) {
+            goto step_back;
+        }
+        eta[level] = 1;
+        delta[level] *= -1;
+        if (delta[level]*d[level]>=0) delta[level] += d[level];
 #if 0                                        
-		us[level] = mpz_get_d(v[level]) + delta[level];
+        us[level] = mpz_get_d(v[level]) + delta[level];
 #else
-		us[level] = v[level] + delta[level];
+        us[level] = v[level] + delta[level];
 #endif
-	} else {
-#if 0	
+    } else {
+#if 0    
         if (pruneN(w, cs, level, rows, columns, Fq)) {
             goto side_step;
         }
@@ -2610,39 +2635,38 @@ we decrease the |level|.
            }
 #endif            
 
-
         level--;
-		eta[level] = 0;
-		delta[level] = 0;
-		if (r[level+1]>r[level]) r[level] = r[level+1];
+        eta[level] = 0;
+        delta[level] = 0;
+        if (r[level+1]>r[level]) r[level] = r[level+1];
 
-		y[level] = compute_y(mu,us,level,level_max, sigma, r);
+        y[level] = compute_y(mu_trans,us,level,level_max, sigma, r);
 #if 0                                        
-		mpz_set_d(v[level],ROUND(-dum));
-		us[level] = mpz_get_si(v[level]);
+        mpz_set_d(v[level],ROUND(-dum));
+        us[level] = mpz_get_si(v[level]);
 #else
-		v[level] = ROUND(-y[level]);
-		us[level] = v[level];
+        v[level] = ROUND(-y[level]);
+        us[level] = v[level];
 #endif
-		d[level] = (v[level]>-y[level]) ? -1 : 1; 
+        d[level] = (v[level]>-y[level]) ? -1 : 1; 
         isSideStep = 0;
     } 
                 
 @ We arrived at $|level|=0$. We test if we really got a solution and print it.
 @<at $|level|=0$@>=
-	if (exacttest(w[0],rows,Fq)==1) {          
-		print_solution(w[level],rows,Fq,us,columns); 
+    if (exacttest(w[0],rows,Fq)==1) {          
+        print_solution(w[level],rows,Fq,us,columns); 
 #if 0
-		printf("us: ");
-		for (i=columns-1;i>=0;i--) {
-			printf("%d ",(int)us[i]);
-		}
-		printf("after %ld loops\n",loops);
+        printf("us: ");
+        for (i=columns-1;i>=0;i--) {
+            printf("%d ",(int)us[i]);
+        }
+        printf("after %ld loops\n",loops);
 #endif                    
-		if ((stop_after_solutions>0)&&(stop_after_solutions<=nosolutions)) 
-			goto afterloop;
-	} 
-	goto side_step;
+        if ((stop_after_solutions>0)&&(stop_after_solutions<=nosolutions)) 
+            goto afterloop;
+    } 
+    goto side_step;
                 
 @ Additional output at the end of the enumeration.
 @<final output@>=
@@ -2748,24 +2772,26 @@ static FILE* fp;
 
 @ 
 @<some vector computations@>=
-DOUBLE compute_y(DOUBLE **mu, DOUBLE *us, int level, int level_max, DOUBLE **sigma, int *r) {
+DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max, DOUBLE **sigma, int *r) {
     int i;
-#if 0
+#if 1
     DOUBLE dum;
-
+  #if 0
     i = level_max;
     dum = 0.0;
     while (i>=level+1) {
-        dum += mu[i][level]*us[i];
+        dum += mu_trans[level][i]*us[i];
         i--;
     }
-    /*|return dum;|*/
-#if 0
-    if  (fabs(dum - sigma[level+1][level])>0.000001) {
-        printf("diff %0.6lf %0.6lf %0.6lf\n", dum, sigma[level+1][level], fabs(dum - sigma[level+1][level]));
-        fflush(stdout);
-    }
-#endif
+  #else
+    return cblas_ddot(level_max-level, &(us[level+1]), 1, &(mu_trans[level][level+1]), 1);
+  #endif
+    #if 0
+        if  (fabs(dum - sigma[level+1][level])>0.000001) {
+            printf("diff %0.6lf %0.6lf %0.6lf\n", dum, sigma[level+1][level], fabs(dum - sigma[level+1][level]));
+            fflush(stdout);
+        }
+    #endif
     return dum;
 #else
     for (i=r[level+1];i>level;i--) sigma[i][level] = sigma[i+1][level] + us[i]*mu[i][level];
@@ -2775,12 +2801,11 @@ DOUBLE compute_y(DOUBLE **mu, DOUBLE *us, int level, int level_max, DOUBLE **sig
 
 void compute_w2(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     cblas_daxpy(rows,alpha,bd[level],1,w[level],1);
-	return;
+    return;
 }
 
 void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
-#if 0
-    double out[2];
+#if USE_SSE
     __m128d a, x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4;
     int l;
     
@@ -2817,25 +2842,18 @@ void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     } 
     return;
 #else
-#if BLAS
-    cblas_dcopy(rows,w[level+1],1,w[level],1);
-    cblas_daxpy(rows,alpha,bd[level],1,w[level],1);
-#else    
-    int l;
+    #if BLAS
+        cblas_dcopy(rows,w[level+1],1,w[level],1);
+        cblas_daxpy(rows,alpha,bd[level],1,w[level],1);
+    #else    
+        int l;
 
-    l = rows;
-    while (l>=0) {
-        w[level][l] = w[level+1][l] + alpha*bd[level][l]; 
-        l--;
-    } 
-#endif
-
-#if 0
-    while (l>=0) {
-        w[level][l] = w[level+1][l] + alpha*bd[level][l]; 
-        l--;
-    } 
-#endif
+        l = rows;
+        while (l>=0) {
+            w[level][l] = w[level+1][l] + alpha*bd[level][l]; 
+            l--;
+        } 
+    #endif
     return;
 #endif    
 }
@@ -2845,19 +2863,19 @@ void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
 void update_fipo(long *us, int level, int columns) {
 #if 0
     int j;
-	dum1 = 0.0;
-	for (j=0;j<rows;j++) {
-		 for (l=i,dum=0.0;l<columns;l++) dum += muinv[i][l]*bd[l][j]/c[l];
-		 dum2 = muinv[columns-1][columns-1]*bd[columns-1][j]/c[columns-1];
-		 fipo[i] += dum*dum;
-		 dum1 += fabs(dum);
+    um1 = 0.0;
+    for (j=0;j<rows;j++) {
+         for (l=i,dum=0.0;l<columns;l++) dum += muinv[i][l]*bd[l][j]/c[l];
+         dum2 = muinv[columns-1][columns-1]*bd[columns-1][j]/c[columns-1];
+         fipo[i] += dum*dum;
+         dum1 += fabs(dum);
 
-		 fipo_u[i] += fabs(dum+dum2);
-		 fipo_l[i] -= fabs(dum-dum2);
-	 }
-	 fipo[i] = SQRT(fipo[i]*Fd);
-	 dum1 = fabs(dum1*Fq);
-	 if (dum1 < fipo[i]) fipo[i] = dum1;
+         fipo_u[i] += fabs(dum+dum2);
+         fipo_l[i] -= fabs(dum-dum2);
+     }
+     fipo[i] = SQRT(fipo[i]*Fd);
+     dum1 = fabs(dum1*Fq);
+     if (dum1 < fipo[i]) fipo[i] = dum1;
 #endif
 }
 
