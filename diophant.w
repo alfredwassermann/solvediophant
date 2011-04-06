@@ -154,12 +154,8 @@ extern long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
 #include <malloc.h>
 #include <math.h>
 #include <gmp.h>
-#if 1
+#if USE_SSE
     /* Intrinsic SSE */
-    /*|
-    #include <xmmintrin.h>
-    #include <emmintrin.h>
-    |*/
     #include <pmmintrin.h>
 #endif
 
@@ -669,7 +665,7 @@ void shufflelattice() {
     int i, j, r;
     unsigned int s;
     
-#if 0
+#if 1
     s = (unsigned)(time(0));
 #else
     s = 1300964772;
@@ -1853,7 +1849,6 @@ The algorithm of H.~Ritter.
 @<overall exhaustive enumeration@>=
     @<globals for enumeration@>;
     @<some vector computations@>;
-    @<update Fincke-Pohst@>;
     @<orthogonalization@>;
     @<matrix inversion for Fincke-Pohst@>;
     @<pruning subroutines and output@>;
@@ -1948,14 +1943,10 @@ static FILE *fp;
 
     DOUBLE *N, **mu, *c, **w, **bd, **mu_trans;
 
-    DOUBLE Fd, Fq; 
+    DOUBLE Fd, Fq, Fqeps; 
     DOUBLE *dum;
     DOUBLE tmp;
     COEFF *swap_vec;
-
-    DOUBLE **sigma;
-    int *r;
-    
 #if USE_SSE    
     int rowseven;
 #endif    
@@ -1965,7 +1956,7 @@ static FILE *fp;
     DOUBLE olddum;
     
 #if defined(FINCKEPOHST)
-    DOUBLE *fipo, *fipo_u, *fipo_l;
+    DOUBLE *fipo;
 #endif
 
 @ It is tested, if the remaining columns build a basis of the kernel.
@@ -2014,19 +2005,10 @@ static FILE *fp;
 
     mu_trans = (DOUBLE**)calloc(columns+1,sizeof(DOUBLE*));
     for (i=0;i<=columns;i++) mu_trans[i]=(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
- 
-    sigma =(DOUBLE**)calloc(columns+1,sizeof(DOUBLE*));
-    r =(int*)calloc(columns+1+1,sizeof(int));
-    for (i=0;i<columns+1;i++) {
-       sigma[i] =(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
-       r[i] = i-1;
-    }
     dum = (DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
 
 #if defined(FINCKEPOHST)
     fipo=(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
-    fipo_u=(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
-    fipo_l=(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
     muinv=(DOUBLE**)calloc(columns,sizeof(DOUBLE*));
     for(i=0;i<columns;++i) muinv[i]=(DOUBLE*)calloc(rows,sizeof(DOUBLE));
 
@@ -2036,14 +2018,6 @@ static FILE *fp;
         fipo_LB[i]=(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
         fipo_UB[i]=(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
     }
-#if 0
-    upb =(mpz_t*)calloc(columns+1,sizeof(mpz_t));
-    lowb =(mpz_t*)calloc(columns+1,sizeof(mpz_t));
-    for (i=0;i<=columns;i++) {
-        mpz_init(upb[i];
-        mpz_init(lowb[i];
-    }
-#endif    
 #endif
 
 @ Additional variables for Fincke-Pohst bounds.
@@ -2157,7 +2131,7 @@ static FILE *fp;
     fflush(stdout);
 #endif
 
-@    Set the simple bounds for pruning.
+@ Set the simple bounds for pruning.
     |Fq| is the maximum norm of a solution,
     |Fd| is the square of the euclidean norm of a solution,
     |EPSILON| is a security buffer to avoid pruning
@@ -2165,6 +2139,7 @@ static FILE *fp;
 @<set the simple pruning bounds@>=
     Fq = (DOUBLE)mpz_get_d(max_norm); 
     Fd = (rows*Fq*Fq)*(1.0+EPSILON); 
+    Fqeps = (1.0+EPSILON)*Fq;        /* Used in prune() */
 #ifndef NO_OUTPUT
 #if VERBOSE > 0
     printf("Fq: %f\n",(double)Fq);
@@ -2261,14 +2236,11 @@ $$
 @ Initialize Eigen bounds.
 @<initialize Eigen bounds@>=
 #if EIGENBOUND
-    /*|printf("rows=%d, columns=%d, Rinv:\n", rows, columns);|*/
     for (i=0;i<columns;i++) {
         for (j=0;j<columns;j++) {
             R[i][j] = mu[j][i]*SQRT(c[i]);
             Rinv[i][j] = muinv[i][j]/SQRT(c[j]);
-            /*|printf("%0.3lf ", Rinv[i][j]);|*/
         }
-        /*|printf("\n");|*/
     }
 #if 0  
     printf("\nCheck\n");
@@ -2289,11 +2261,8 @@ $$
                 eig_s += Rinv[i][j]*R[j][k];
             }
             eig_RinvR[k][i] = eig_s;
-            /*|printf("%0.3lf ", eig_RinvR[k][i]);|*/
         }
-        /*|printf("\n");|*/
     }
-    /*|printf("\n");|*/
     
     for (k=0; k<columns; k++) {
         for (i=0; i<k; i++) {
@@ -2349,13 +2318,7 @@ $$
         eig_s = 0.0;
         for (i=0; i<level; i++) {
             eig_f[level][i] = eig_f[level+1][i] - Rinv[i][level]*eig_term2 + eig_RinvR[level][i]*us[level];
-/*|            
-            dum1 = fabs(eig_f[level][i]);
-            dum1 -= round(dum1);
-            eig_s += dum1*dum1;
-|*/            
         }
-        /*|eig_bound[level] = eig_s*eig_min[level];|*/
         
         for (i=0; i<level; i++) {
             dum1 = SQRT(Rinvi[level][i]*(Fd-cs[level]));
@@ -2371,11 +2334,7 @@ $$
                 printf("CUT\n");
             }
         }
-        /*|printf("%d: (%0.1lf, %0.1lf) \n", level-1, bnd_lo[level-1][level-1],bnd_up[level-1][level-1]);|*/
-        /*|printf("\n");|*/
     } 
-    /*|printf("Bound %d: Eigmin:%0.3lf, %0.3lf ", level, eig_min[level], eig_s);|*/
-    /*|printf("\n");|*/
 #else
     if (level==0) {
         eig_bound[level] = 0.0;
@@ -2441,11 +2400,7 @@ first non-zero entry in this column.
     long N3_success;
     
 @ @<more initialization@>=
-#if 0
     level = first_nonzero[rows-1];
-#else    
-    level = 0;
-#endif    
     if (level<0) level = 0;
     level_max = level;
     us[level] = 1;
@@ -2503,7 +2458,7 @@ enough solutions.
     do {  
         @<increase loop counter@>;
         @<compute new |cs|@>;
-        if ( (cs[level]<Fd) && (!prune0(fabs(dum[level]),N[level])) )  {   
+        if ( (cs[level]<Fd) /*|&& (!prune0(fabs(dum[level]),N[level]))|*/)  {   
 #if defined(FINCKEPOHST)
 #if 1 
             if (fabs(us[level])>fipo[level]) {
@@ -2525,17 +2480,11 @@ enough solutions.
            }
 #endif
             
-#if 1
             if (isSideStep) {
-/*|printf("%0.3lf \n", stepWidth);|*/
-                compute_w2(w,bd,stepWidth,level,rows);
+                compute_w2(w, bd, stepWidth, level, rows);
             } else {
-/*|printf("%ld: %0.3lf \n", level, dum[level]);|*/
-                compute_w(w,bd,dum[level],level,rows);
+                compute_w(w, bd, dum[level], level, rows);
             }
-#else
-            compute_w(w,bd,dum[level],level,rows);
-#endif
 
             if (level>0) {
                 @<not at a leave@>;
@@ -2545,23 +2494,15 @@ enough solutions.
         } else {
             cs_success++;
 step_back:
-#if 0
-printf("up ");
-#endif
-/* Up: we go to $|level|+1$. */
+            /* Up: we go to $|level|+1$. */
             nlow[level]++;
             level++;
-            r[level] = level;
-            
             if (level_max<level) level_max = level;
 side_step:        
-#if 0
-printf("side ");
-#endif
-/*    
-    Side step: the next value in the same level is 
-    chosen.
-*/
+            /*    
+                Side step: the next value in the same level is 
+                chosen.
+            */
             if (eta[level]==0) {
                 delta[level] *= -1;
                 if (delta[level]*d[level]>=0) delta[level] += d[level];
@@ -2593,13 +2534,14 @@ afterloop:
 We test, if we can prune the enumeration, otherwise
 we decrease the |level|.
 @<not at a leave@>=
-    if (prune_only_zeros(w[level],level,rows,Fq,first_nonzero_in_column,firstp))
+    if (prune_only_zeros(w[level], level, rows, Fq, first_nonzero_in_column, firstp)) {
         goto side_step;
+    }
 
 #if 0
     printf("%d ", level);
 #endif    
-    if (prune(w[level],cs[level],rows,Fq) ) { 
+    if (prune(w[level], cs[level], rows, Fqeps) ) { 
         if (eta[level]==1) {
             goto step_back;
         }
@@ -2636,17 +2578,13 @@ we decrease the |level|.
 #endif            
 
         level--;
-        eta[level] = 0;
-        delta[level] = 0;
-        if (r[level+1]>r[level]) r[level] = r[level+1];
-
-        y[level] = compute_y(mu_trans,us,level,level_max, sigma, r);
+        delta[level] = eta[level] = 0;
+        y[level] = compute_y(mu_trans,us,level,level_max);
 #if 0                                        
         mpz_set_d(v[level],ROUND(-dum));
         us[level] = mpz_get_si(v[level]);
 #else
-        v[level] = ROUND(-y[level]);
-        us[level] = v[level];
+        us[level] = v[level] = ROUND(-y[level]);
 #endif
         d[level] = (v[level]>-y[level]) ? -1 : 1; 
         isSideStep = 0;
@@ -2718,16 +2656,9 @@ we decrease the |level|.
     for (l=0;l<=columns;l++) free (w[l]);
     free (w);
     free (original_columns);
-    for (i=0;i<columns+1;i++) {
-       free(sigma[i]);
-    }
-    free(sigma);
-    free(r);
     
 #if defined(FINCKEPOHST)
     free (fipo);
-    free (fipo_u);
-    free (fipo_l);
     for (l=0;l<columns;l++) free (muinv[l]);
     free(muinv);
 #endif
@@ -2752,11 +2683,9 @@ we decrease the |level|.
     free(bnd_lo);
 #endif
 
-#if 0
-    free (upb);
-    free (lowb);
-#endif    
     lllfree(mu,c,N,bd,columns);  
+    for (l=0;l<columns;l++) free (mu_trans[l]);
+    free(mu_trans);
 
 @ @<open solution file@>=
     fp = solfile;
@@ -2772,31 +2701,20 @@ static FILE* fp;
 
 @ 
 @<some vector computations@>=
-DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max, DOUBLE **sigma, int *r) {
+DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max) {
+#if 0
     int i;
-#if 1
     DOUBLE dum;
-  #if 0
     i = level_max;
     dum = 0.0;
     while (i>=level+1) {
         dum += mu_trans[level][i]*us[i];
         i--;
     }
-  #else
-    return cblas_ddot(level_max-level, &(us[level+1]), 1, &(mu_trans[level][level+1]), 1);
-  #endif
-    #if 0
-        if  (fabs(dum - sigma[level+1][level])>0.000001) {
-            printf("diff %0.6lf %0.6lf %0.6lf\n", dum, sigma[level+1][level], fabs(dum - sigma[level+1][level]));
-            fflush(stdout);
-        }
-    #endif
     return dum;
 #else
-    for (i=r[level+1];i>level;i--) sigma[i][level] = sigma[i+1][level] + us[i]*mu[i][level];
-    return sigma[level+1][level];
-#endif    
+    return cblas_ddot(level_max-level, &(us[level+1]), 1, &(mu_trans[level][level+1]), 1);
+#endif
 }
 
 void compute_w2(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
@@ -2856,27 +2774,6 @@ void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     #endif
     return;
 #endif    
-}
-
-@ Update the Fincke-Pohst bounds during enumeration.
-@<update Fincke-Pohst@>=
-void update_fipo(long *us, int level, int columns) {
-#if 0
-    int j;
-    um1 = 0.0;
-    for (j=0;j<rows;j++) {
-         for (l=i,dum=0.0;l<columns;l++) dum += muinv[i][l]*bd[l][j]/c[l];
-         dum2 = muinv[columns-1][columns-1]*bd[columns-1][j]/c[columns-1];
-         fipo[i] += dum*dum;
-         dum1 += fabs(dum);
-
-         fipo_u[i] += fabs(dum+dum2);
-         fipo_l[i] -= fabs(dum-dum2);
-     }
-     fipo[i] = SQRT(fipo[i]*Fd);
-     dum1 = fabs(dum1*Fq);
-     if (dum1 < fipo[i]) fipo[i] = dum1;
-#endif
 }
 
 @ The algorithms of Gram-Schmidt and Givens are used
@@ -3055,6 +2952,7 @@ int exacttest(DOUBLE *v, int rows, DOUBLE Fq) {
 }
 
 @ Additional pruning.
+It seems to be faster, not to use this test.
 @<simple bound@>=
 int prune0(DOUBLE li, DOUBLE re) {
     if (li > re*(1+EPSILON)) { 
@@ -3067,30 +2965,24 @@ int prune0(DOUBLE li, DOUBLE re) {
 
 @ Pruning according to H\"olders inequality.
 @<pruning with H\"older@>=
-int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fq) {
-    DOUBLE reseite;
-#if !BLAS
-    int i;
-#endif    
+int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps) {
+    /*|hoelder_no++;|*/
 
-    hoelder_no++;
-    reseite = (-cs/(1.0+EPSILON))/Fq; /* | * (1-eps) | */
 #if BLAS
-    reseite += cblas_dasum(rows,w,1);
+    if (cs < Fqeps * cblas_dasum(rows, w, 1)) 
+        return 0;
 #else
+    DOUBLE reseite;
+    int i;
+    reseite = -cs/Fqeps; /* | * (1-eps) | */
     i = rows-1;
     do {
         reseite += fabs(w[i]); 
         i--;
     } while (i>=0);
-#endif    
-
-#if 0
-if (reseite>=0.0) printf("RHS: %0.6lf\n", reseite);
-#endif    
-
     if (0.0 < reseite) return 0;
-    hoelder_success++;
+#endif
+    /*|hoelder_success++;|*/
     return 1; 
 }
 
@@ -3183,8 +3075,7 @@ if (0 && t>cols-20) {
     return 0;
 }
 
-@ Prune if there remain only zeros in a not finished
-    row.
+@ Prune if there remain only zeros in a not finished row.
 @<prune zeros in row@>=
 int prune_only_zeros(DOUBLE *w, int level, int rows, DOUBLE Fq, 
                      int *first_nonzero_in_column, int *firstp) {
@@ -3192,17 +3083,16 @@ int prune_only_zeros(DOUBLE *w, int level, int rows, DOUBLE Fq,
     int f;
 
     only_zeros_no++;
-
     if (iszeroone) {
-        for (i=0;i<first_nonzero_in_column[firstp[level]];i++) {
+        for (i=0; i<first_nonzero_in_column[firstp[level]]; i++) {
             f = first_nonzero_in_column[firstp[level]+1+i];
-            if ( fabs(fabs(w[f])-Fq) > 0.5 /* Fq*EPSILON*/ ) {
+            if ( fabs(fabs(w[f])-Fq) > 0.1 /* Fq*EPSILON*/ ) {
                 only_zeros_success++;
                 return 1;
             }
         } 
     } else {
-        for (i=0;i<first_nonzero_in_column[firstp[level]];i++) {
+        for (i=0; i<first_nonzero_in_column[firstp[level]]; i++) {
             f = first_nonzero_in_column[firstp[level]+1+i];
             if ( fabs(w[f]) > Fq*(1+EPSILON) ) {  
                 only_zeros_success++;
