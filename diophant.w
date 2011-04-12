@@ -470,6 +470,13 @@ appear only once in the basis vectors.
         for (i=0;i<lattice_columns;i++) 
             mpz_mul(lattice[i][lattice_rows-1].c,lattice[i][lattice_rows-1].c,lastlines_factor);
 
+#if 0
+    for (i=0;i<lattice_columns;i++) {
+    	for (j=0;j<40;j++) 
+        	mpz_mul_ui(lattice[i][j+1].c,lattice[i][j+1].c, 9);
+	}
+#endif
+
 @ Undo the scaling of section |@<scale last rows@>|
 after the second reduction.
 @<undo scaling of last rows@>=
@@ -479,6 +486,13 @@ after the second reduction.
         for (i=0;i<lattice_columns;i++) 
             mpz_divexact(lattice[i][lattice_rows-1].c,
                 lattice[i][lattice_rows-1].c,lastlines_factor);
+
+#if 0
+    for (i=0;i<lattice_columns;i++) {
+    	for (j=0;j<40;j++) 
+        	mpz_divexact_ui(lattice[i][j+1].c,lattice[i][j+1].c, 9);
+	}
+#endif
 
 @ The third reduction is done with blockwise Korkine Zolotareff reduction.
 The last column of |lattice| is a zero vector.
@@ -665,7 +679,7 @@ void shufflelattice() {
     int i, j, r;
     unsigned int s;
     
-#if 1
+#if 0
     s = (unsigned)(time(0));
 #else
     s = 1300964772;
@@ -1939,7 +1953,7 @@ static FILE *fp;
 #else        
         long *v;
 #endif        
-    int *first_nonzero, *first_nonzero_in_column, *firstp; 
+    int *first_nonzero, *first_nonzero_in_column, *firstp, *second_nonzero; 
 
     DOUBLE *N, **mu, *c, **w, **bd, **mu_trans;
 
@@ -1992,6 +2006,8 @@ static FILE *fp;
     first_nonzero_in_column=(int*)calloc(columns+rows+1,sizeof(int));
     if (first_nonzero_in_column == NULL) return(0);
     firstp=(int*)calloc(columns+1,sizeof(int));
+
+    second_nonzero=(int*)calloc(rows,sizeof(int));
 
     eta=(long*)calloc(columns+1,sizeof(long));
     v=(long*)calloc(columns+1,sizeof(long));
@@ -2374,7 +2390,15 @@ first non-zero entry in this column.
             first_nonzero[l] = i;
             break;
         }           
+        for (i=first_nonzero[l]+1; i<columns; i++) if (mpz_sgn(get_entry(i,l))!=0) { 
+            second_nonzero[l] = i;
+            break;
+        }           
+printf("%d ", second_nonzero[l]-first_nonzero[l]);
     }
+printf("\n");
+
+ss = 0;
     j = 0;
     for (l=0;l<columns;l++) {
         firstp[l] = j;
@@ -2385,9 +2409,12 @@ first non-zero entry in this column.
                 first_nonzero_in_column[j] = i; 
                 first_nonzero_in_column[firstp[l]]++;
                 j++;
+ss++;
             }
         }
+printf("%d ", first_nonzero_in_column[firstp[l]]);
     }
+printf(": %d %d\n", ss, rows);
     firstp[columns] = j;
     first_nonzero_in_column[j] = 0; 
 
@@ -2398,6 +2425,8 @@ first non-zero entry in this column.
     long N_success;
     long N2_success;
     long N3_success;
+
+	int ss;
     
 @ @<more initialization@>=
     level = first_nonzero[rows-1];
@@ -2534,7 +2563,12 @@ afterloop:
 We test, if we can prune the enumeration, otherwise
 we decrease the |level|.
 @<not at a leave@>=
-    if (prune_only_zeros(w[level], level, rows, Fq, first_nonzero_in_column, firstp)) {
+	i = prune_only_zeros(w, level, rows, Fq, first_nonzero_in_column, firstp,
+                         bd, y, us, second_nonzero);
+	if (i<0) {
+        level = (-i)-1;
+        goto step_back;
+	} else if (i>0) {
         goto side_step;
     }
 
@@ -3077,30 +3111,49 @@ if (0 && t>cols-20) {
 
 @ Prune if there remain only zeros in a not finished row.
 @<prune zeros in row@>=
-int prune_only_zeros(DOUBLE *w, int level, int rows, DOUBLE Fq, 
-                     int *first_nonzero_in_column, int *firstp) {
+int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq, 
+                     int *first_nonzero_in_column, int *firstp,
+                     DOUBLE **bd, DOUBLE *y, DOUBLE *us, int *second_nonzero) {
     int i;
     int f;
+	DOUBLE u1, u2;
+	int ret = 0;
 
     only_zeros_no++;
     if (iszeroone) {
         for (i=0; i<first_nonzero_in_column[firstp[level]]; i++) {
             f = first_nonzero_in_column[firstp[level]+1+i];
-            if ( fabs(fabs(w[f])-Fq) > 0.1 /* Fq*EPSILON*/ ) {
+		 	u1 = ( Fq-w[level+1][f])/bd[level][f] - y[level];
+		 	u2 = (-Fq-w[level+1][f])/bd[level][f] - y[level];
+			if (fabs(u1-round(u1))>EPSILON && fabs(u2-round(u2))>EPSILON) {
+/*|printf("%d \n", second_nonzero[f]-level);|*/
                 only_zeros_success++;
+				ret = (-second_nonzero[f]<ret) ? (-second_nonzero[f]) : ret;
+				/*|return -second_nonzero[f];|*/
+				/*|return -1;|*/
+			}
+            if (fabs(u1-us[level])>EPSILON && fabs(u2-us[level])>EPSILON) {
+				return 1;
+				/*»return 1;|*/
+			}
+#if 0
+            if ( fabs(fabs(w[level][f])-Fq) > EPSILON /* Fq*EPSILON*/ ) {
+                /*|only_zeros_success++;|*/
                 return 1;
             }
+#endif
         } 
     } else {
         for (i=0; i<first_nonzero_in_column[firstp[level]]; i++) {
             f = first_nonzero_in_column[firstp[level]+1+i];
-            if ( fabs(w[f]) > Fq*(1+EPSILON) ) {  
+            if ( fabs(w[level][f]) > Fq*(1+EPSILON) ) {  
                 only_zeros_success++;
                 return 1;
             }
         } 
     }
-    return 0;
+	return ret;
+    /*|return 0;|*/
 }
 
 @ Jacobi method to compute minimum Eigen value of the symmetric matrix $R^topR$.
