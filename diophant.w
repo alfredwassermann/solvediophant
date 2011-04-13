@@ -679,7 +679,7 @@ void shufflelattice() {
     int i, j, r;
     unsigned int s;
     
-#if 0
+#if 1
     s = (unsigned)(time(0));
 #else
     s = 1300964772;
@@ -1893,7 +1893,7 @@ DOUBLE explicit_enumeration (COEFF **lattice, int columns, int rows)
     basis2poly();
 #endif    
     
-#if defined(FINCKEPOHST)
+#if FINCKEPOHST
     @<determine Fincke-Pohst bounds@>;
 #endif
     
@@ -1953,7 +1953,7 @@ static FILE *fp;
 #else        
         long *v;
 #endif        
-    int *first_nonzero, *first_nonzero_in_column, *firstp, *second_nonzero; 
+    int *first_nonzero, *first_nonzero_in_column, *firstp; 
 
     DOUBLE *N, **mu, *c, **w, **bd, **mu_trans;
 
@@ -2007,8 +2007,6 @@ static FILE *fp;
     if (first_nonzero_in_column == NULL) return(0);
     firstp=(int*)calloc(columns+1,sizeof(int));
 
-    second_nonzero=(int*)calloc(rows,sizeof(int));
-
     eta=(long*)calloc(columns+1,sizeof(long));
     v=(long*)calloc(columns+1,sizeof(long));
     w=(DOUBLE**)calloc(columns+1,sizeof(DOUBLE*));
@@ -2023,7 +2021,7 @@ static FILE *fp;
     for (i=0;i<=columns;i++) mu_trans[i]=(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
     dum = (DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
 
-#if defined(FINCKEPOHST)
+#if FINCKEPOHST
     fipo=(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
     muinv=(DOUBLE**)calloc(columns,sizeof(DOUBLE*));
     for(i=0;i<columns;++i) muinv[i]=(DOUBLE*)calloc(rows,sizeof(DOUBLE));
@@ -2038,7 +2036,7 @@ static FILE *fp;
 
 @ Additional variables for Fincke-Pohst bounds.
 @<globals for enumeration@>=
-#if defined(FINCKEPOHST)
+#if FINCKEPOHST
     DOUBLE **muinv;    
     DOUBLE **fipo_UB, **fipo_LB;
 #endif    
@@ -2390,13 +2388,7 @@ first non-zero entry in this column.
             first_nonzero[l] = i;
             break;
         }           
-        for (i=first_nonzero[l]+1; i<columns; i++) if (mpz_sgn(get_entry(i,l))!=0) { 
-            second_nonzero[l] = i;
-            break;
-        }           
-printf("%d ", second_nonzero[l]-first_nonzero[l]);
     }
-printf("\n");
 
 ss = 0;
     j = 0;
@@ -2455,7 +2447,7 @@ enough solutions.
 #if VERBOSE > -1              
         if (loops%100000000 ==0) {                 /*10000000*/
             printf("%ld loops, solutions: %ld ",loops,nosolutions);
-#if defined(FINCKEPOHST)
+#if FINCKEPOHST
             printf("fipo: %ld ", fipo_success);
 #endif            
 #if EIGENBOUND
@@ -2488,12 +2480,11 @@ enough solutions.
         @<increase loop counter@>;
         @<compute new |cs|@>;
         if ( (cs[level]<Fd) /*|&& (!prune0(fabs(dum[level]),N[level]))|*/)  {   
-#if defined(FINCKEPOHST)
+#if FINCKEPOHST
 #if 1 
             if (fabs(us[level])>fipo[level]) {
 #else
             if (level!=columns-1 &&
-                /*|(us[level]>fipo_u[level] || us[level]<fipo_l[level])|*/
                 (us[level]>fipo_UB[columns][level] || us[level]<fipo_LB[columns][level])
                 ) {
 #endif                
@@ -2564,9 +2555,8 @@ We test, if we can prune the enumeration, otherwise
 we decrease the |level|.
 @<not at a leave@>=
 	i = prune_only_zeros(w, level, rows, Fq, first_nonzero_in_column, firstp,
-                         bd, y, us, second_nonzero);
+                         bd, y, us, columns);
 	if (i<0) {
-        level = (-i)-1;
         goto step_back;
 	} else if (i>0) {
         goto side_step;
@@ -2612,6 +2602,9 @@ we decrease the |level|.
 #endif            
 
         level--;
+		fipo_LB[columns][level] = -fipo[level];
+		fipo_UB[columns][level] =  fipo[level];
+
         delta[level] = eta[level] = 0;
         y[level] = compute_y(mu_trans,us,level,level_max);
 #if 0                                        
@@ -2649,7 +2642,7 @@ we decrease the |level|.
     printf("Prune_N: %ld\n",N_success);
     printf("Prune_N2: %ld\n",N2_success);
     printf("Prune_N3: %ld\n",N3_success);
-#if defined(FINCKEPOHST)
+#if FINCKEPOHST
     printf("Fincke-Pohst: %ld\n",fipo_success); 
 #endif    
 #if EIGENBOUND
@@ -2691,7 +2684,7 @@ we decrease the |level|.
     free (w);
     free (original_columns);
     
-#if defined(FINCKEPOHST)
+#if FINCKEPOHST
     free (fipo);
     for (l=0;l<columns;l++) free (muinv[l]);
     free(muinv);
@@ -2945,7 +2938,7 @@ void givens(COEFF **lattice, int columns, int rows, DOUBLE **mu,
 }
 @ The upper triangular matrix $\mu$ is inverted.
 @<matrix inversion for Fincke-Pohst@>=
-#if defined(FINCKEPOHST)
+#if FINCKEPOHST
 void inverse(DOUBLE **mu, DOUBLE **muinv, int columns) {
     int i,j,k;
     DOUBLE sum;
@@ -3113,47 +3106,58 @@ if (0 && t>cols-20) {
 @<prune zeros in row@>=
 int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq, 
                      int *first_nonzero_in_column, int *firstp,
-                     DOUBLE **bd, DOUBLE *y, DOUBLE *us, int *second_nonzero) {
+                     DOUBLE **bd, DOUBLE *y, DOUBLE *us, int columns) {
     int i;
     int f;
-	DOUBLE u1, u2;
-	int ret = 0;
+	DOUBLE u1, u2, swp;
 
     only_zeros_no++;
-    if (iszeroone) {
-        for (i=0; i<first_nonzero_in_column[firstp[level]]; i++) {
-            f = first_nonzero_in_column[firstp[level]+1+i];
-		 	u1 = ( Fq-w[level+1][f])/bd[level][f] - y[level];
-		 	u2 = (-Fq-w[level+1][f])/bd[level][f] - y[level];
+    for (i=0; i<first_nonzero_in_column[firstp[level]]; i++) {
+        f = first_nonzero_in_column[firstp[level]+1+i];
+	    u1 = ( Fq-w[level+1][f])/bd[level][f] - y[level];
+		u2 = (-Fq-w[level+1][f])/bd[level][f] - y[level];
+		if (u2<u1) {
+			swp = u1;
+			u1 = u2;
+			u2 = swp;
+		}
+		fipo_LB[columns][level] = u1-EPSILON;
+		fipo_UB[columns][level] = u2+EPSILON;
+            
+    	if (iszeroone) {
 			if (fabs(u1-round(u1))>EPSILON && fabs(u2-round(u2))>EPSILON) {
-/*|printf("%d \n", second_nonzero[f]-level);|*/
-                only_zeros_success++;
-				ret = (-second_nonzero[f]<ret) ? (-second_nonzero[f]) : ret;
-				/*|return -second_nonzero[f];|*/
-				/*|return -1;|*/
+        		only_zeros_success++;
+				return -1;
 			}
-            if (fabs(u1-us[level])>EPSILON && fabs(u2-us[level])>EPSILON) {
+
+       	 	if (fabs(u1-us[level])>EPSILON && fabs(u2-us[level])>EPSILON) {
 				return 1;
-				/*»return 1;|*/
 			}
+    	} else {
+   			if (u2-u1<=1.0+EPSILON && fabs(w[level][f]-round(w[level][f]))>EPSILON) {
+        		only_zeros_success++;
+				return -1;
+			}
+
+       	 	if (us[level]<u1-EPSILON || us[level]>u2+EPSILON) {
+				return 1;
+			}
+  		}
 #if 0
-            if ( fabs(fabs(w[level][f])-Fq) > EPSILON /* Fq*EPSILON*/ ) {
+    	if (iszeroone) {
+            if ( fabs(fabs(w[level][f])-Fq) > EPSILON ) {
                 /*|only_zeros_success++;|*/
                 return 1;
             }
-#endif
-        } 
-    } else {
-        for (i=0; i<first_nonzero_in_column[firstp[level]]; i++) {
-            f = first_nonzero_in_column[firstp[level]+1+i];
+    	} else {
             if ( fabs(w[level][f]) > Fq*(1+EPSILON) ) {  
                 only_zeros_success++;
                 return 1;
             }
-        } 
-    }
-	return ret;
-    /*|return 0;|*/
+    	}
+#endif
+    } 
+    return 0;
 }
 
 @ Jacobi method to compute minimum Eigen value of the symmetric matrix $R^topR$.

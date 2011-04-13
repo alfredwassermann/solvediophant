@@ -1,0 +1,20 @@
+* KM_Id7_t2_k3.in:
+0/1 problem, 30 solutions, easy
+
+* KM_PGGL_2_32_t7_k8.in:
+0/1 problem, 4 99. ... solutions
+
+* KM_PSL_2_23_7_8.in:
+0/1 problem, 2 solutions 
+./solvediophant -bkz -beta100 -p40 Tests/KM_PSL_2_23_7_8.in
+
+* unitals_v1.txt, unitals_v1.txt:
+0/1 problems, 78 solutions
+
+* n8_279.txt:
+non 0/1 problem, 1848 solutions
+./solvediophant -c10000 -bkz -beta160 -p70 Tests/n8_279.txt
+
+* n8_282.txt:
+non 0/1 problem, ? solutions
+./solvediophant -c10000 -bkz -beta160 -p70 Tests/n8_282.txt
