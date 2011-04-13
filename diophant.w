@@ -2602,9 +2602,10 @@ we decrease the |level|.
 #endif            
 
         level--;
+#if 0
 		fipo_LB[columns][level] = -fipo[level];
 		fipo_UB[columns][level] =  fipo[level];
-
+#endif
         delta[level] = eta[level] = 0;
         y[level] = compute_y(mu_trans,us,level,level_max);
 #if 0                                        
@@ -3116,6 +3117,7 @@ int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
         f = first_nonzero_in_column[firstp[level]+1+i];
 	    u1 = ( Fq-w[level+1][f])/bd[level][f] - y[level];
 		u2 = (-Fq-w[level+1][f])/bd[level][f] - y[level];
+#if 0
 		if (u2<u1) {
 			swp = u1;
 			u1 = u2;
@@ -3123,25 +3125,35 @@ int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
 		}
 		fipo_LB[columns][level] = u1-EPSILON;
 		fipo_UB[columns][level] = u2+EPSILON;
-            
+#endif       
     	if (iszeroone) {
 			if (fabs(u1-round(u1))>EPSILON && fabs(u2-round(u2))>EPSILON) {
         		only_zeros_success++;
 				return -1;
 			}
 
+            if ( fabs(fabs(w[level][f])-Fq) > EPSILON ) {
+                return 1;
+            }
+#if 0
        	 	if (fabs(u1-us[level])>EPSILON && fabs(u2-us[level])>EPSILON) {
 				return 1;
 			}
+#endif
     	} else {
    			if (u2-u1<=1.0+EPSILON && fabs(w[level][f]-round(w[level][f]))>EPSILON) {
         		only_zeros_success++;
 				return -1;
 			}
 
+            if ( fabs(w[level][f]) > Fq*(1+EPSILON) ) {  
+                return 1;
+            }
+#if 0
        	 	if (us[level]<u1-EPSILON || us[level]>u2+EPSILON) {
 				return 1;
 			}
+#endif
   		}
 #if 0
     	if (iszeroone) {

@@ -2,7 +2,7 @@
 0/1 problem, 30 solutions, easy
 
 * KM_PGGL_2_32_t7_k8.in:
-0/1 problem, 4 99. ... solutions
+0/1 problem, 4 99. 4996426 solutions
 
 * KM_PSL_2_23_7_8.in:
 0/1 problem, 2 solutions 
@@ -16,5 +16,5 @@ non 0/1 problem, 1848 solutions
 ./solvediophant -c10000 -bkz -beta160 -p70 Tests/n8_279.txt
 
 * n8_282.txt:
-non 0/1 problem, ? solutions
+non 0/1 problem, 104 solutions
 ./solvediophant -c10000 -bkz -beta160 -p70 Tests/n8_282.txt
