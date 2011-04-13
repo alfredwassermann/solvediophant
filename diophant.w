@@ -66,6 +66,13 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     COEFF *swap_vec;
     
     @<initialize some globals@>;
+
+	/* In case, a time limit as been set by -time
+       the execution is stopped and
+       the number of solutions is printed
+	*/
+    signal(SIGALRM, stopProgram);
+
     @<set the lattice dimension@>;
     @<allocate memory@>;
     @<read the system@>;
@@ -147,6 +154,7 @@ extern long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
 
 @ The following header files are included. 
 @<include header files@>=
+#include <signal.h>
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
@@ -529,6 +537,7 @@ The last column of |lattice| is a zero vector.
 
 @*Subroutines for {\tt diophant}.
 @<basic subroutines@>=
+@<stop program@>
 @<debug print@>;
 @<print the lattice@>;
 @<shuffle lattice columns@>;
@@ -3394,6 +3403,18 @@ We write the linear combination of the basis vectors as LP.
 @<output LP@>=
 void basis2LP(double *low, double *up) {
     return;
+}
+
+@
+Stop the execution of the program and write out
+the number of solutions.
+@<stop program@>=
+void stopProgram() {
+#ifndef NO_OUTPUT
+	printf("Stopped after SIGALRM, number of solutions: %ld\n",nosolutions);
+#endif
+	@<close solution file@>;
+	exit(0);
 }
 
 @*Index.
