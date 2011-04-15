@@ -689,7 +689,7 @@ void shufflelattice() {
     unsigned int s;
     
 #if 1
-    s = (unsigned)(time(0));
+    s = (unsigned)(time(0))*getpid();
 #else
     s = 1300964772;
 #endif
