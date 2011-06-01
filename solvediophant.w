@@ -1,6 +1,23 @@
 \datethis
 @*solvediophant -- Solving Diophantine Linear Systems using GMP.
 
+Return values:
+
+-- 0: normal program flow (reduction plus exhaustive enumeration)
+
+-- 1: Input error or internal error
+
+-- 2: Solution not possible, system not solvable over the reals. This may also come from
+parameter -c being too small
+
+-- 3: Program has been called with parameters -? or -h
+
+-- 8: Stopped after finding a random solution in phase one (''\% stopafter: 1'' has been set in the problem file)
+
+-- 9: Stopped after the maximum number of solutions (''\% stopafter: n'' has been set in the problem file)
+
+-- 10: Stopped after reaching the maximum number of solutions (''\% stoploops: n'' has been set in the problem file)
+
 @ The main program.
 @f mpz_t long
 @f DOUBLE double
@@ -40,6 +57,7 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 @ @<include header files@>=
+#include <signal.h>
 #include <stdio.h>
 #include <gmp.h>
 #include <stdlib.h>
@@ -167,7 +185,7 @@ conflicts with the global variables of |diophant|.
 		fprintf(stderr," -iterate*|(-bkz -beta* -p*) [-c*] [-maxnorm*] [-time*] [-silent] [-o*]");
 		fprintf(stderr," inputfile\n\n");
 #endif		
-		exit(1);
+		exit(3);
 	}
 
 @ @<test command line parameters@>=
@@ -210,7 +228,10 @@ conflicts with the global variables of |diophant|.
 	}
 @ With alarm a maximal run time can be given.
 @<start alarm@>=
-	if (maxruntime>0) alarm(maxruntime);
+	if (maxruntime>0) {
+        signal(SIGALRM, stopProgram);
+        alarm(maxruntime);
+    }
 
 @ Open the input file and read the size of the
 Diophantine linear system and some other control parameters.

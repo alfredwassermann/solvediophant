@@ -71,8 +71,6 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
        the execution is stopped and
        the number of solutions is printed
 	*/
-    signal(SIGALRM, stopProgram);
-
     @<set the lattice dimension@>;
     @<allocate memory@>;
     @<read the system@>;
@@ -150,11 +148,13 @@ extern long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     long stop_after_sol_input, long stop_after_loops_input, 
     int free_RHS_input, int *org_col_input, int no_org_col_input,
     int cut_after, int nboundedvars, FILE* solfile);
+
+extern void stopProgram();
+extern long nosolutions;
 #endif
 
 @ The following header files are included. 
 @<include header files@>=
-#include <signal.h>
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
@@ -732,8 +732,8 @@ in the last row. Otherwise a nonhomogenous solution is not possible.
 #ifndef NO_OUTPUT
         printf("Nonhomogenous solution not possible.\n"); @+ fflush(stdout);             
 #endif
-        exit(1);        
-        return 0;
+        exit(2);        
+        return 0;  /* Just for the compiler */
     }            
 @ Test of column |position| for a solution during the reduction phase.
 @<solutiontest@>=
@@ -847,7 +847,7 @@ into the solution file.
 #ifndef NO_OUTPUT
         printf("Stopped in phase 1 after finding a random solution\n");
 #endif
-        exit(0);
+        exit(8);
     }
 @*Elementary lattice basis reduction. We have 
 standard lattice basis reduction (with deep insertions) and blockwise
@@ -2665,11 +2665,12 @@ we decrease the |level|.
 #ifndef NO_OUTPUT
         printf("Stopped after number of solutions: %ld\n",nosolutions);
 #endif        
+        @<close solution file@>;
         if ((stop_after_loops<=loops && stop_after_loops>0 )) {
-            @<close solution file@>;
-            exit(0);
+            exit(10);
+        } else {
+            exit(9);
         }
-        
     } else {
 #ifndef NO_OUTPUT
         printf("Total number of solutions: %ld\n",nosolutions);
@@ -3414,7 +3415,7 @@ void stopProgram() {
 	printf("Stopped after SIGALRM, number of solutions: %ld\n",nosolutions);
 #endif
 	@<close solution file@>;
-	exit(0);
+	exit(11);
 }
 
 @*Index.
