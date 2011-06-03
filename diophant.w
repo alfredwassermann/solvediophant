@@ -3366,10 +3366,11 @@ int print_solution(DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns) {
             mpz_out_str(NULL,10,soltest_u);
             fflush(stdout); 
             mpz_out_str(fp,10,soltest_u);
-            if (!iszeroone) {
-                printf(" ");
-                fprintf(fp, " ");
-            }
+
+			/* Meanwhile, all solution vectors are written with separating blanks. */ 
+            /*|if (!iszeroone) { }|*/
+            printf(" ");
+            fprintf(fp, " ");
         }  
         if (free_RHS) {
             mpz_set_d(soltest_u,ROUND(w[i]));
