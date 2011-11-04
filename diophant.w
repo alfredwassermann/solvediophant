@@ -388,7 +388,7 @@ and $1$ in problems with fixed right hand side.
 @ The lower parts of the lattice are multiplied by factors stemming
 from the upper bounds. This is only necessary if we have non-0/1 bounds.
 Each row in the lower part of the lattice corresponds to a variable.
-We multiply the diogonal entry in row $j$ (of the lower part,
+We multiply the diagonal entry in row $j$ (of the lower part,
 therefore in the whole system it is row  $j+ |system_rows|$) by 
 ${u_{\max}\over u_j}$.
 The right hand side column entry in row $j$ is multiplied by
@@ -618,6 +618,25 @@ void print_NTL_lattice() {
 #endif    
 #endif    
     return;
+}
+
+@ Write uni-modular transformation to file.
+@<write tranformation matrix@>=
+void write_transform() {
+    FILE* f;
+    int i, j, n;
+    f = fopen("sdb_transform.txt", "w");
+    n = lattice_columns-1;
+    fwrite("%d\n", n);
+    for (i=0; i<n; i++) {
+        for (j=0; j<n; j++) {
+            mpz_out_str(f, 10, get_entry(i+system_rows,j));
+            fprintf(f," ");
+        }
+        fprintf(f, "\n");
+    }
+    
+    fclose(f);
 }
 
 @ Compute GCD in case of single precision arithmetics.
@@ -3290,10 +3309,12 @@ int print_solution(DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns) {
     int i,j,k;
     int upper;
     int end;
+    
     /* Test again, if the vector is really a solution */
-#if 0
+#if 1
     if (fabs(fabs(w[rows-1])-Fq)>0.5*Fq*EPSILON)  {
 #else
+    /* Wrong, because it allows |w[rows-1]==0.0|. Why did I ever use this?*/
     if (fabs(w[rows-1])>Fq*(1+EPSILON))  {
 #endif  
         return 0; 
