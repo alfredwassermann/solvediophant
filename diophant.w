@@ -30,7 +30,7 @@ declarations.
 @d GIVENS 1
 @d LASTLINESFACTOR "1" /* "100000000" */
 @d EPSILON 0.000001      /* 0.0001  */
-@d LLLCONST_LOW  0.75 /* 0.75*/
+@d LLLCONST_LOW  0.4 /* 0.75*/
 @d LLLCONST_HIGH 0.99    /* 0.99 */
 @d LLLCONST_HIGHER 0.999 
 
@@ -66,7 +66,10 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     COEFF *swap_vec;
     
     @<initialize some globals@>;
-
+#if BLAS
+    goto_set_num_threads(1);
+#endif
+    
 	/* In case, a time limit as been set by -time
        the execution is stopped and
        the number of solutions is printed
@@ -168,8 +171,8 @@ extern long nosolutions;
 #endif
 
 #if BLAS
-#include "GotoBLAS2/common.h"
-#include "GotoBLAS2/cblas.h"
+#include "OpenBLAS/common.h"
+#include "OpenBLAS/cblas.h"
 #endif
 
 @ The data structure of the lattice:

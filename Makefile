@@ -12,7 +12,9 @@ CFLAGS= -O3 -Wall -ffast-math \
 	#-fprofile-generate -fprofile-use\
 	
 #CFLAGS= -g -Wall  
-ASSEMBLERLIB=./GotoBLAS2/libgoto2.a
+#ASSEMBLERLIB=./GotoBLAS2/libgoto2.a
+ASSEMBLERLIB=./OpenBLAS/libopenblas.a
+#ASSEMBLERLIB=/usr/lib/openblas-base/libopenblas.a
 #GMPLIB=-L../gmp-4.2.1/bin/lib
 #GMPINC=-I../gmp-4.2.1/bin/include
 #GMPLIB=
@@ -32,7 +34,7 @@ solvediophant.c: solvediophant.w
 solvediophant: solvediophant.c diophant.o diophant.h 
 	$(CC) $(CFLAGS) -o solvediophant solvediophant.c diophant.o \
 	$(ASSEMBLERLIB) \
-	-lm -static -lgmp $(GMPLIB) $(GMPINC)
+	-lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
 	strip solvediophant
 #	$(CC) -static $(CFLAGS) -o solvediophant solvediophant.c diophant.o \
 
