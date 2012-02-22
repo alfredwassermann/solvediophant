@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS= -O3 -Wall -ffast-math \
         -funroll-all-loops    \
         -march=native -mtune=native -msse -msse2 -msse3 -mssse3 -m64 \
-        -pipe \
+        -pipe  \
         -fomit-frame-pointer -finline-functions  
 	#-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4
         # -ftree-vectorize -ftree-vectorizer-verbose=2 
