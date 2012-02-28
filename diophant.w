@@ -31,7 +31,7 @@ declarations.
 @d LASTLINESFACTOR "1" /* "100000000" */
 @d EPSILON 0.000001      /* 0.0001  */
 @d LLLCONST_LOW  0.4 /* 0.75*/
-@d LLLCONST_HIGH 0.99    /* 0.99 */
+@d LLLCONST_HIGH 0.9    /* 0.99 */
 @d LLLCONST_HIGHER 0.999 
 
 @d SQRT sqrt
