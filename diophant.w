@@ -23,7 +23,7 @@ The LLL and BKZ algorithms can be controlled by the following
 declarations.
 @d BLAS 1
 @d USE_SSE 0
-@d DEEPINSERT 1
+@d DEEPINSERT 0
 @d DEEPINSERT_CONST 2000
 @d VERBOSE 1
 
