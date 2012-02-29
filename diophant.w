@@ -21,16 +21,16 @@ $$x= (1,0,0,1,0,1,0,1,1,0,0,1,0)^\top.$$
 @ Initial definitions. 
 The LLL and BKZ algorithms can be controlled by the following
 declarations.
-@d BLAS 1
+@d BLAS 0
 @d USE_SSE 0
-@d DEEPINSERT 1
+@d DEEPINSERT 0
 @d DEEPINSERT_CONST 2000
 @d VERBOSE 1
 
 @d GIVENS 1
 @d LASTLINESFACTOR "1" /* "100000000" */
 @d EPSILON 0.000001      /* 0.0001  */
-@d LLLCONST_LOW  0.4 /* 0.75*/
+@d LLLCONST_LOW  0.5 /* 0.75*/
 @d LLLCONST_HIGH 0.9    /* 0.99 */
 @d LLLCONST_HIGHER 0.999 
 
@@ -67,7 +67,7 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     
     @<initialize some globals@>;
 #if BLAS
-    goto_set_num_threads(1);
+    /*|goto_set_num_threads(1); |*/
 #endif
     
 	/* In case, a time limit as been set by -time
@@ -2762,7 +2762,9 @@ static FILE* fp;
 @ 
 @<some vector computations@>=
 DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max) {
-#if 0
+#if BLAS
+    return cblas_ddot(level_max-level, &(us[level+1]), 1, &(mu_trans[level][level+1]), 1);
+#else
     int i;
     DOUBLE dum;
     i = level_max;
@@ -2772,8 +2774,6 @@ DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max) {
         i--;
     }
     return dum;
-#else
-    return cblas_ddot(level_max-level, &(us[level+1]), 1, &(mu_trans[level][level+1]), 1);
 #endif
 }
 
@@ -3034,13 +3034,13 @@ int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps) {
 #else
     DOUBLE reseite;
     int i;
-    reseite = -cs/Fqeps; /* | * (1-eps) | */
+    reseite = 0.0; /*|-cs/Fqeps;|*/ /* | * (1-eps) | */
     i = rows-1;
     do {
         reseite += fabs(w[i]); 
         i--;
     } while (i>=0);
-    if (0.0 < reseite) return 0;
+    if (cs < Fqeps * reseite) return 0;
 #endif
     /*|hoelder_success++;|*/
     return 1; 
