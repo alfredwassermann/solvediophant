@@ -21,17 +21,17 @@ $$x= (1,0,0,1,0,1,0,1,1,0,0,1,0)^\top.$$
 @ Initial definitions. 
 The LLL and BKZ algorithms can be controlled by the following
 declarations.
-@d BLAS 0
+@d BLAS 1
 @d USE_SSE 0
-@d DEEPINSERT 0
+@d DEEPINSERT 1
 @d DEEPINSERT_CONST 2000
 @d VERBOSE 1
 
 @d GIVENS 1
 @d LASTLINESFACTOR "1" /* "100000000" */
 @d EPSILON 0.000001      /* 0.0001  */
-@d LLLCONST_LOW  0.5 /* 0.75*/
-@d LLLCONST_HIGH 0.9    /* 0.99 */
+@d LLLCONST_LOW  0.75 /* 0.75*/
+@d LLLCONST_HIGH 0.99    /* 0.99 */
 @d LLLCONST_HIGHER 0.999 
 
 @d SQRT sqrt
@@ -2421,6 +2421,7 @@ first non-zero entry in this column.
         }           
     }
 
+printf("First non-zero entries:\n");
 ss = 0;
     j = 0;
     for (l=0;l<columns;l++) {
@@ -2826,7 +2827,7 @@ void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     #else    
         int l;
 
-        l = rows;
+        l = rows-1;
         while (l>=0) {
             w[level][l] = w[level+1][l] + alpha*bd[level][l]; 
             l--;
@@ -3147,26 +3148,26 @@ int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
     only_zeros_no++;
     for (i=0; i<first_nonzero_in_column[firstp[level]]; i++) {
         f = first_nonzero_in_column[firstp[level]+1+i];
-	    u1 = ( Fq-w[level+1][f])/bd[level][f] - y[level];
-		u2 = (-Fq-w[level+1][f])/bd[level][f] - y[level];
+        u1 = ( Fq-w[level+1][f])/bd[level][f] - y[level];
+        u2 = (-Fq-w[level+1][f])/bd[level][f] - y[level];
 #if 0
-		if (u2<u1) {
-			swp = u1;
-			u1 = u2;
-			u2 = swp;
-		}
-		fipo_LB[columns][level] = u1-EPSILON;
-		fipo_UB[columns][level] = u2+EPSILON;
+        if (u2<u1) {
+            swp = u1;
+            u1 = u2;
+            u2 = swp;
+        }
+        fipo_LB[columns][level] = u1-EPSILON;
+        fipo_UB[columns][level] = u2+EPSILON;
 #endif       
     	if (iszeroone) {
-			if (fabs(u1-round(u1))>EPSILON && fabs(u2-round(u2))>EPSILON) {
-        		only_zeros_success++;
-				return -1;
-			}
+            if (fabs(u1-round(u1))>EPSILON && fabs(u2-round(u2))>EPSILON) {
+            only_zeros_success++;
+            return -1;
+        }
 
-            if ( fabs(fabs(w[level][f])-Fq) > EPSILON ) {
-                return 1;
-            }
+        if ( fabs(fabs(w[level][f])-Fq) > EPSILON ) {
+            return 1;
+        }
 #if 0
        	 	if (fabs(u1-us[level])>EPSILON && fabs(u2-us[level])>EPSILON) {
 				return 1;
