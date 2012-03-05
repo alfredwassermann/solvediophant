@@ -1956,6 +1956,7 @@ DOUBLE explicit_enumeration (COEFF **lattice, int columns, int rows)
 #endif
 
     @<initialize first-nonzero arrays@>;
+    @<initialize second-nonzero arrays@>;
     @<more initialization@>;
     @<the loop of the exhaustive enumeration@>;
 
@@ -1983,8 +1984,9 @@ static FILE *fp;
         mpz_t *v;
 #else        
         long *v;
-#endif        
+#endif
     int *first_nonzero, *first_nonzero_in_column, *firstp; 
+    int *snd_nonzero, *snd_nonzero_in_column, *sndp; 
 
     DOUBLE *N, **mu, *c, **w, **bd, **mu_trans;
 
@@ -2037,6 +2039,11 @@ static FILE *fp;
     first_nonzero_in_column=(int*)calloc(columns+rows+1,sizeof(int));
     if (first_nonzero_in_column == NULL) return(0);
     firstp=(int*)calloc(columns+1,sizeof(int));
+
+    snd_nonzero=(int*)calloc(rows,sizeof(int));
+    snd_nonzero_in_column=(int*)calloc(columns+rows+1,sizeof(int));
+    if (snd_nonzero_in_column == NULL) return(0);
+    sndp=(int*)calloc(columns+1,sizeof(int));
 
     eta=(long*)calloc(columns+1,sizeof(long));
     v=(long*)calloc(columns+1,sizeof(long));
@@ -2421,8 +2428,7 @@ first non-zero entry in this column.
         }           
     }
 
-printf("First non-zero entries:\n");
-ss = 0;
+    printf("First non-zero entries:\n");
     j = 0;
     for (l=0;l<columns;l++) {
         firstp[l] = j;
@@ -2433,14 +2439,44 @@ ss = 0;
                 first_nonzero_in_column[j] = i; 
                 first_nonzero_in_column[firstp[l]]++;
                 j++;
-ss++;
             }
         }
-printf("%d ", first_nonzero_in_column[firstp[l]]);
+        printf("%d ", first_nonzero_in_column[firstp[l]]);
     }
-printf(": %d %d\n", ss, rows);
+    printf(": %d\n", rows);
     firstp[columns] = j;
     first_nonzero_in_column[j] = 0; 
+
+@ Find the index of the second non-zero entry
+in each row.
+Then, detect in each column which rows have its
+second non-zero entry in this column.
+@<initialize second-nonzero arrays@>=
+    for (l=0;l<rows;l++) {
+        for (i=first_nonzero[l]+1; i<columns; i++) if (mpz_sgn(get_entry(i,l))!=0) { 
+            snd_nonzero[l] = i;
+            break;
+        }           
+    }
+
+    printf("Second non-zero entries:\n");
+    j = 0;
+    for (l=0;l<columns;l++) {
+        sndp[l] = j;
+        snd_nonzero_in_column[j] = 0;
+        j++;
+        for (i=0;i<rows;i++) {
+            if(snd_nonzero[i]==l) {
+                snd_nonzero_in_column[j] = i; 
+                snd_nonzero_in_column[sndp[l]]++;
+                j++;
+            }
+        }
+        printf("%d ", snd_nonzero_in_column[sndp[l]]);
+    }
+    printf(": %d\n\n", rows);
+    sndp[columns] = j;
+    snd_nonzero_in_column[j] = 0; 
 
 
 @ @<globals for enumeration@>=
@@ -2450,8 +2486,7 @@ printf(": %d %d\n", ss, rows);
     long N2_success;
     long N3_success;
 
-	int ss;
-    
+
 @ @<more initialization@>=
     level = first_nonzero[rows-1];
     if (level<0) level = 0;
@@ -2712,6 +2747,11 @@ we decrease the |level|.
     free (first_nonzero); 
     free (first_nonzero_in_column); 
     free (firstp); 
+
+    free (snd_nonzero); 
+    free (snd_nonzero_in_column); 
+    free (sndp); 
+
     free (eta);
     free (v);
     for (l=0;l<=columns;l++) free (w[l]);

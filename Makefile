@@ -20,7 +20,7 @@ ASSEMBLERLIB=./OpenBLAS/libopenblas.a
 #GMPLIB=
 #GMPINC=
 
-all: solvediophant.dvi solvediophant diophant.pdf 
+all: solvediophant.dvi diophant.pdf solvediophant  
 
 solvediophant.tex: solvediophant.w
 	cweave solvediophant.w 
