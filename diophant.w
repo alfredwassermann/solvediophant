@@ -710,7 +710,7 @@ void shufflelattice() {
     int i, j, r;
     unsigned int s;
     
-#if 0
+#if 1
     s = (unsigned)(time(0))*getpid();
 #else
     s = 1300964772;
@@ -1825,7 +1825,7 @@ $$
          }
 #else
 /*
-    Hoerners version of the Gaussian volumne heuristics.
+    Hoerners version of the Gaussian volume heuristics.
 */
         dum = log(c[start_block]);
         for (i=start_block+1;i<=end_block;i++) {
@@ -1933,6 +1933,7 @@ DOUBLE explicit_enumeration (COEFF **lattice, int columns, int rows)
        can be removed.
        This is important for the Selfdual Bent Functions Problems
      */
+#if 1     
     for (i=columns-1; i>=0; i--) {
         if (fipo[i]<0.9) {
             printf("DEL\n");
@@ -1941,6 +1942,7 @@ DOUBLE explicit_enumeration (COEFF **lattice, int columns, int rows)
             break;
         }
     }
+#endif    
     /*|print_lattice();|*/
 #if 0    
     @<orthogonalize the basis@>;
