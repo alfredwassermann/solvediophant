@@ -165,6 +165,7 @@ extern long nosolutions;
 #include <malloc.h>
 #include <math.h>
 #include <gmp.h>
+#include "diophant.h"
 #if USE_SSE
     /* Intrinsic SSE */
     #include <pmmintrin.h>
@@ -194,6 +195,10 @@ variables which control the scaling of the lattice.
     mpz_t dummy;
     long nom, denom;
     mpz_t lastlines_factor;
+    
+    mpz_t snd_q, snd_r, snd_s;
+
+    
 
 @ The variables which define the lattice and its dimensions.
 @<global variables@>=
@@ -236,6 +241,10 @@ global variables.
     mpz_init_set(max_norm,norm_input);
     mpz_init(lastlines_factor);
     mpz_init(upfac);
+    
+    mpz_init(snd_q);
+    mpz_init(snd_r);
+    mpz_init(snd_s);
 
     if (iterate) {
         no_iterates = iterate_no;
@@ -609,7 +618,7 @@ void print_NTL_lattice() {
         printf("\n");
     }
     printf("]\n"); @+ fflush(stdout);
-#if 0    
+#if 1    
     printf("\n");
     mpz_out_str(NULL,10,upperbounds_max);
     printf("\n\n[");
@@ -710,7 +719,7 @@ void shufflelattice() {
     int i, j, r;
     unsigned int s;
     
-#if 1
+#if 0
     s = (unsigned)(time(0))*getpid();
 #else
     s = 1300964772;
@@ -1971,6 +1980,13 @@ DOUBLE explicit_enumeration (COEFF **lattice, int columns, int rows)
 #if 0
 static FILE *fp;
 #endif 
+@ 
+@(diophant.h@>=
+    struct constraint {
+        double val[2];
+        int parent;
+        int isSet;
+    } CONSTRAINT;
 
 @ @<local variables for |explicit_enumeration()|@>=
     /*|__attribute((aligned(16)))|*/
@@ -1989,6 +2005,7 @@ static FILE *fp;
 #endif
     int *first_nonzero, *first_nonzero_in_column, *firstp; 
     int *snd_nonzero, *snd_nonzero_in_column, *sndp; 
+    struct constraint *cons;
 
     DOUBLE *N, **mu, *c, **w, **bd, **mu_trans;
 
@@ -2046,6 +2063,11 @@ static FILE *fp;
     snd_nonzero_in_column=(int*)calloc(columns+rows+1,sizeof(int));
     if (snd_nonzero_in_column == NULL) return(0);
     sndp=(int*)calloc(columns+1,sizeof(int));
+
+    cons=(struct constraint*)calloc(columns,sizeof(struct constraint));
+    for(i=0;i<columns;++i) {
+        cons[i].isSet = 0;
+    }   
 
     eta=(long*)calloc(columns+1,sizeof(long));
     v=(long*)calloc(columns+1,sizeof(long));
@@ -2481,6 +2503,14 @@ second non-zero entry in this column.
     snd_nonzero_in_column[j] = 0; 
 
 
+#if 0
+/* Display gaps between first non-zero entry and second non-zero entry. */
+    for (l=0;l<rows;l++) {
+        printf("%d ", snd_nonzero[l]-first_nonzero[l]);
+    }
+    printf("\n");
+#endif
+
 @ @<globals for enumeration@>=
     long only_zeros_no, only_zeros_success, hoelder_no, hoelder_success;
     long cs_success;
@@ -2568,7 +2598,6 @@ enough solutions.
                 goto side_step;
            }
 #endif
-            
             if (isSideStep) {
                 compute_w2(w, bd, stepWidth, level, rows);
             } else {
@@ -2628,6 +2657,16 @@ we decrease the |level|.
 	if (i<0) {
         goto step_back;
 	} else if (i>0) {
+        goto side_step;
+    }
+
+    i = prune_snd_nonzero(columns, rows, 
+                     level, Fq, 
+                     first_nonzero,
+                     snd_nonzero_in_column, sndp,
+                     us, 
+                     cons);
+    if (i>0) {
         goto side_step;
     }
 
@@ -2753,6 +2792,7 @@ we decrease the |level|.
     free (snd_nonzero); 
     free (snd_nonzero_in_column); 
     free (sndp); 
+    free (cons);
 
     free (eta);
     free (v);
@@ -3037,6 +3077,7 @@ void inverse(DOUBLE **mu, DOUBLE **muinv, int columns) {
 @<simple bound@>;
 @<pruning with H\"older@>;
 @<prune zeros in row@>;
+@<prune second nonzero in row@>;
 @<print a solution@>;
 @<Jacobi method@>;
 
@@ -3179,6 +3220,16 @@ if (0 && t>cols-20) {
 }
 
 @ Prune if there remain only zeros in a not finished row.
+The function computes two bounds $u_1$ and $u_2$ which fulfill
+$$
+\vert w +(u_{1,2}+y)\hat b \vert \leq F_q
+$$
+If in case of a zero/one problem both $u_i$'s are non-integer values
+we can not reach integer values by addition of other integers. That means,
+we may abandon enumeration at that level and step back, i.e. return $-1$.
+
+If one of the coordinates which has only zeroes to its left violates the bounds
+we make a side step. That is we return $1$.
 @<prune zeros in row@>=
 int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq, 
                      int *first_nonzero_in_column, int *firstp,
@@ -3192,6 +3243,7 @@ int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
         f = first_nonzero_in_column[firstp[level]+1+i];
         u1 = ( Fq-w[level+1][f])/bd[level][f] - y[level];
         u2 = (-Fq-w[level+1][f])/bd[level][f] - y[level];
+        
 #if 0
         if (u2<u1) {
             swp = u1;
@@ -3207,15 +3259,17 @@ int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
             return -1;
         }
 
-        if ( fabs(fabs(w[level][f])-Fq) > EPSILON ) {
-            return 1;
-        }
+            if ( fabs(fabs(w[level][f])-Fq) > EPSILON ) {
+            only_zeros_success++;
+                return 1;
+            }
+        
 #if 0
        	 	if (fabs(u1-us[level])>EPSILON && fabs(u2-us[level])>EPSILON) {
 				return 1;
 			}
 #endif
-    	} else {
+    	} else {  /* Not zero-one */
    			if (u2-u1<=1.0+EPSILON && fabs(w[level][f]-round(w[level][f]))>EPSILON) {
         		only_zeros_success++;
 				return -1;
@@ -3244,6 +3298,50 @@ int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
     	}
 #endif
     } 
+    return 0;
+}
+
+@ 
+@<prune second nonzero in row@>=
+int prune_snd_nonzero(int columns, int rows, 
+                     int level, DOUBLE Fq, 
+                     int *first_nonzero,
+                     int *snd_nonzero_in_column, int *sndp,
+                     DOUBLE *us, 
+                     struct constraint *cons) {
+    int i, k;
+    int ro;
+    int f1;
+
+return 0;                         
+    for (i=0; i<snd_nonzero_in_column[sndp[level]]; i++) {
+        ro = snd_nonzero_in_column[sndp[level]+1+i];
+        f1 = first_nonzero[ro];
+        if (level-f1<=5) {
+            continue;
+        }
+        mpz_set_si(soltest_s, 0);
+        for (k=level; k<columns; k++) {
+            if (ROUND(us[k])>0) {
+                mpz_addmul_ui(soltest_s, get_entry(k, ro),  ROUND(us[k]));
+            } else {
+                mpz_submul_ui(soltest_s, get_entry(k, ro), -ROUND(us[k]));
+            }
+        }
+        mpz_sub(snd_s, max_norm, soltest_s);   
+        mpz_fdiv_qr(snd_q, snd_r, snd_s, get_entry(f1, ro));
+        if (mpz_sgn(snd_r)!=0) {
+printf("Contradiction\n");            
+            return 1;
+        }
+#if 0        
+        if (cons[f1].isSet==0) {
+            cons[f1].isSet = 1;
+            cons[f1].val[0] = u1;
+            cons[f1].val[1] = u2;
+        } 
+#endif        
+    }
     return 0;
 }
 

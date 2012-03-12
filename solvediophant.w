@@ -353,7 +353,7 @@ and opened again.
 		printf("SELECTEDCOLUMNS detected\n"); @+ fflush(stdout);
 #endif
 		res = fscanf(txt,"%d",&(no_original_columns));
-		if (res==(int)NULL || res==(int)EOF) {
+		if (res==(long)NULL || res==(long)EOF) {
 			@<incorrect input file@>;
 		}
 	} else no_original_columns = no_columns;
@@ -363,7 +363,7 @@ and opened again.
 	if (rowp!=NULL) {
 		for (i=0;i<no_original_columns;i++) {
 			res = fscanf(txt,"%d",&(original_columns[i]));
-			if (res==(int)NULL || res==(int)EOF) {
+			if (res==(long)NULL || res==(long)EOF) {
 				@<incorrect input file@>;
 			}
 		}
