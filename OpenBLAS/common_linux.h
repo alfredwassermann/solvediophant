@@ -68,9 +68,17 @@ extern long int syscall (long int __sysno, ...);
 static inline int my_mbind(void *addr, unsigned long len, int mode,
 			   unsigned long *nodemask, unsigned long maxnode,
 			   unsigned flags) {
+#if defined (LOONGSON3B) 
+#if defined (__64BIT__)
+	return syscall(SYS_mbind, addr, len, mode, nodemask, maxnode, flags);
+#else
+	return 0; //NULL Implementation on Loongson 3B 32bit.
+#endif
+#else
 //Fixed randomly SEGFAULT when nodemask==NULL with above Linux 2.6.34
-	unsigned long null_nodemask=0;
-	return syscall(SYS_mbind, addr, len, mode, &null_nodemask, maxnode, flags);
+//	unsigned long null_nodemask=0;
+	return syscall(SYS_mbind, addr, len, mode, nodemask, maxnode, flags);
+#endif
 }
 
 static inline int my_set_mempolicy(int mode, const unsigned long *addr, unsigned long flag) {
@@ -78,7 +86,13 @@ static inline int my_set_mempolicy(int mode, const unsigned long *addr, unsigned
   return syscall(SYS_set_mempolicy, mode, addr, flag);
 }
 
-static inline int my_gettid(void) { return syscall(SYS_gettid); }
+static inline int my_gettid(void) { 
+#ifdef SYS_gettid
+return syscall(SYS_gettid); 
+#else
+return getpid();
+#endif
+}
 
 #endif
 #endif

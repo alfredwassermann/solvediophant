@@ -81,6 +81,7 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     @<handle preselected columns@>;
     @<append the other parts of lattice@>;
     @<open solution file@>;
+    
 #if 0
     printf("Before scaling\n");
     print_lattice();
@@ -91,7 +92,8 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     print_lattice();
 #endif
     
-#if 0    
+#if 0  
+#if 1 
     print_NTL_lattice();   /* Version for the NTL output */
     return 0;
 #endif
@@ -124,11 +126,14 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     @<scale last rows@>;
     @<third reduction@>;
     @<undo scaling of last rows@>;
+#else
+    read_NTL_lattice();
+#endif    
     
-#if 0
+#if 1
     printf("Before enumeration\n");
-    print_NTL_lattice();   /* Version for the NTL output */
-    /*|print_lattice();|*/
+    /*|print_NTL_lattice();|*/   /* Version for the NTL output */
+    print_lattice();
 #endif
 
     @<explicit enumeration@>;
@@ -556,6 +561,7 @@ The last column of |lattice| is a zero vector.
 @<print NTL lattice@>;
 @<gcd@>;
 @<Initialize the lattice@>;
+@<read lattice written by NTL@>;
 @<cut lattice@>;
 @<solutiontest@>;
 
@@ -620,6 +626,7 @@ void print_NTL_lattice() {
     printf("]\n"); @+ fflush(stdout);
 #if 1    
     printf("\n");
+    printf("%d ", lattice_columns-2);
     mpz_out_str(NULL,10,upperbounds_max);
     printf("\n\n[");
     for (i=0;i<lattice_columns-2;i++) {
@@ -631,6 +638,44 @@ void print_NTL_lattice() {
 #endif    
     return;
 }
+
+@ Read lattice written by NTL.
+First line: number of lattice vectors, lattice length.
+
+Then follows the lattice, each row is a lattice vector.
+
+Number of bounds, Maximum bound
+
+Vector of bounds.
+
+@<read lattice written by NTL@>=
+void read_NTL_lattice() {  
+    int i, j, cols, rows, nbounds;
+    
+    scanf("%d %d\n", &rows, &cols);
+
+    for (i=0; i<rows; i++) {   
+        for (j=0;j<cols;j++) {
+            mpz_inp_str(lattice[i][j+1].c, NULL, 10);
+        }
+    }
+    for (j=0;j<cols;j++) {
+        mpz_set_ui(lattice[rows][j+1].c, 0);
+    }
+    
+    scanf("%d", &nbounds);
+    mpz_inp_str(upperbounds_max, NULL, 10);
+    for (j=0; j<nbounds; j++) {
+        mpz_inp_str(upperbounds[j], NULL, 10);
+    }
+    
+    lattice_columns = rows + 1;
+    lattice_rows = cols;
+    for (i=0; i<lattice_columns; i++ ) coeffinit(lattice [j], lattice_rows);
+
+    return;
+}
+
 
 @ Write uni-modular transformation to file.
 @<write tranformation matrix@>=

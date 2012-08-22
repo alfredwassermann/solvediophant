@@ -45,8 +45,22 @@ int get_L2_size(void);
 #define DEFAULT_GEMM_P 128
 #define DEFAULT_GEMM_Q 128
 #define DEFAULT_GEMM_R 128
+#define DEFAULT_GEMM_OFFSET_A 0
+#define DEFAULT_GEMM_OFFSET_B 0
 
 /* Global Parameter */
+#if GEMM_OFFSET_A == gemm_offset_a
+BLASLONG gemm_offset_a = DEFAULT_GEMM_OFFSET_A;
+#else
+BLASLONG gemm_offset_a = GEMM_OFFSET_A;
+#endif
+
+#if GEMM_OFFSET_B == gemm_offset_b
+BLASLONG gemm_offset_b = DEFAULT_GEMM_OFFSET_B;
+#else
+BLASLONG gemm_offset_b = GEMM_OFFSET_B;
+#endif
+
 #if SGEMM_P == sgemm_p
 BLASLONG sgemm_p = DEFAULT_GEMM_P;
 #else
@@ -149,9 +163,9 @@ int get_L2_size(void){
 
   int eax, ebx, ecx, edx;
 
-#if defined(ATHLON) || defined(OPTERON) || defined(BARCELONA) || \
+#if defined(ATHLON) || defined(OPTERON) || defined(BARCELONA) || defined(BOBCAT) || \
     defined(CORE_PRESCOTT) || defined(CORE_CORE2) || defined(PENRYN) || defined(DUNNINGTON) || \
-    defined(CORE_NEHALEM) || defined(ATOM) || defined(GENERIC)
+  defined(CORE_NEHALEM) || defined(CORE_SANDYBRIDGE) || defined(ATOM) || defined(GENERIC)
 
   cpuid(0x80000006, &eax, &ebx, &ecx, &edx);
 
@@ -370,6 +384,17 @@ void blas_set_parameter(void){
 #endif
 #endif
 
+#if defined(SANDYBRIDGE)
+  sgemm_p = 1024;
+  dgemm_p =  512;
+  cgemm_p =  512;
+  zgemm_p =  256;
+#ifdef EXPRECISION
+  qgemm_p =  256;
+  xgemm_p =  128;
+#endif
+#endif
+
 #if defined(CORE_PRESCOTT)  || defined(GENERIC)
   size >>= 6;
 
@@ -421,7 +446,7 @@ void blas_set_parameter(void){
 #endif
 #endif
 
-#if defined(CORE_BARCELONA)
+#if defined(CORE_BARCELONA) || defined(CORE_BOBCAT)
   size >>= 8;
 
   sgemm_p = 232 * size;
@@ -665,4 +690,37 @@ void blas_set_parameter(void){
 
 #endif
 
+#endif
+
+#if defined(ARCH_MIPS64) 
+void blas_set_parameter(void){
+#if defined(LOONGSON3A)
+#ifdef SMP
+  if(blas_num_threads == 1){
+#endif
+    //single thread
+    dgemm_r = 1024;
+#ifdef SMP
+  }else{
+    //multi thread
+    dgemm_r = 200;
+  }
+#endif
+#endif
+
+#if defined(LOONGSON3B)
+#ifdef SMP
+  if(blas_num_threads == 1 || blas_num_threads == 2){
+#endif
+    //single thread
+    dgemm_r = 640;
+#ifdef SMP
+  }else{
+    //multi thread
+    dgemm_r = 160;
+  }
+#endif
+#endif 
+
+}
 #endif
