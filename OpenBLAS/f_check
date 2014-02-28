@@ -24,7 +24,7 @@ $compiler = "" if $compiler eq "f77";
 
 if ($compiler eq "") {
 
-    @lists = ("f77", "g77", "g95", "gfortran", "frt", "fort", "openf90", "openf95",
+    @lists = ("g77", "g95", "gfortran", "frt", "fort", "openf90", "openf95",
 	      "sunf77", "sunf90", "sunf95",
               "xlf95", "xlf90", "xlf", 
               "ppuf77", "ppuf95", "ppuf90", "ppuxlf", 
@@ -113,6 +113,12 @@ if ($compiler eq "") {
 	if ($data =~ /IBM/) {
 	    $vendor = IBM;
 	    $openmp = "-openmp";
+	}
+
+	# for embeded underscore name, e.g. zho_ge, it may append 2 underscores.
+	$data = `$compiler -O2 -S ftest3.f > /dev/null 2>&1 && cat ftest3.s && rm -f ftest3.s`;
+	if ($data =~ /zho_ge__/) {
+	    $need2bu       = 1;
 	}
     }
 
@@ -211,6 +217,10 @@ if (!$?) {
 	if ($?) {
 	    $link = `$compiler $openmp -q32 -v ftest2.f 2>&1 && rm -f a.out a.exe`;
 	}
+       #For gfortran MIPS
+	if ($?) {
+	    $link = `$compiler $openmp -mabi=n32 -v ftest2.f 2>&1 && rm -f a.out a.exe`;
+	}
 	$binary = "" if ($?);
     }
     
@@ -218,6 +228,10 @@ if (!$?) {
 	$link = `$compiler $openmp -m64 -v ftest2.f 2>&1 && rm -f a.out a.exe`;
 	if ($?) {
 	    $link = `$compiler $openmp -q64 -v ftest2.f 2>&1 && rm -f a.out a.exe`;
+	}
+       #For gfortran MIPS
+	if ($?) {
+	    $link = `$compiler $openmp -mabi=64 -v ftest2.f 2>&1 && rm -f a.out a.exe`;
 	}
 	$binary = "" if ($?);
     }
@@ -236,6 +250,8 @@ if ($link ne "") {
     $link =~ s/\-Y\sP\,/\-Y/g;
 
     $link =~ s/\-rpath\s+/\-rpath\@/g;
+
+    $link =~ s/\-rpath-link\s+/\-rpath-link\@/g;
 
     @flags = split(/[\s\,\n]/, $link);
     # remove leading and trailing quotes from each flag.
@@ -257,7 +273,15 @@ if ($link ne "") {
 	    $linker_L .= "-Wl,". $flags . " ";
 	    }
 	
-	if ($flags =~ /^\-rpath/) {
+	if ($flags =~ /^\-rpath\@/) {
+	    $flags =~ s/\@/\,/g;
+	    if ($vendor eq "PGI") {
+		$flags =~ s/lib$/libso/;
+	    }
+	    $linker_L .= "-Wl,". $flags . " " ;
+	}
+
+	if ($flags =~ /^\-rpath-link\@/) {
 	    $flags =~ s/\@/\,/g;
 	    if ($vendor eq "PGI") {
 		$flags =~ s/lib$/libso/;
@@ -301,6 +325,9 @@ print MAKEFILE "NOFORTRAN=1\n" if $nofortran == 1;
 
 print CONFFILE "#define BUNDERSCORE\t$bu\n" if $bu ne "";
 print CONFFILE "#define NEEDBUNDERSCORE\t1\n" if $bu ne "";
+print CONFFILE "#define NEED2UNDERSCORES\t1\n" if $need2bu ne "";
+
+print MAKEFILE "NEED2UNDERSCORES=1\n" if $need2bu ne "";
 
 if (($linker_l ne "") || ($linker_a ne "")) {
     print MAKEFILE "FEXTRALIB=$linker_L $linker_l $linker_a\n";

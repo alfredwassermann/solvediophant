@@ -314,6 +314,23 @@ typedef int blasint;
 #define YIELDING	sched_yield()
 #endif
 
+/***
+To alloc job_t on heap or statck.
+please https://github.com/xianyi/OpenBLAS/issues/246
+***/
+#if defined(OS_WINDOWS)
+#define GETRF_MEM_ALLOC_THRESHOLD 32
+#define BLAS3_MEM_ALLOC_THRESHOLD 32
+#endif
+
+#ifndef GETRF_MEM_ALLOC_THRESHOLD
+#define GETRF_MEM_ALLOC_THRESHOLD 80
+#endif
+
+#ifndef BLAS3_MEM_ALLOC_THRESHOLD
+#define BLAS3_MEM_ALLOC_THRESHOLD 160
+#endif
+
 #ifdef QUAD_PRECISION
 #include "common_quad.h"
 #endif
@@ -351,7 +368,12 @@ typedef int blasint;
 #endif
 
 #define MMAP_ACCESS (PROT_READ | PROT_WRITE)
+
+#ifdef __NetBSD__
+#define MMAP_POLICY (MAP_PRIVATE | MAP_ANON)
+#else
 #define MMAP_POLICY (MAP_PRIVATE | MAP_ANONYMOUS)
+#endif
 
 #include "param.h"
 #include "common_param.h"
@@ -385,14 +407,17 @@ typedef int blasint;
 /* C99 supports complex floating numbers natively, which GCC also offers as an
    extension since version 3.0.  If neither are available, use a compatible
    structure as fallback (see Clause 6.2.5.13 of the C99 standard). */
-#if defined(__STDC_IEC_559_COMPLEX__) || __STDC_VERSION__ >= 199901L || __GNUC__ >= 3
+#if (defined(__STDC_IEC_559_COMPLEX__) || __STDC_VERSION__ >= 199901L || \
+     (__GNUC__ >= 3 && !defined(__cplusplus)))
   #define OPENBLAS_COMPLEX_C99
   typedef float _Complex openblas_complex_float;
   typedef double _Complex openblas_complex_double;
+  typedef xdouble _Complex openblas_complex_xdouble;
 #else
   #define OPENBLAS_COMPLEX_STRUCT
   typedef struct { float real, imag; } openblas_complex_float;
   typedef struct { double real, imag; } openblas_complex_double;
+  typedef struct { xdouble real, imag; } openblas_complex_xdouble;
 #endif
 #endif  // ASSEMBLER
 
@@ -550,7 +575,8 @@ typedef struct {
 #include "common_level3.h"
 #include "common_lapack.h"
 #ifdef CBLAS
-#include "cblas.h"
+/* This header file is generated from "cblas.h" (see Makefile.prebuild). */
+#include "cblas_noconst.h"
 #endif
 
 #ifndef ASSEMBLER

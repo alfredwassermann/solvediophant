@@ -24,14 +24,14 @@ declarations.
 @d BLAS 1
 @d USE_SSE 0
 @d DEEPINSERT 1
-@d DEEPINSERT_CONST 2000
+@d DEEPINSERT_CONST 2000 
 @d VERBOSE 1
 
 @d GIVENS 1
 @d LASTLINESFACTOR "1" /* "100000000" */
 @d EPSILON 0.000001      /* 0.0001  */
 @d LLLCONST_LOW  0.75 /* 0.75*/
-@d LLLCONST_HIGH 0.99    /* 0.99 */
+@d LLLCONST_HIGH 0.9    /* 0.99 */
 @d LLLCONST_HIGHER 0.999 
 
 @d SQRT sqrt
@@ -92,8 +92,8 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     print_lattice();
 #endif
     
-#if 0  
-#if 1 
+#if 1
+#if 0 
     print_NTL_lattice();   /* Version for the NTL output */
     return 0;
 #endif
@@ -130,7 +130,7 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     read_NTL_lattice();
 #endif    
     
-#if 1
+#if 0
     printf("Before enumeration\n");
     /*|print_NTL_lattice();|*/   /* Version for the NTL output */
     print_lattice();
@@ -1208,10 +1208,11 @@ $k\leftarrow k+1$, otherwise we go back to $k\leftarrow k-1$.
             j = 0;
             Fi = 0;
             while (j<k) {
-#if 0
+#if 1
                 if ((j>DEEPINSERT_CONST && j<k-DEEPINSERT_CONST) || delta*c[j]<=cc) { 
-#endif                
+#else                
                 if (delta*c[j]<=cc) { 
+#endif                
                     cc -= mu[k][j]*mu[k][j]*c[j];
                     j++;
                 } else {

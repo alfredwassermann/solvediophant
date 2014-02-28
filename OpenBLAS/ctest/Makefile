@@ -5,7 +5,7 @@
 TOPDIR = ..
 include $(TOPDIR)/Makefile.system
 
-CFLAGS += -DADD$(BU) -DCBLAS
+override CFLAGS += -DADD$(BU) -DCBLAS
 
 LIB = $(TOPDIR)/$(LIBNAME)
 
@@ -77,7 +77,7 @@ endif
 clean ::
 	rm -f x* 
 
-FLDFLAGS = $(FFLAGS:-fPIC=)
+FLDFLAGS = $(FFLAGS:-fPIC=) $(LDFLAGS)
 CEXTRALIB = 
 
 # Single real

@@ -1,4 +1,5 @@
 CC=gcc
+
 CFLAGS= -O3 -Wall -ffast-math \
         -funroll-all-loops    \
         -march=native -mtune=native -msse -msse2 -msse3 -mssse3 -m64 \
@@ -10,11 +11,14 @@ CFLAGS= -O3 -Wall -ffast-math \
         #-mfpmath=sse+387  # unstable
         #-ffast-math 
 	#-fprofile-generate -fprofile-use\
-	
+
+#CFLAGS= -O3 -mcpu=i686 -march=i686 -fforce-addr -funroll-loops -frerun-cse-after-loop -frerun-loop-opt -malign-functions=4
+
 #CFLAGS= -g -Wall  
 #ASSEMBLERLIB=./GotoBLAS2/libgoto2.a
-ASSEMBLERLIB=./OpenBLAS/libopenblas.a
 #ASSEMBLERLIB=/usr/lib/openblas-base/libopenblas.a
+#ASSEMBLERLIB=./OpenBLAS/libopenblas.a
+ASSEMBLERLIB=./OpenBLAS/libopenblas_sandybridgep-r0.2.8.a
 #GMPLIB=-L../gmp-4.2.1/bin/lib
 #GMPINC=-I../gmp-4.2.1/bin/include
 #GMPLIB=

@@ -222,6 +222,167 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
+
+#ifdef BULLDOZER
+
+#define SNUMOPT		8
+#define DNUMOPT		4
+
+#define GEMM_DEFAULT_OFFSET_A  64
+#define GEMM_DEFAULT_OFFSET_B 832
+#define GEMM_DEFAULT_ALIGN 0x0fffUL
+
+
+
+#define QGEMM_DEFAULT_UNROLL_N 2
+#define CGEMM_DEFAULT_UNROLL_N 2
+#define ZGEMM_DEFAULT_UNROLL_N 2
+#define XGEMM_DEFAULT_UNROLL_N 1
+
+#ifdef ARCH_X86
+#define SGEMM_DEFAULT_UNROLL_N 4
+#define DGEMM_DEFAULT_UNROLL_N 4
+#define SGEMM_DEFAULT_UNROLL_M 4
+#define DGEMM_DEFAULT_UNROLL_M 2
+#define QGEMM_DEFAULT_UNROLL_M 2
+#define CGEMM_DEFAULT_UNROLL_M 2
+#define ZGEMM_DEFAULT_UNROLL_M 1
+#define XGEMM_DEFAULT_UNROLL_M 1
+#else
+#define SGEMM_DEFAULT_UNROLL_N 2
+#define DGEMM_DEFAULT_UNROLL_N 2
+#define SGEMM_DEFAULT_UNROLL_M 16
+#define DGEMM_DEFAULT_UNROLL_M 8
+#define QGEMM_DEFAULT_UNROLL_M 2
+#define CGEMM_DEFAULT_UNROLL_M 4
+#define ZGEMM_DEFAULT_UNROLL_M 2
+#define XGEMM_DEFAULT_UNROLL_M 1
+#define CGEMM3M_DEFAULT_UNROLL_N 4
+#define CGEMM3M_DEFAULT_UNROLL_M 8
+#define ZGEMM3M_DEFAULT_UNROLL_N 4
+#define ZGEMM3M_DEFAULT_UNROLL_M 4
+#define GEMV_UNROLL 8
+#endif
+
+
+#if defined(ARCH_X86_64)
+#define SGEMM_DEFAULT_P 768
+#define DGEMM_DEFAULT_P 384
+#else
+#define SGEMM_DEFAULT_P 448
+#define DGEMM_DEFAULT_P 224
+#endif
+#define QGEMM_DEFAULT_P 112
+#define CGEMM_DEFAULT_P 224
+#define ZGEMM_DEFAULT_P 112 
+#define XGEMM_DEFAULT_P  56
+
+#if defined(ARCH_X86_64)
+#define SGEMM_DEFAULT_Q 168
+#define DGEMM_DEFAULT_Q 168
+#else
+#define SGEMM_DEFAULT_Q 224
+#define DGEMM_DEFAULT_Q 224
+#endif
+#define QGEMM_DEFAULT_Q 224
+#define CGEMM_DEFAULT_Q 224
+#define ZGEMM_DEFAULT_Q 224
+#define XGEMM_DEFAULT_Q 224
+
+#define SGEMM_DEFAULT_R sgemm_r
+#define QGEMM_DEFAULT_R qgemm_r
+#define DGEMM_DEFAULT_R dgemm_r
+#define CGEMM_DEFAULT_R cgemm_r
+#define ZGEMM_DEFAULT_R zgemm_r
+#define XGEMM_DEFAULT_R xgemm_r
+
+#define SYMV_P	16
+#define HAVE_EXCLUSIVE_CACHE
+
+#define GEMM_THREAD gemm_thread_mn
+
+#endif
+
+#ifdef PILEDRIVER
+
+#define SNUMOPT		8
+#define DNUMOPT		4
+
+#define GEMM_DEFAULT_OFFSET_A  64
+#define GEMM_DEFAULT_OFFSET_B 832
+#define GEMM_DEFAULT_ALIGN 0x0fffUL
+
+
+
+#define QGEMM_DEFAULT_UNROLL_N 2
+#define CGEMM_DEFAULT_UNROLL_N 2
+#define ZGEMM_DEFAULT_UNROLL_N 2
+#define XGEMM_DEFAULT_UNROLL_N 1
+
+#ifdef ARCH_X86
+#define SGEMM_DEFAULT_UNROLL_N 4
+#define DGEMM_DEFAULT_UNROLL_N 4
+#define SGEMM_DEFAULT_UNROLL_M 4
+#define DGEMM_DEFAULT_UNROLL_M 2
+#define QGEMM_DEFAULT_UNROLL_M 2
+#define CGEMM_DEFAULT_UNROLL_M 2
+#define ZGEMM_DEFAULT_UNROLL_M 1
+#define XGEMM_DEFAULT_UNROLL_M 1
+#else
+#define SGEMM_DEFAULT_UNROLL_N 2
+#define DGEMM_DEFAULT_UNROLL_N 2
+#define SGEMM_DEFAULT_UNROLL_M 16
+#define DGEMM_DEFAULT_UNROLL_M 8
+#define QGEMM_DEFAULT_UNROLL_M 2
+#define CGEMM_DEFAULT_UNROLL_M 4
+#define ZGEMM_DEFAULT_UNROLL_M 2
+#define XGEMM_DEFAULT_UNROLL_M 1
+#define CGEMM3M_DEFAULT_UNROLL_N 4
+#define CGEMM3M_DEFAULT_UNROLL_M 8
+#define ZGEMM3M_DEFAULT_UNROLL_N 4
+#define ZGEMM3M_DEFAULT_UNROLL_M 4
+#define GEMV_UNROLL 8
+#endif
+
+
+#if defined(ARCH_X86_64)
+#define SGEMM_DEFAULT_P 768
+#define DGEMM_DEFAULT_P 384
+#else
+#define SGEMM_DEFAULT_P 448
+#define DGEMM_DEFAULT_P 224
+#endif
+#define QGEMM_DEFAULT_P 112
+#define CGEMM_DEFAULT_P 224
+#define ZGEMM_DEFAULT_P 112 
+#define XGEMM_DEFAULT_P  56
+
+#if defined(ARCH_X86_64)
+#define SGEMM_DEFAULT_Q 168
+#define DGEMM_DEFAULT_Q 168
+#else
+#define SGEMM_DEFAULT_Q 224
+#define DGEMM_DEFAULT_Q 224
+#endif
+#define QGEMM_DEFAULT_Q 224
+#define CGEMM_DEFAULT_Q 224
+#define ZGEMM_DEFAULT_Q 224
+#define XGEMM_DEFAULT_Q 224
+
+#define SGEMM_DEFAULT_R sgemm_r
+#define QGEMM_DEFAULT_R qgemm_r
+#define DGEMM_DEFAULT_R dgemm_r
+#define CGEMM_DEFAULT_R cgemm_r
+#define ZGEMM_DEFAULT_R zgemm_r
+#define XGEMM_DEFAULT_R xgemm_r
+
+#define SYMV_P	16
+#define HAVE_EXCLUSIVE_CACHE
+
+#define GEMM_THREAD gemm_thread_mn
+
+#endif
+
 #ifdef ATHLON
 
 #define SNUMOPT		4
@@ -1664,26 +1825,26 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define XGEMM_DEFAULT_UNROLL_M 1
 #endif
 
-#define SGEMM_P sgemm_p
-#define DGEMM_P dgemm_p
-#define QGEMM_P qgemm_p
-#define CGEMM_P cgemm_p
-#define ZGEMM_P zgemm_p
-#define XGEMM_P xgemm_p
+#define SGEMM_DEFAULT_P sgemm_p
+#define DGEMM_DEFAULT_P dgemm_p
+#define QGEMM_DEFAULT_P qgemm_p
+#define CGEMM_DEFAULT_P cgemm_p
+#define ZGEMM_DEFAULT_P zgemm_p
+#define XGEMM_DEFAULT_P xgemm_p
 
-#define SGEMM_R sgemm_r
-#define DGEMM_R dgemm_r
-#define QGEMM_R qgemm_r
-#define CGEMM_R cgemm_r
-#define ZGEMM_R zgemm_r
-#define XGEMM_R xgemm_r
+#define SGEMM_DEFAULT_R sgemm_r
+#define DGEMM_DEFAULT_R dgemm_r
+#define QGEMM_DEFAULT_R qgemm_r
+#define CGEMM_DEFAULT_R cgemm_r
+#define ZGEMM_DEFAULT_R zgemm_r
+#define XGEMM_DEFAULT_R xgemm_r
 
-#define SGEMM_Q 128
-#define DGEMM_Q 128
-#define QGEMM_Q 128
-#define CGEMM_Q 128
-#define ZGEMM_Q 128
-#define XGEMM_Q 128
+#define SGEMM_DEFAULT_Q 128
+#define DGEMM_DEFAULT_Q 128
+#define QGEMM_DEFAULT_Q 128
+#define CGEMM_DEFAULT_Q 128
+#define ZGEMM_DEFAULT_Q 128
+#define XGEMM_DEFAULT_Q 128
 
 #define SYMV_P	16
 
