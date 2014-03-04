@@ -5,8 +5,9 @@ CFLAGS= -O3 -Wall -ffast-math \
         -march=native -mtune=native -msse -msse2 -msse3 -mssse3 -m64 \
         -pipe  \
         -fomit-frame-pointer -finline-functions  \
-		-ftree-vectorize -ftree-vectorizer-verbose=2
-	#-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4
+		-ftree-vectorize \
+		-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4
+	#-ftree-vectorizer-verbose=2
 	#-mveclibabi=svml 
 	#-mfpmath=sse+387  # unstable
 	#-ffast-math 

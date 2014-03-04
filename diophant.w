@@ -28,7 +28,7 @@ declarations.
 @d VERBOSE 1
 
 @d GIVENS 1
-@d LASTLINESFACTOR "1" /* "100000000" */
+@d LASTLINESFACTOR "1000000" /* "100000000" */
 @d EPSILON 0.000001      /* 0.0001  */
 @d LLLCONST_LOW  0.75 /* 0.75*/
 @d LLLCONST_HIGH 0.9    /* 0.99 */
@@ -54,7 +54,7 @@ declarations.
 @c
 long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     int no_columns, int no_rows,
-    mpz_t factor_input, mpz_t norm_input, 
+    mpz_t factor_input, mpz_t norm_input, mpz_t scalelastlinefactor, 
     int silent, int iterate, int iterate_no,
     int bkz_beta_input, int bkz_p_input, 
     long stop_after_sol_input, long stop_after_loops_input, 
@@ -150,7 +150,7 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
 #include <gmp.h>
 extern long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     int no_columns, int no_rows,
-    mpz_t factor_input, mpz_t norm_input, 
+    mpz_t factor_input, mpz_t norm_input, mpz_t scalelastlinefactor,
     int silent, int iterate, int iterate_no,
     int bkz_beta_input, int bkz_p_input, 
     long stop_after_sol_input, long stop_after_loops_input, 
@@ -480,7 +480,7 @@ This is done in order to find solutions by chance.
     
     for (j=0;j<lattice_columns-1;j++) solutiontest(j);
 @ The last row or in case of a free right hand side the two last rows
-are multiplied by a large factor |LASTLINESFACTOR|. Then
+are multiplied by a large factor given ba the commandline option |-scalelastline*|. Then
 it easier to search with the exhaustive enumeration for
 nonhomogeneous solutions because the columns corresponding to the 
 right hand side (and the additional column in case of a free right hand side)
@@ -488,7 +488,8 @@ appear only once in the basis vectors.
 {bf Attention:} It only works for fixed right hand side
 
 @<scale last rows@>=
-    mpz_set_str(lastlines_factor,LASTLINESFACTOR,10);
+    /*|mpz_set_str(lastlines_factor,LASTLINESFACTOR,10);|*/
+    mpz_set(lastlines_factor, scalelastlinefactor);
     for (i=0;i<lattice_columns;i++) 
         mpz_mul(lattice[i][lattice_rows].c,lattice[i][lattice_rows].c,lastlines_factor);
     if (free_RHS) 

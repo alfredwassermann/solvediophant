@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
 	solfile = fopen(solfilename, "w");
 	time_0 = os_ticks();
 	diophant(A, rhs, upperb, no_columns, no_rows,
-		factor_input, norm_input, silent, iterate, iterate_no, bkz_beta_input, bkz_p_input, 
+		factor_input, norm_input, scalelastlinefactor, silent, iterate, iterate_no, bkz_beta_input, bkz_p_input, 
 		stop_after_solutions, stop_after_loops, 
 		free_RHS, original_columns, no_original_columns, cut_after, nboundedvars,solfile);
 	time_1 = os_ticks();
@@ -73,6 +73,7 @@ conflicts with the global variables of |diophant|.
 @<variables@>=
 	mpz_t factor_input;      
 	mpz_t norm_input;
+	mpz_t scalelastlinefactor;
 	mpz_t *upperb;
 	mpz_t **A, *rhs;
 
@@ -106,9 +107,11 @@ conflicts with the global variables of |diophant|.
 
 	mpz_init(factor_input);
 	mpz_init(norm_input);
+	mpz_init(scalelastlinefactor);
 @ @<free the memory@>=
 	mpz_clear(factor_input);
 	mpz_clear(norm_input);
+	mpz_clear(scalelastlinefactor);
 	for(j=0;j<no_rows;j++) {
 		for (i=0;i<no_columns;i++) mpz_clear(A[j][i]);
 		free(A[j]);
@@ -131,6 +134,7 @@ conflicts with the global variables of |diophant|.
 	bkz_beta_input = bkz_p_input = -1;
 	mpz_set_si(factor_input,-1);
 	mpz_set_si(norm_input,-1);
+	mpz_set_si(scalelastlinefactor, -1);
 	silent = 0;
 	for (i=1; i<argc; i++) {
 		@<analyse the options@>;
@@ -174,6 +178,9 @@ conflicts with the global variables of |diophant|.
 	} else if (strncmp(argv[i],"-maxnorm",8)==0) {
 		strcpy(suffix,argv[i]+8);
 		mpz_set_str(norm_input,suffix,10);
+	} else if (strncmp(argv[i],"-scalelastline",14)==0) {
+		strcpy(suffix,argv[i]+14);
+		mpz_set_str(scalelastlinefactor,suffix,10);
 	} else if (strncmp(argv[i],"-i",2)==0) {
 		strcpy(suffix,argv[i]+2);
 	} else if (strncmp(argv[i],"-o",2)==0) {
@@ -182,7 +189,7 @@ conflicts with the global variables of |diophant|.
 #ifndef NO_OUTPUT
 		fprintf(stderr,"\nsolvediophant --- multiple precision version --- \n");
 		fprintf(stderr,"solvediophant");
-		fprintf(stderr," -iterate*|(-bkz -beta* -p*) [-c*] [-maxnorm*] [-time*] [-silent] [-o*]");
+		fprintf(stderr," -iterate*|(-bkz -beta* -p*) [-c*] [-maxnorm*] [-scalelastline*] [-time*] [-silent] [-o*]");
 		fprintf(stderr," inputfile\n\n");
 #endif		
 		exit(3);
@@ -226,6 +233,16 @@ conflicts with the global variables of |diophant|.
 #endif		
 		mpz_set_si(norm_input,1);
 	}
+	if (mpz_cmp_si(scalelastlinefactor,0)<=0) {
+#ifndef NO_OUTPUT
+		fprintf(stderr,"You did not supply the options -scalelastline*. ");
+		fprintf(stderr,"It is set to 1.\n");
+#endif		
+		mpz_set_si(scalelastlinefactor,1);
+	}
+
+
+
 @ With alarm a maximal run time can be given.
 @<start alarm@>=
 	if (maxruntime>0) {
