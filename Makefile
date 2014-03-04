@@ -4,12 +4,12 @@ CFLAGS= -O3 -Wall -ffast-math \
         -funroll-all-loops    \
         -march=native -mtune=native -msse -msse2 -msse3 -mssse3 -m64 \
         -pipe  \
-        -fomit-frame-pointer -finline-functions  
+        -fomit-frame-pointer -finline-functions  \
+		-ftree-vectorize -ftree-vectorizer-verbose=2
 	#-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4
-        # -ftree-vectorize -ftree-vectorizer-verbose=2 
 	#-mveclibabi=svml 
-        #-mfpmath=sse+387  # unstable
-        #-ffast-math 
+	#-mfpmath=sse+387  # unstable
+	#-ffast-math 
 	#-fprofile-generate -fprofile-use\
 
 #CFLAGS= -O3 -mcpu=i686 -march=i686 -fforce-addr -funroll-loops -frerun-cse-after-loop -frerun-loop-opt -malign-functions=4
