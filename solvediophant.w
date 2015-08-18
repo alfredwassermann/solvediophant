@@ -16,7 +16,7 @@ parameter -c being too small
 
 -- 9: Stopped after the maximum number of solutions (''\% stopafter: n'' has been set in the problem file)
 
--- 10: Stopped after reaching the maximum number of solutions (''\% stoploops: n'' has been set in the problem file)
+-- 10: Stopped after reaching the maximum number of loops (''\% stoploops: n'' has been set in the problem file)
 
 @ The main program.
 @f mpz_t long
