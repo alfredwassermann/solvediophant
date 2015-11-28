@@ -70,10 +70,10 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     /*|goto_set_num_threads(1); |*/
 #endif
     
-	/* In case, a time limit as been set by -time
+    /* In case, a time limit as been set by -time
        the execution is stopped and
        the number of solutions is printed
-	*/
+    */
     @<set the lattice dimension@>;
     @<allocate memory@>;
     @<read the system@>;
@@ -166,6 +166,7 @@ extern long nosolutions;
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <malloc.h>
 #include <math.h>
@@ -498,9 +499,9 @@ appear only once in the basis vectors.
 
 #if 0
     for (i=0;i<lattice_columns;i++) {
-    	for (j=0;j<40;j++) 
-        	mpz_mul_ui(lattice[i][j+1].c,lattice[i][j+1].c, 9);
-	}
+        for (j=0;j<40;j++) 
+            mpz_mul_ui(lattice[i][j+1].c,lattice[i][j+1].c, 9);
+    }
 #endif
 
 @ Undo the scaling of section |@<scale last rows@>|
@@ -515,9 +516,9 @@ after the second reduction.
 
 #if 0
     for (i=0;i<lattice_columns;i++) {
-    	for (j=0;j<40;j++) 
-        	mpz_divexact_ui(lattice[i][j+1].c,lattice[i][j+1].c, 9);
-	}
+        for (j=0;j<40;j++) 
+            mpz_divexact_ui(lattice[i][j+1].c,lattice[i][j+1].c, 9);
+    }
 #endif
 
 @ The third reduction is done with blockwise Korkine Zolotareff reduction.
@@ -2699,11 +2700,12 @@ afterloop:
 We test, if we can prune the enumeration, otherwise
 we decrease the |level|.
 @<not at a leave@>=
-	i = prune_only_zeros(w, level, rows, Fq, first_nonzero_in_column, firstp,
+    i = prune_only_zeros(w, level, rows, Fq, first_nonzero_in_column, firstp,
                          bd, y, us, columns);
-	if (i<0) {
+
+    if (i<0) {
         goto step_back;
-	} else if (i>0) {
+    } else if (i>0) {
         goto side_step;
     }
 
@@ -2758,8 +2760,8 @@ we decrease the |level|.
 
         level--;
 #if 0
-		fipo_LB[columns][level] = -fipo[level];
-		fipo_UB[columns][level] =  fipo[level];
+        fipo_LB[columns][level] = -fipo[level];
+        fipo_UB[columns][level] =  fipo[level];
 #endif
         delta[level] = eta[level] = 0;
         y[level] = compute_y(mu_trans,us,level,level_max);
@@ -3283,7 +3285,7 @@ int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
                      DOUBLE **bd, DOUBLE *y, DOUBLE *us, int columns) {
     int i;
     int f;
-	DOUBLE u1, u2, swp;
+    DOUBLE u1, u2, swp;
 
     only_zeros_no++;
     for (i=0; i<first_nonzero_in_column[firstp[level]]; i++) {
@@ -3299,50 +3301,56 @@ int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
         }
         fipo_LB[columns][level] = u1-EPSILON;
         fipo_UB[columns][level] = u2+EPSILON;
-#endif       
-    	if (iszeroone) {
-            if (fabs(u1-round(u1))>EPSILON && fabs(u2-round(u2))>EPSILON) {
-            only_zeros_success++;
-            return -1;
-        }
+#endif 
 
-            if ( fabs(fabs(w[level][f])-Fq) > EPSILON ) {
-            only_zeros_success++;
-                return 1;
-            }
-        
-#if 0
-       	 	if (fabs(u1-us[level])>EPSILON && fabs(u2-us[level])>EPSILON) {
-				return 1;
-			}
-#endif
-    	} else {  /* Not zero-one */
-   			if (u2-u1<=1.0+EPSILON && fabs(w[level][f]-round(w[level][f]))>EPSILON) {
-        		only_zeros_success++;
+        if (iszeroone) {
+            if (fabs(u1-round(u1))>EPSILON && fabs(u2-round(u2))>EPSILON) {
+                only_zeros_success++;
 				return -1;
 			}
+
+			if ( fabs(fabs(w[level][f])-Fq) > EPSILON ) {
+				only_zeros_success++;
+				return 1;
+			}
+        
+#if 0
+            if (fabs(u1-us[level])>EPSILON && fabs(u2-us[level])>EPSILON) {
+				return 1;
+            }
+#endif
+        } else {  /* Not zero-one */
+
+			/* Here we have to be very conservative */
+			if (u2-u1<=1.0+EPSILON &&
+				fabs(w[level][f]) < UINT32_MAX &&
+				fabs(w[level][f]-round(w[level][f]))>0.001) { 
+				
+                only_zeros_success++;
+                return -1;
+            }
 
             if ( fabs(w[level][f]) > Fq*(1+EPSILON) ) {  
                 return 1;
             }
 #if 0
-       	 	if (us[level]<u1-EPSILON || us[level]>u2+EPSILON) {
-				return 1;
-			}
+            if (us[level]<u1-EPSILON || us[level]>u2+EPSILON) {
+                return 1;
+            }
 #endif
-  		}
+        }
 #if 0
-    	if (iszeroone) {
+        if (iszeroone) {
             if ( fabs(fabs(w[level][f])-Fq) > EPSILON ) {
                 /*|only_zeros_success++;|*/
                 return 1;
             }
-    	} else {
+        } else {
             if ( fabs(w[level][f]) > Fq*(1+EPSILON) ) {  
                 only_zeros_success++;
                 return 1;
             }
-    	}
+        }
 #endif
     } 
     return 0;
@@ -3579,7 +3587,7 @@ int print_solution(DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns) {
             fflush(stdout); 
             mpz_out_str(fp,10,soltest_u);
 
-			/* Meanwhile, all solution vectors are written with separating blanks. */ 
+            /* Meanwhile, all solution vectors are written with separating blanks. */ 
             /*|if (!iszeroone) { }|*/
             printf(" ");
             fprintf(fp, " ");
@@ -3625,10 +3633,10 @@ the number of solutions.
 @<stop program@>=
 void stopProgram() {
 #ifndef NO_OUTPUT
-	printf("Stopped after SIGALRM, number of solutions: %ld\n",nosolutions);
+    printf("Stopped after SIGALRM, number of solutions: %ld\n",nosolutions);
 #endif
-	@<close solution file@>;
-	exit(11);
+    @<close solution file@>;
+    exit(11);
 }
 
 @*Index.
