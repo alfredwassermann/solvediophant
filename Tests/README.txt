@@ -19,3 +19,8 @@ non 0/1 problem, 1848 solutions
 * n8_282.txt:
 non 0/1 problem, 104 solutions
 ./solvediophant -c10000 -bkz -beta160 -p70 Tests/n8_282.txt
+
+* KM_C11Id2X_t3_k4.txt:
+solvediophant does not find solutions (at least in the first 5 minutes)
+but there are many
+
