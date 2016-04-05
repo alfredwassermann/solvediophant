@@ -31,7 +31,7 @@ declarations.
 @d LASTLINESFACTOR "1000000" /* "100000000" */
 @d EPSILON 0.000001      /* 0.0001  */
 @d LLLCONST_LOW  0.75 /* 0.75*/
-@d LLLCONST_HIGH 0.9    /* 0.99 */
+@d LLLCONST_HIGH 0.90    /* 0.99 */
 @d LLLCONST_HIGHER 0.999 
 
 @d SQRT sqrt
@@ -114,23 +114,28 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     printf("After cutting\n");
     print_lattice();
 #endif
+
 #if 1
     shufflelattice();
     @<second reduction@>;
 #endif
+
 #if 0
     printf("After second reduction\n");
     print_lattice();
 #endif
-    
+
+#if 1    
     @<scale last rows@>;
     @<third reduction@>;
     @<undo scaling of last rows@>;
+#endif
+
 #else
     read_NTL_lattice();
 #endif    
     
-#if 0
+#if 1
     printf("Before enumeration\n");
     /*|print_NTL_lattice();|*/   /* Version for the NTL output */
     print_lattice();
@@ -505,7 +510,7 @@ appear only once in the basis vectors.
 #endif
 
 @ Undo the scaling of section |@<scale last rows@>|
-after the second reduction.
+after the third reduction.
 @<undo scaling of last rows@>=
     for (i=0;i<lattice_columns;i++) 
         mpz_divexact(lattice[i][lattice_rows].c,lattice[i][lattice_rows].c,lastlines_factor);
@@ -614,6 +619,7 @@ The lattice is printed columnwise (i.e.~in transposed form).
 void print_NTL_lattice() {  
     int i,j;
 #if 1
+    fprintf(stderr, "%d %d\n", lattice_columns, lattice_rows);
     printf("%d\n",system_rows);
     printf("\n[");
     for (i=0;i<lattice_columns-1;i++) {   /* Don't print the last vector (only zeroes). */
@@ -766,7 +772,7 @@ void shufflelattice() {
     int i, j, r;
     unsigned int s;
     
-#if 0
+#if 1
     s = (unsigned)(time(0))*getpid();
 #else
     s = 1300964772;
@@ -1429,7 +1435,7 @@ void lll (COEFF **b, int s, int z, DOUBLE quality)
 
 @ Iterated LLL reduction. Standard LLL-reduction is applied to
 the lattice. Then the columns are sorted in descending (or ascending) order and
-the process is iterated. The euclidean length of the lattice 
+the process is iterated. The Euclidean length of the lattice 
 vectors is stored in |N|.
 @<iterated-lll@>=
 DOUBLE iteratedlll(COEFF **b, int s, int z, int no_iterates, DOUBLE quality)
