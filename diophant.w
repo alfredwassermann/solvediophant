@@ -1027,6 +1027,9 @@ This is done with Gram Schmidt Orthogonalization.
                 ss = (DOUBLE)scalarproductlfp(b[k],b[j]);
             } 
             for (i=0;i<j;i++) ss -= mu[j][i]*mu[k][i]*c[i];
+if (c[j] < EPSILON) {
+    fprintf(stderr, "c[%d] is very small: %lf\n", j, c[j]);
+}
             mu[k][j] = ss/c[j];
             c[k] -= ss*mu[k][j];
         } 

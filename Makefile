@@ -40,7 +40,7 @@ solvediophant: solvediophant.c diophant.o diophant.h
 	$(CC) $(CFLAGS) -o solvediophant solvediophant.c diophant.o \
 	$(ASSEMBLERLIB) \
 	-lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
-	strip solvediophant
+	#strip solvediophant
 #	$(CC) -static $(CFLAGS) -o solvediophant solvediophant.c diophant.o \
 
 diophant.tex: diophant.w
