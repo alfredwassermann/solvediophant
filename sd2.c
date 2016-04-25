@@ -5,7 +5,7 @@
 #include <string.h>
 #include <sys/times.h>  /* For run time measurements */
 #include <unistd.h>
-// #include "diophant.h"
+#include "dio2.h"
 
 #define  zlength 16000
 
@@ -69,12 +69,19 @@ void incorrect_input_file() {
 	exit(1);
 }
 
-
 /**
  * Main program
  * @param  argc number of command line arguments
  * @param  argv command line arguments
- * @return      0  or other values
+ * @return
+ * -- 0: normal program flow (reduction plus exhaustive enumeration)
+ * -- 1: Input error or internal error
+ * -- 2: Solution not possible, system not solvable over the reals. This may also come from parameter -c being too small
+ * -- 3: Program has been called with parameters -? or -h
+ * -- 8: Stopped after finding a random solution in phase one (''\% stopafter: 1'' has been set in the problem file)
+ * -- 9: Stopped after the maximum number of solutions (''\% stopafter: n'' has been set in the problem file)
+ * -- 10: Stopped after reaching the maximum number of loops (''\% stoploops: n'' has been set in the problem file)
+ *
  */
 int main(int argc, char *argv[]) {
 	int i,j,flag;
@@ -217,7 +224,7 @@ int main(int argc, char *argv[]) {
      * Start alarm
      */
     if (maxruntime>0) {
-        //signal(SIGALRM, stopProgram); // stopProgram in diophant.c
+        signal(SIGALRM, stopProgram); // stopProgram in diophant.c
         //alarm(maxruntime);
     }
 
