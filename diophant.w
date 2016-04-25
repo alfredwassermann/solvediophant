@@ -934,7 +934,7 @@ into the solution file.
 #endif
         exit(8);
     }
-@*Elementary lattice basis reduction. We have 
+@*Elementary lattice basis reduction. We have
 standard lattice basis reduction (with deep insertions) and blockwise
 Korkine Zolotareff reduction. The main ingredient is the subroutine
 |lllfp| which does lattice basis reduction.

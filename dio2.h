@@ -22,4 +22,14 @@ extern void coeffinit(COEFF *v, int z);
 extern int cutlattice();
 extern int solutiontest(int position);
 
+extern DOUBLE scalarproductlfp (COEFF *v, COEFF *w);
+extern DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n);
+extern int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z);
+extern int lllfree(DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs, int s);
+extern double orthogonal_defect(COEFF **lattice, DOUBLE *c, int s, int z);
+extern void lll(COEFF **b, int s, int z, DOUBLE quality);
+extern DOUBLE iteratedlll(COEFF **b, int s, int z, int no_iterates, DOUBLE quality);
+extern DOUBLE bkz(COEFF **b, int s, int z, DOUBLE delta, int beta, int p);
+extern DOUBLE enumerate(DOUBLE **mu, DOUBLE *c, long *u, int s, int start_block, int end_block, int p);
+
 #endif

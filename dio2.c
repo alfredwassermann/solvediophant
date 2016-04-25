@@ -856,9 +856,58 @@ if (c[k] < EPSILON) {
         }
 
 #if defined(DEEPINSERT)
-        @<fourth step: deepinsert columns@>;
+        /* fourth step: deepinsert columns */
+        cc = N[k] * N[k];
+        j = 0;
+        Fi = 0;
+        while (j < k) {
+#if 1
+            if ((j > DEEPINSERT_CONST && j < k - DEEPINSERT_CONST) || delta * c[j] <= cc) {
 #else
-        @<fourth step: swap columns@>;
+            if (delta * c[j] <= cc) {
+#endif
+                cc -= mu[k][j]*mu[k][j]*c[j];
+                j++;
+            } else {
+                swapvl = b[k];
+                ss = N[k];
+                swapd = bs[k];
+                for(i=k-1;i>=j;i--) {
+                    b[i+1] = b[i];
+                    N[i+1] = N[i];
+                    bs[i+1] = bs[i];
+                }
+                b[j] = swapvl;
+                N[j] = ss;
+                bs[j] = swapd;
+
+                Fi = 1;
+                break;
+            }
+        }
+        if (Fi == 1)
+          k = (j-1 > 1) ? j-1 : 1;       /* $k = \max(j-1,1)$ */
+        else {
+            k++;
+        }
+
+#else
+        /* fourth step: swap columns */
+        if (delta * c[k-1] > c[k] + mu[k][k-1] * mu[k][k-1] * c[k-1]) {
+            swapvl = b[k];
+            b[k] = b[k-1];
+            b[k-1] = swapvl;
+            ss = N[k];
+            N[k] = N[k-1];
+            N[k-1] = ss;
+            swapd = bs[k];
+            bs[k] = bs[k-1];
+            bs[k-1] = swapd;
+
+            k = (k-1 > 1) ? k-1 : 1; /* $k = \max(k-1,1)$ */
+        } else
+            k++;
+
 #endif
     }
     mpz_clear(hv);
@@ -866,3 +915,418 @@ if (c[k] < EPSILON) {
     return(1);
 
 }
+
+/**
+ * LLL-subroutines
+ */
+DOUBLE scalarproductlfp (COEFF *v, COEFF *w) {
+    DOUBLE erg;
+    long t1, t2;
+    COEFF *vv, *ww;
+
+    erg = 0.0;
+    t1 = v[0].p;
+    t2 = w[0].p;
+    if ((t1 == 0) || (t2 == 0))
+        return 0;
+
+    do {
+        if (t2>t1) {
+            t1 = v[t2-1].p;
+            if (t2!=t1) {
+                if (t1==0) break;
+                t2 = w[t2].p;
+                if (t2==0) break;
+            }
+            else goto gleich;
+        } else if (t2<t1) {
+            t2 = w[t1-1].p;
+            if (t2!=t1) {
+                if (t2==0) break;
+                t1 = v[t1].p;
+                if (t1==0) break;
+            }
+            else goto gleich;
+        } else {
+ gleich:    vv = &(v[t1]);
+            ww = &(w[t2]);
+            erg += (DOUBLE)mpz_get_d(vv->c) * (DOUBLE)mpz_get_d(ww->c);
+            t1 = vv->p;
+            if (t1==0) break;
+            t2 = ww->p;
+            if (t2==0) break;
+        }
+    } while (1);
+
+    return (erg);
+}
+
+DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n) {
+#if BLAS
+    return cblas_ddot(n,v,1,w,1);
+#else
+    DOUBLE r;
+    int i;
+    r = 0.0;
+    for (i = n - 1; i >= 0; i--) r += v[i] * w[i];
+    return r;
+#endif
+}
+
+int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z) {
+    int i, m;
+
+    if ((z < 1) || (s < 1)) return 0;
+
+    (*c) = (DOUBLE*)calloc(s,sizeof(DOUBLE));
+    (*N) = (DOUBLE*)calloc(s,sizeof(DOUBLE));
+    (*mu) = (DOUBLE**)calloc(s,sizeof(DOUBLE*));
+    for(i = 0; i < s; i++) (*mu)[i] = (DOUBLE*)calloc(z,sizeof(DOUBLE));
+
+    m = (z > s) ? z : s;
+    (*bs) = (DOUBLE**)calloc(m,sizeof(DOUBLE*));
+
+    for (i = 0; i < m; i++) (*bs)[i] = (DOUBLE*)calloc(z,sizeof(DOUBLE));
+
+    return 1;
+}
+
+int lllfree(DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs, int s) {
+    int i;
+
+    for (i = 0; i < s; ++i) free(bs[i]);
+    free(bs);
+    for (i = 0; i < s; ++i) free(mu[i]);
+    free(mu);
+    free(N);
+    free(c);
+
+    return 1;
+}
+
+double logD(COEFF **lattice, DOUBLE *c, int s, int z) {
+    double d = 0.0;
+    int i;
+
+    for (i = 0; i < s; i++) {
+        d += log(c[i]) * (s - i);
+    }
+    d *= 0.5;
+    return d;
+}
+
+double orthogonal_defect(COEFF **lattice, DOUBLE *c, int s, int z) {
+    double defect = 0.0;
+
+#if 0
+    int i;
+    for (i=0;i<s;i++) defect += log((double)normfp(lattice[i]))
+        - log((double)c[i]);
+#endif
+
+    defect /= 2.0;
+    return defect;
+}
+
+/**
+ * LLL variants
+ */
+void lll(COEFF **b, int s, int z, DOUBLE quality) {
+    DOUBLE **mu;
+    DOUBLE *c;
+    DOUBLE *N;
+    DOUBLE **bs;
+    int r;
+
+    lllalloc(&mu,&c,&N,&bs,s,z);
+    r = lllfp(b,mu,c,N,bs,1,s,z,quality);
+    lllfree(mu,c,N,bs,s);
+
+    return;
+}
+
+DOUBLE iteratedlll(COEFF **b, int s, int z, int no_iterates, DOUBLE quality) {
+    DOUBLE **mu;
+    DOUBLE *c;
+    DOUBLE *N;
+    DOUBLE **bs;
+    int r,l,i,j, runs;
+    COEFF *swapvl;
+    DOUBLE lD;
+
+    lllalloc(&mu,&c,&N,&bs,s,z);
+    r = lllfp(b,mu,c,N,bs,1,s,z,quality);
+
+    lD = logD(b,c,s,z);
+    fprintf(stderr, "   log(D)= %f\n", lD);
+    fflush(stderr);
+
+    for (runs = 1; runs < no_iterates; runs++) {
+        for (j = s - 1; j > 0; j--) {
+            for (l = j - 1; l >= 0; l--) {
+                /*|if (N[l] < N[j]) {|*/    /* $<$ sorts 'in descending order.' */
+                if (N[l] > N[j]) {    /* $>$ sorts 'in ascending order.' */
+                    swapvl = b[l];
+                    for (i = l + 1; i <= j; i++) b[i-1] = b[i];
+                    b[j] = swapvl;
+                }
+            }
+        }
+
+        r = lllfp(b,mu,c,N,bs,1,s,z,quality);
+        lD = logD(b,c,s,z);
+        fprintf(stderr, "%d: log(D)= %f\n", runs, lD);
+        fflush(stdout);
+    }
+
+    lllfree(mu, c, N, bs, s);
+
+    return lD;
+}
+
+/**
+ * Blockwise Korkine Zolotareff reduction
+ */
+DOUBLE bkz(COEFF **b, int s, int z, DOUBLE delta, int beta, int p) {
+    DOUBLE **mu, *c, *N;
+    DOUBLE **bs;
+    static mpz_t hv;
+    int zaehler;
+    int h,i,last;
+    int start_block, end_block;
+    long *u;
+    DOUBLE new_cj;
+    DOUBLE lD;
+
+    int g, ui, q, j;
+    COEFF *swapvl;
+
+    mpz_init(hv);
+
+    last = s - 2;    /* |last| points to the last nonzero vector of the lattice.*/
+    if (last < 1) {
+        printf("BKZ: the number of basis vectors is too small.\n");
+        printf("Probably the number of rows is less or equal");
+        printf(" to number of columns in the original system\n");
+        printf("Maybe you have to increase c0 (the first parameter)!\n");
+
+        mpz_clear(hv);
+        return 0.0;
+    }
+
+    u = (long*)calloc(s, sizeof(long));
+    for (i = 0; i < s; i++) u[i] = 0;
+
+    lllalloc(&mu,&c,&N,&bs,s,z);
+    lllfp(b,mu,c,N,bs,1,s,z,delta);
+
+    start_block = zaehler = -1;
+    while (zaehler < last) {
+        start_block++;
+        if (start_block == last) start_block = 0;
+        end_block = (start_block+beta-1 < last) ? start_block+beta-1 : last;
+        new_cj = enumerate(mu,c,u,s,start_block,end_block,p);
+
+        /* The exhaustive enumeration. */
+        h = (end_block + 1 < last) ? end_block + 1 : last;
+
+        if (delta * c[start_block] > new_cj) {
+            /* successful enumeration */
+            /* build new basis */
+            for (j = 1; j <= z; j++) mpz_set_si(b[last+1][j].c, 0);
+            for (i = start_block; i <= end_block; i++) {
+                if (u[i] != 0) for(j = 1; j <= z; j++) {
+                    if (u[i] > 0) {
+                        mpz_addmul_ui(b[last+1][j].c,b[i][j].c,u[i]);
+                    } else {
+                        mpz_submul_ui(b[last+1][j].c,b[i][j].c,-u[i]);
+                    }
+                }
+            }
+            g = end_block;
+            while (u[g] == 0) g--;
+
+            i = g - 1;
+            while (labs(u[g]) > 1) {
+                while (u[i] == 0) i--;
+                q = (int)ROUND((1.0 * u[g]) / u[i]);
+                ui = u[i];
+                u[i] = u[g] - q*u[i];
+                u[g] = ui;
+
+                for (j = 1; j <= z; j++) {
+                    mpz_set(hv,b[g][j].c);
+                    mpz_mul_si(b[g][j].c,b[g][j].c,(long)q);
+                    mpz_add(b[g][j].c,b[g][j].c,b[i][j].c);
+                    mpz_set(b[i][j].c,hv);
+                }
+                coeffinit(b[g],z);
+                coeffinit(b[i],z);
+            }
+
+            swapvl = b[g];
+            for (i = g; i > start_block; i--) b[i] = b[i-1];
+            b[start_block] = b[last+1];
+            coeffinit(b[start_block],z);
+
+            b[last+1] = swapvl;
+            for (j = 1; j <= z; j++) mpz_set_si(b[last+1][j].c,0);
+            coeffinit(b[last+1],z);
+
+            lllfp(b,mu,c,N,bs,start_block-1,h+1,z,delta);
+
+            if (N[h]<-EPSILON) {
+                fprintf(stderr,"NN negativ\n"); @+ fflush(stderr);
+                printf("NN negativ\n"); @+ fflush(stdout); @+
+                exit(1);
+            }
+
+            zaehler = -1;
+        } else {
+            if (h > 0) {
+                lllfp(b,mu,c,N,bs,h-2,h+1,z,delta);   /* For some unkown reason we have to
+                                                        use $h-2$ as |start|. */
+            }
+            zaehler++;
+        }
+    } /* end of |while| */
+
+    lD = logD(b,c,s-1,z);
+
+    fprintf(stderr, "bkz: log(D)= %f\n", lD);
+    fflush(stdout);
+    lllfree(mu,c,N,bs,s);
+    free(u);
+    mpz_clear(hv);
+
+    return lD;
+}
+
+/**
+ * Pruned Gauss-Enumeration.
+ */
+DOUBLE enumerate(DOUBLE **mu, DOUBLE *c, long *u, int s, int start_block, int end_block, int p) {
+    DOUBLE cd, dum;
+    DOUBLE *y, *cs, *eta;
+
+    DOUBLE **sigma;
+    int *r;
+
+    long *us, *delta, *d, *v;
+    int t,i,t_up, len;
+    double alpha;
+    int tmax;
+    static DOUBLE pi = 3.141592653589793238462643383;
+    static DOUBLE e = 2.718281828459045235360287471352662497757247093;
+    int SCHNITT = 40;
+
+    if (c[start_block]<=EPSILON) {
+        fprintf(stderr, "Hier ist was faul! start_block=%d %f\n", start_block, (double)c[start_block]);
+        fflush(stderr);
+        exit(1);
+    }
+
+    us=(long*)calloc(s+1,sizeof(long));
+    cs=(DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    y=(DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    delta=(long*)calloc(s+1,sizeof(long));
+    d=(long*)calloc(s+1,sizeof(long));
+    eta=(DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    v=(long*)calloc(s+1,sizeof(long));
+
+    sigma =(DOUBLE**)calloc(s,sizeof(DOUBLE*));
+    r =(int*)calloc(s+1,sizeof(int));
+    for (i = 0; i < s; i++) {
+        sigma[i] =(DOUBLE*)calloc(s,sizeof(DOUBLE));
+        r[i] = i-1;
+    }
+
+    len = end_block + 1 - start_block;
+    for (i = start_block; i <= end_block + 1; i++) {
+        cs[i] = y[i] = 0.0;
+        u[i] = us[i] = v[i] = delta[i] = 0;
+        d[i] = 1;
+    }
+    us[start_block] = u[start_block] = 1;
+    cd = c[start_block];
+
+    t = tmax = start_block;      /* Now we start from $t=|start_block|$ instead of
+     $t=|end_block|$. */
+
+    /* precompute $\eta$ */
+    eta[start_block] = 0.0;
+    if (end_block-start_block <= SCHNITT) {
+        for (i = start_block + 1; i <= end_block; i++) eta[i] = 0.0;
+    } else {
+        dum = log(c[start_block]);
+        /*
+            Hoerners version of the Gaussian volume heuristics.
+        */
+        dum = log(c[start_block]);
+        for (i = start_block + 1; i <= end_block; i++) {
+            t_up = i - start_block;
+            eta[i] = 0.5*t_up*exp( (log(pi*t_up)-2.0*p*log(2.0)+dum)/t_up )/(pi*e);
+            if (i < end_block) dum += log(c[i]);
+        }
+    }
+
+
+    while (t <= end_block) {
+        /* the block search loop */
+        dum = us[t] + y[t];
+        cs[t] = cs[t+1] + dum*dum*c[t];
+
+        if (len <= SCHNITT) {
+            alpha = 1.0;
+        } else {
+            alpha = sqrt(1.20 * (end_block + 1 - t) / len);
+            if (alpha >= 1.0) alpha = 1.0;
+        }
+        alpha *= cd;
+
+        if (cs[t] < alpha - EPSILON) {
+           if (t > start_block) {
+               t--;
+               if (r[t+1] > r[t]) r[t] = r[t+1];
+
+               delta[t] = 0;
+               for (i = r[t+1]; i > t; i--) sigma[i][t] = sigma[i+1][t] + us[i]*mu[i][t];
+
+               y[t] = sigma[t+1][t]; /*|dum;|*/
+               us[t] = v[t] = (long)(ROUND(-y[t]));
+               d[t] = (v[t] > -y[t]) ? -1 : 1;
+           } else {
+               cd = cs[start_block];
+               for (i = start_block; i <= end_block; i++) u[i] = us[i];
+               goto nextstep;
+           }
+       } else {
+           t++;
+           r[t] = t;
+nextstep: @;
+           if (tmax < t) tmax = t;
+           if (t < tmax) delta[t] = -delta[t];
+           if (delta[t] * d[t] >= 0) delta[t] += d[t];
+           us[t] = v[t] + delta[t];
+       }
+
+    }
+    free (us);
+    free (cs);
+    free (y);
+    free (delta);
+    free (d);
+    free (eta);
+    free (v);
+    for (i = s - 1; i >= 0; i--) {
+       free(sigma[i]);
+    }
+    free(sigma);
+    free(r);
+    return (cd);
+}
+
+/**
+ * Exhaustive enumeration
+*/
+#define FINCKEPOHST 1
