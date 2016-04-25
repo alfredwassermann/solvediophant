@@ -8,14 +8,14 @@ CFLAGS= -O3 -Wall -ffast-math \
 		-ftree-vectorize \
 		-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4
 	#-ftree-vectorizer-verbose=2
-	#-mveclibabi=svml 
+	#-mveclibabi=svml
 	#-mfpmath=sse+387  # unstable
-	#-ffast-math 
+	#-ffast-math
 	#-fprofile-generate -fprofile-use\
 
 #CFLAGS= -O3 -mcpu=i686 -march=i686 -fforce-addr -funroll-loops -frerun-cse-after-loop -frerun-loop-opt -malign-functions=4
 
-#CFLAGS= -g -Wall  
+#CFLAGS= -g -Wall
 #ASSEMBLERLIB=./GotoBLAS2/libgoto2.a
 #ASSEMBLERLIB=/usr/lib/openblas-base/libopenblas.a
 #ASSEMBLERLIB=./OpenBLAS/libopenblas.a
@@ -25,18 +25,22 @@ ASSEMBLERLIB=./OpenBLAS/libopenblas_sandybridgep-r0.2.8.a
 #GMPLIB=
 #GMPINC=
 
-all: solvediophant.dvi diophant.pdf solvediophant  
+#all: solvediophant.dvi diophant.pdf solvediophant
+all: sd2
+
+sd2: sd2.c
+	$(CC) $(CFLAGS) -o sd2 sd2.c $(ASSEMBLERLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
 
 solvediophant.tex: solvediophant.w
-	cweave solvediophant.w 
+	cweave solvediophant.w
 
 solvediophant.dvi: solvediophant.tex
 	tex solvediophant.tex
 
 solvediophant.c: solvediophant.w
-	ctangle solvediophant.w 
+	ctangle solvediophant.w
 
-solvediophant: solvediophant.c diophant.o diophant.h 
+solvediophant: solvediophant.c diophant.o diophant.h
 	$(CC) $(CFLAGS) -o solvediophant solvediophant.c diophant.o \
 	$(ASSEMBLERLIB) \
 	-lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
@@ -55,16 +59,10 @@ diophant.ps: diophant.dvi
 diophant.pdf: diophant.tex
 	pdftex diophant.tex
 
-diophant.c: diophant.w 
+diophant.c: diophant.w
 	#ctangle diophant.w 20erVersion.ch
-	ctangle diophant.w 
+	ctangle diophant.w
 
-diophant.o: diophant.c 
+diophant.o: diophant.c
 	$(CC) $(CFLAGS) -c diophant.c $(GMPINC)
 #	$(CC) $(CFLAGS)-DBLAS -c diophant.c $(GMPINC)
-
-
-
-
-
-
