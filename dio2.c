@@ -7,10 +7,10 @@
 #include <math.h>
 #include <gmp.h>
 #include "dio2.h"
-#include "OpenBLAS/common.h"
-#include "OpenBLAS/cblas.h"
+//#include "OpenBLAS/common.h"
+//#include "OpenBLAS/cblas.h"
 
-#define BLAS 1
+#define BLAS 0
 #define DEEPINSERT 1
 #define DEEPINSERT_CONST 100
 #define VERBOSE 1
@@ -1815,7 +1815,15 @@ DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max) {
 }
 
 void compute_w2(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
+#if BLAS
     cblas_daxpy(rows,alpha,bd[level],1,w[level],1);
+#else
+    int i;
+    for (i = rows - 1; i >= 0; --i) {
+        w[level][i] += alpha * bd[level][i];
+    }
+#endif
+
     return;
 }
 
