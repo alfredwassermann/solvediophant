@@ -626,7 +626,6 @@ int lllfp (COEFF **b, DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs,
 
     int i, j, k;
     DOUBLE ss;
-    int counter;
 
     int Fc, Fr;
     DOUBLE mus, cc;
@@ -637,6 +636,10 @@ int lllfp (COEFF **b, DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs,
     int ii, iii;
     COEFF *swapvl;
     COEFF *bb;
+
+#if VERBOSE > 3
+    int counter;
+#endif
 
     int Fi;
 
@@ -672,7 +675,9 @@ int lllfp (COEFF **b, DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs,
         N[i] = SQRT(ss);
     }
 
+#if VERBOSE > 3
     counter = 0;
+#endif
 
     /* The main loop */
     while (k < s) {
@@ -1028,7 +1033,7 @@ DOUBLE iteratedlll(COEFF **b, int s, int z, int no_iterates, DOUBLE quality) {
     DOUBLE *c;
     DOUBLE *N;
     DOUBLE **bs;
-    int r,l,i,j, runs;
+    int r, l, i, j, runs;
     COEFF *swapvl;
     DOUBLE lD;
 
@@ -1345,7 +1350,7 @@ DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows) {
     DOUBLE Fd, Fq, Fqeps;
     DOUBLE *dum;
     DOUBLE tmp;
-    COEFF *swap_vec;
+    // COEFF *swap_vec;
 
     int isSideStep = 0;
     DOUBLE stepWidth = 0.0;
@@ -1959,7 +1964,7 @@ int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
                      DOUBLE **bd, DOUBLE *y, DOUBLE *us, int columns) {
     int i;
     int f;
-    DOUBLE u1, u2, swp;
+    DOUBLE u1, u2;
 
     only_zeros_no++;
     for (i=0; i<first_nonzero_in_column[firstp[level]]; i++) {
@@ -1970,26 +1975,25 @@ int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
         if (iszeroone) {
             if (fabs(u1-round(u1))>EPSILON && fabs(u2-round(u2))>EPSILON) {
                 only_zeros_success++;
-				return -1;
-			}
+                return -1;
+            }
 
-			if ( fabs(fabs(w[level][f])-Fq) > EPSILON ) {
-				only_zeros_success++;
-				return 1;
-			}
+            if ( fabs(fabs(w[level][f])-Fq) > EPSILON ) {
+                only_zeros_success++;
+                return 1;
+            }
 
         } else {  /* Not zero-one */
 
-			/* Here we have to be very conservative */
-			if (u2-u1<=1.0+EPSILON &&
-				fabs(w[level][f]) < UINT32_MAX &&
-				fabs(w[level][f]-round(w[level][f]))>0.001) {
-
+            /* Here we have to be very conservative */
+            if (u2-u1 <= 1.0 + EPSILON &&
+                    fabs(w[level][f]) < UINT32_MAX &&
+                    fabs(w[level][f] - round(w[level][f])) > 0.001) {
                 only_zeros_success++;
                 return -1;
             }
 
-            if (fabs(w[level][f]) > Fq*(1+EPSILON)) {
+            if (fabs(w[level][f]) > Fq * (1+EPSILON)) {
                 return 1;
             }
         }
