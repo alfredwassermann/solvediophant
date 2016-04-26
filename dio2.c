@@ -1325,8 +1325,6 @@ DOUBLE dum1, dum2;
 long only_zeros_no, only_zeros_success, hoelder_no, hoelder_success;
 long cs_success;
 long N_success;
-long N2_success;
-long N3_success;
 
 DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows) {
     /* local variables for |explicit_enumeration() */
@@ -1570,8 +1568,6 @@ DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows) {
     hoelder_no = hoelder_success = 0;
     cs_success = nosolutions = loops = 0;
     N_success = 0;
-    N2_success = 0;
-    N3_success = 0;
 
     /* the loop of the exhaustive enumeration */
     do {
@@ -1586,8 +1582,6 @@ DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows) {
 #if FINCKEPOHST
             printf("fipo: %ld ", fipo_success);
 #endif
-            printf("pruneN: %ld ", N2_success);
-            printf("pruneN2: %ld ", N3_success);
             printf("\n");
             fflush(stdout);
         }
@@ -1683,8 +1677,6 @@ afterloop:
     fprintf(stderr, "Prune_only_zeros: %ld of %ld\n", only_zeros_success,only_zeros_no);
     fprintf(stderr, "Prune_hoelder: %ld of %ld\n", hoelder_success, hoelder_no);
     fprintf(stderr, "Prune_N: %ld\n", N_success);
-    fprintf(stderr, "Prune_N2: %ld\n", N2_success);
-    fprintf(stderr, "Prune_N3: %ld\n", N3_success);
 #if FINCKEPOHST
     printf("Fincke-Pohst: %ld\n", fipo_success);
 #endif
@@ -1960,79 +1952,6 @@ int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps) {
 // printf("do prune %lf %lf %lf %lf\n", cs, Fqeps, cblas_dasum(rows, w, 1), Fqeps * cblas_dasum(rows, w, 1));
 
     return 1;
-}
-
-int pruneN(DOUBLE **w, DOUBLE *cs, int t, int rows, int cols, DOUBLE Fq) {
-    int i, t_up;
-    DOUBLE sum;
-    DOUBLE r;
-    if (t >= cols - 2) return 0;
-    if (t < cols / 2 + 10) return 0;
-
-    t_up = t+1; /*|cols-1;|*/
-    r = 0.4;
-    sum = 0.0;
-    for (i=0; i<rows; i++) {
-        sum += fabs(w[t][i]-r*w[t_up][i]);
-    }
-    sum *= Fq*(1.000001);
-    sum -= fabs(cs[t]-r*cs[t_up]);
-    if (sum<0.0) {
-        N2_success++;
-        return 1;
-    }
-
-    t_up = t+2; /*|cols-1;|*/
-    r = 0.4;
-    sum = 0.0;
-    for (i=0; i<rows; i++) {
-        sum += fabs(w[t][i]-r*w[t_up][i]);
-    }
-    sum *= Fq*(1.000001);
-    sum -= fabs(cs[t]-r*cs[t_up]);
-    if (sum<0.0) {
-        N2_success++;
-        return 1;
-    }
-
-    t_up = cols-1;
-    r = 0.2;
-    sum = 0.0;
-    for (i=0; i<rows; i++) {
-        sum += fabs(w[t][i]-r*w[t_up][i]);
-    }
-    sum *= Fq*(1.000001);
-    sum -= fabs(cs[t]-r*cs[t_up]);
-    if (sum<0.0) {
-        N2_success++;
-        return 1;
-    }
-
-    if (0 && t>cols-20) {
-        r = 0.2;
-        sum = 0.0;
-        for (i=0; i<rows; i++) {
-            sum += fabs(w[t][i]-r*w[t_up][i]);
-        }
-        sum *= Fq*(1.000001);
-        sum -= fabs(cs[t]-r*cs[t_up]);
-        if (sum<0.0) {
-            N3_success++;
-            return 1;
-        }
-        r = 0.3;
-        sum = 0.0;
-        for (i=0; i<rows; i++) {
-            sum += fabs(w[t][i]-r*w[t_up][i]);
-        }
-        sum *= Fq*(1.000001);
-        sum -= fabs(cs[t]-r*cs[t_up]);
-        if (sum<0.0) {
-            N3_success++;
-            return 1;
-        }
-    }
-    return 0;
 }
 
 int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,

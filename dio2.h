@@ -56,7 +56,6 @@ extern void inverse(DOUBLE **mu, DOUBLE **muinv, int columns);
 extern int exacttest(DOUBLE *v, int rows, DOUBLE Fq);
 extern int prune0(DOUBLE li, DOUBLE re);
 extern int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps);
-extern int pruneN(DOUBLE **w, DOUBLE *cs, int t, int rows, int cols, DOUBLE Fq);
 extern int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
                      int *first_nonzero_in_column, int *firstp,
                      DOUBLE **bd, DOUBLE *y, DOUBLE *us, int columns);
