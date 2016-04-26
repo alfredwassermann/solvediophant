@@ -14,13 +14,6 @@ struct coe {
 };
 #define COEFF struct coe
 
-struct constraint {
-    double val[2];
-    int parent;
-    int isSet;
-} CONSTRAINT;
-
-
 extern long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     int no_columns, int no_rows,
     mpz_t factor_input, mpz_t norm_input, mpz_t scalelastlinefactor,
@@ -67,12 +60,6 @@ extern int pruneN(DOUBLE **w, DOUBLE *cs, int t, int rows, int cols, DOUBLE Fq);
 extern int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
                      int *first_nonzero_in_column, int *firstp,
                      DOUBLE **bd, DOUBLE *y, DOUBLE *us, int columns);
-extern int prune_snd_nonzero(int columns, int rows,
-                     int level, DOUBLE Fq,
-                     int *first_nonzero,
-                     int *snd_nonzero_in_column, int *sndp,
-                     DOUBLE *us,
-                     struct constraint *cons);
 extern int print_solution(DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns);
 extern void shufflelattice();
 #endif

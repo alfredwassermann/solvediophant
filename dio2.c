@@ -1341,8 +1341,6 @@ DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows) {
     long *delta, *d, *eta;
     long *v;
     int *first_nonzero, *first_nonzero_in_column, *firstp;
-    int *snd_nonzero, *snd_nonzero_in_column, *sndp;
-    struct constraint *cons;
 
     DOUBLE *N, **mu, *c, **w, **bd, **mu_trans;
 
@@ -1388,17 +1386,6 @@ DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows) {
     if (first_nonzero_in_column == NULL)
         return(0);
     firstp = (int*)calloc(columns+1,sizeof(int));
-
-    snd_nonzero = (int*)calloc(rows,sizeof(int));
-    snd_nonzero_in_column = (int*)calloc(columns+rows+1,sizeof(int));
-    if (snd_nonzero_in_column == NULL)
-        return(0);
-    sndp = (int*)calloc(columns+1,sizeof(int));
-
-    cons = (struct constraint*)calloc(columns,sizeof(struct constraint));
-    for(i = 0; i < columns; ++i) {
-        cons[i].isSet = 0;
-    }
 
     eta = (long*)calloc(columns+1,sizeof(long));
     v = (long*)calloc(columns+1,sizeof(long));
@@ -1573,41 +1560,6 @@ DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows) {
     firstp[columns] = j;
     first_nonzero_in_column[j] = 0;
 
-    /* initialize second-nonzero arrays */
-    for (l = 0; l < rows; l++) {
-        for (i = first_nonzero[l] + 1; i < columns; i++) if (mpz_sgn(get_entry(i,l)) != 0) {
-            snd_nonzero[l] = i;
-            break;
-        }
-    }
-
-    fprintf(stderr, "Second non-zero entries:\n");
-    j = 0;
-    for (l = 0; l < columns; l++) {
-        sndp[l] = j;
-        snd_nonzero_in_column[j] = 0;
-        j++;
-        for (i = 0; i < rows; i++) {
-            if(snd_nonzero[i] == l) {
-                snd_nonzero_in_column[j] = i;
-                snd_nonzero_in_column[sndp[l]]++;
-                j++;
-            }
-        }
-        fprintf(stderr, "%d ", snd_nonzero_in_column[sndp[l]]);
-    }
-    fprintf(stderr, ": %d\n\n", rows);
-    sndp[columns] = j;
-    snd_nonzero_in_column[j] = 0;
-
-#if 0
-/* Display gaps between first non-zero entry and second non-zero entry. */
-    for (l=0;l<rows;l++) {
-        printf("%d ", snd_nonzero[l]-first_nonzero[l]);
-    }
-    printf("\n");
-#endif
-
     /* more initialization */
     level = first_nonzero[rows-1];
     if (level<0) level = 0;
@@ -1671,16 +1623,6 @@ DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows) {
                 if (i < 0) {
                     goto step_back;
                 } else if (i > 0) {
-                    goto side_step;
-                }
-
-                i = prune_snd_nonzero(columns, rows,
-                                 level, Fq,
-                                 first_nonzero,
-                                 snd_nonzero_in_column, sndp,
-                                 us,
-                                 cons);
-                if (i > 0) {
                     goto side_step;
                 }
 
@@ -1774,14 +1716,9 @@ afterloop:
     free (first_nonzero_in_column);
     free (firstp);
 
-    free (snd_nonzero);
-    free (snd_nonzero_in_column);
-    free (sndp);
-    free (cons);
-
     free (eta);
     free (v);
-    for (l=0;l<=columns;l++) free (w[l]);
+    for (l = 0; l <= columns; l++) free (w[l]);
     free (w);
     free (original_columns);
 
@@ -2138,19 +2075,6 @@ int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
             }
         }
     }
-    return 0;
-}
-
-int prune_snd_nonzero(int columns, int rows,
-                     int level, DOUBLE Fq,
-                     int *first_nonzero,
-                     int *snd_nonzero_in_column, int *sndp,
-                     DOUBLE *us,
-                     struct constraint *cons) {
-    int i, k;
-    int ro;
-    int f1;
-
     return 0;
 }
 
