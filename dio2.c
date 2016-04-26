@@ -7,11 +7,10 @@
 #include <math.h>
 #include <gmp.h>
 #include "dio2.h"
-//#include "OpenBLAS/common.h"
-//#include "OpenBLAS/cblas.h"
+#include "OpenBLAS/common.h"
+#include "OpenBLAS/cblas.h"
 
 #define BLAS 1
-#define USE_SSE 0
 #define DEEPINSERT 1
 #define DEEPINSERT_CONST 100
 #define VERBOSE 1
@@ -1625,7 +1624,6 @@ DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows) {
     /* the loop of the exhaustive enumeration */
     do {
         /* increase loop counter */
-printf("\nLOOP %d:\n", level);
         loops++;
         if ((stop_after_loops > 0) && (stop_after_loops <= loops))
             goto afterloop;
@@ -1652,7 +1650,6 @@ printf("\nLOOP %d:\n", level);
             stepWidth = dum[level] - olddum;
         }
 
-printf("CS: %lf, %lf\n", cs[level], Fd);
         if ((cs[level] < Fd) /*|&& (!prune0(fabs(dum[level]),N[level]))|*/)  {
 #if FINCKEPOHST
             if (fabs(us[level]) > fipo[level]) {
@@ -1671,8 +1668,6 @@ printf("CS: %lf, %lf\n", cs[level], Fd);
                 i = prune_only_zeros(w, level, rows, Fq, first_nonzero_in_column, firstp,
                                      bd, y, us, columns);
 
-printf("Prune zero: %d\n", i);
-                //i = 0;
                 if (i < 0) {
                     goto step_back;
                 } else if (i > 0) {
@@ -1690,7 +1685,6 @@ printf("Prune zero: %d\n", i);
                 }
 
                 if (prune(w[level], cs[level], rows, Fqeps)) {
-printf("DO PRUNE\n");
                     if (eta[level] == 1) {
                         goto step_back;
                     }
@@ -1699,7 +1693,6 @@ printf("DO PRUNE\n");
                     if (delta[level]*d[level]>=0) delta[level] += d[level];
                     us[level] = v[level] + delta[level];
                 } else {
-printf("DO NOT PRUNE\n");
                     level--;
                     delta[level] = eta[level] = 0;
                     y[level] = compute_y(mu_trans,us,level,level_max);
@@ -1709,7 +1702,7 @@ printf("DO NOT PRUNE\n");
                 }
             } else {
                 /* at $|level|=0$ */
-                if (exacttest(w[0],rows,Fq)==1) {
+                if (exacttest(w[0],rows,Fq) == 1) {
                     print_solution(w[level],rows,Fq,us,columns);
                     if ((stop_after_solutions > 0) && (stop_after_solutions <= nosolutions))
                         goto afterloop;
@@ -2003,10 +1996,8 @@ int prune0(DOUBLE li, DOUBLE re) {
 /* Pruning according to H\"olders inequality */
 int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps) {
     /*|hoelder_no++;|*/
-
-#if 0
+#if BLAS
     if (cs < Fqeps * cblas_dasum(rows, w, 1)) {
-printf("do not prune\n");
         return 0;
     }
 #else
@@ -2018,8 +2009,6 @@ printf("do not prune\n");
         reseite += fabs(w[i]);
         i--;
     } while (i >= 0);
-
-printf("do prune %lf %lf %lf %lf\n", cs, Fqeps, reseite, Fqeps * reseite);
     if (cs < Fqeps * reseite) return 0;
 #endif
     /*|hoelder_success++;|*/
