@@ -223,7 +223,7 @@ int main(int argc, char *argv[]) {
     /**
      * Start alarm
      */
-    if (maxruntime>0) {
+    if (maxruntime > 0) {
         signal(SIGALRM, stopProgram); // stopProgram in diophant.c
         //alarm(maxruntime);
     }
@@ -364,12 +364,12 @@ int main(int argc, char *argv[]) {
 	solfile = fopen(solfilename, "w");
 	time_0 = os_ticks();
 
-    /*
+
 	diophant(A, rhs, upperb, no_columns, no_rows,
 		factor_input, norm_input, scalelastlinefactor, silent, iterate, iterate_no, bkz_beta_input, bkz_p_input,
 		stop_after_solutions, stop_after_loops,
 		free_RHS, original_columns, no_original_columns, cut_after, nboundedvars,solfile);
-    */
+    
 	time_1 = os_ticks();
 	fclose(solfile);
 
