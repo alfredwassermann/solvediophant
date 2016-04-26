@@ -37,7 +37,7 @@ mpz_t snd_q, snd_r, snd_s;
 
 int system_rows, system_columns;
 int lattice_rows, lattice_columns;
-COEFF **lattice;
+coeff_t **lattice;
 int free_RHS;
 int iszeroone;
 mpz_t *upperbounds;
@@ -81,7 +81,7 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
 
     int i,j;
     DOUBLE lD, lDnew;
-    COEFF *swap_vec;
+    coeff_t *swap_vec;
 
     /**
      * Initialize some globals
@@ -143,9 +143,9 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     /**
      * allocate memory
      */
-    lattice = (COEFF**)calloc(lattice_columns,sizeof(COEFF*));
+    lattice = (coeff_t**)calloc(lattice_columns,sizeof(coeff_t*));
     for(j=0;j<lattice_columns;j++) {
-        lattice[j] = (COEFF*)calloc(lattice_rows+1,sizeof(COEFF));
+        lattice[j] = (coeff_t*)calloc(lattice_rows+1,sizeof(coeff_t));
         for (i=0;i<=lattice_rows;i++) mpz_init(lattice[j][i].c);
     }
 
@@ -463,7 +463,7 @@ long gcd(long n1, long n2) {
     return b;
 }
 
-void coeffinit(COEFF *v, int z) {
+void coeffinit(coeff_t *v, int z) {
     short r = 0;
     short i;
 
@@ -621,7 +621,7 @@ int solutiontest(int position) {
 
 #define TWOTAUHALF 67108864.0 /* $2^{\tau/2}$*/
 
-int lllfp (COEFF **b, DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs,
+int lllfp (coeff_t **b, DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs,
             int start, int s, int z, DOUBLE delta) {
 
     int i, j, k;
@@ -634,8 +634,8 @@ int lllfp (COEFF **b, DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs,
     DOUBLE *swapd;
 
     int ii, iii;
-    COEFF *swapvl;
-    COEFF *bb;
+    coeff_t *swapvl;
+    coeff_t *bb;
 
 #if VERBOSE > 3
     int counter;
@@ -902,10 +902,10 @@ if (c[k] < EPSILON) {
 /**
  * LLL-subroutines
  */
-DOUBLE scalarproductlfp (COEFF *v, COEFF *w) {
+DOUBLE scalarproductlfp (coeff_t *v, coeff_t *w) {
     DOUBLE erg;
     long t1, t2;
-    COEFF *vv, *ww;
+    coeff_t *vv, *ww;
 
     erg = 0.0;
     t1 = v[0].p;
@@ -987,7 +987,7 @@ int lllfree(DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs, int s) {
     return 1;
 }
 
-double logD(COEFF **lattice, DOUBLE *c, int s, int z) {
+double logD(coeff_t **lattice, DOUBLE *c, int s, int z) {
     double d = 0.0;
     int i;
 
@@ -998,7 +998,7 @@ double logD(COEFF **lattice, DOUBLE *c, int s, int z) {
     return d;
 }
 
-double orthogonal_defect(COEFF **lattice, DOUBLE *c, int s, int z) {
+double orthogonal_defect(coeff_t **lattice, DOUBLE *c, int s, int z) {
     double defect = 0.0;
 
 #if 0
@@ -1014,7 +1014,7 @@ double orthogonal_defect(COEFF **lattice, DOUBLE *c, int s, int z) {
 /**
  * LLL variants
  */
-void lll(COEFF **b, int s, int z, DOUBLE quality) {
+void lll(coeff_t **b, int s, int z, DOUBLE quality) {
     DOUBLE **mu;
     DOUBLE *c;
     DOUBLE *N;
@@ -1028,13 +1028,13 @@ void lll(COEFF **b, int s, int z, DOUBLE quality) {
     return;
 }
 
-DOUBLE iteratedlll(COEFF **b, int s, int z, int no_iterates, DOUBLE quality) {
+DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality) {
     DOUBLE **mu;
     DOUBLE *c;
     DOUBLE *N;
     DOUBLE **bs;
     int r, l, i, j, runs;
-    COEFF *swapvl;
+    coeff_t *swapvl;
     DOUBLE lD;
 
     lllalloc(&mu,&c,&N,&bs,s,z);
@@ -1070,7 +1070,7 @@ DOUBLE iteratedlll(COEFF **b, int s, int z, int no_iterates, DOUBLE quality) {
 /**
  * Blockwise Korkine Zolotareff reduction
  */
-DOUBLE bkz(COEFF **b, int s, int z, DOUBLE delta, int beta, int p) {
+DOUBLE bkz(coeff_t **b, int s, int z, DOUBLE delta, int beta, int p) {
     DOUBLE **mu, *c, *N;
     DOUBLE **bs;
     static mpz_t hv;
@@ -1082,7 +1082,7 @@ DOUBLE bkz(COEFF **b, int s, int z, DOUBLE delta, int beta, int p) {
     DOUBLE lD;
 
     int g, ui, q, j;
-    COEFF *swapvl;
+    coeff_t *swapvl;
 
     mpz_init(hv);
 
@@ -1331,7 +1331,7 @@ long only_zeros_no, only_zeros_success, hoelder_no, hoelder_success;
 long cs_success;
 long N_success;
 
-DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows) {
+DOUBLE explicit_enumeration(coeff_t **lattice, int columns, int rows) {
     /* local variables for |explicit_enumeration() */
     /*|__attribute((aligned(16)))|*/
 
@@ -1350,7 +1350,7 @@ DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows) {
     DOUBLE Fd, Fq, Fqeps;
     DOUBLE *dum;
     DOUBLE tmp;
-    // COEFF *swap_vec;
+    // coeff_t *swap_vec;
 
     int isSideStep = 0;
     DOUBLE stepWidth = 0.0;
@@ -1777,7 +1777,7 @@ void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     return;
 }
 
-void gramschmidt(COEFF **lattice, int columns, int rows, DOUBLE **mu,
+void gramschmidt(coeff_t **lattice, int columns, int rows, DOUBLE **mu,
                  DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq) {
     int i, l, j;
     DOUBLE dum;
@@ -1808,7 +1808,7 @@ void gramschmidt(COEFF **lattice, int columns, int rows, DOUBLE **mu,
     return;
 }
 
-void givens(COEFF **lattice, int columns, int rows, DOUBLE **mu,
+void givens(coeff_t **lattice, int columns, int rows, DOUBLE **mu,
             DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq) {
     int i,l,j;
     int mm;
@@ -2100,7 +2100,7 @@ void stopProgram() {
 }
 
 void shufflelattice() {
-    COEFF *tmp;
+    coeff_t *tmp;
     int i, j, r;
     unsigned int s;
 

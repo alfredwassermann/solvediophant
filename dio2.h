@@ -8,11 +8,28 @@
 /**
  * Definition of the lattice data structures
 */
-struct coe {
+struct GLS {
+    int num_rows;
+    int num_cols;
+
+    mpz_t **matrix;
+    mpz_t *rhs;
+    mpz_t *upperbounds;
+};
+
+struct Coeff {
     mpz_t c;
     int p;
 };
-#define COEFF struct coe
+#define coeff_t struct Coeff
+
+struct Lattice {
+    int num_rows;
+    int num_cols;
+    coeff_t **basis;
+    coeff_t *swap;
+};
+#define lattice_t struct Lattice
 
 extern long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     int no_columns, int no_rows,
@@ -23,7 +40,6 @@ extern long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     int free_RHS_input, int *org_col_input, int no_org_col_input,
     int cut_after, int nboundedvars, FILE* solfile);
 
-
 extern long nosolutions;
 
 extern void stopProgram();
@@ -32,26 +48,26 @@ extern void print_num_solutions(long num_solutions);
 extern void debug_print(char *m, int l);
 extern void print_lattice();
 extern long gcd(long n1, long n2);
-extern void coeffinit(COEFF *v, int z);
+extern void coeffinit(coeff_t *v, int z);
 extern int cutlattice();
 extern int solutiontest(int position);
 
-extern DOUBLE scalarproductlfp (COEFF *v, COEFF *w);
+extern DOUBLE scalarproductlfp (coeff_t *v, coeff_t *w);
 extern DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n);
 extern int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z);
 extern int lllfree(DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs, int s);
-extern double orthogonal_defect(COEFF **lattice, DOUBLE *c, int s, int z);
-extern void lll(COEFF **b, int s, int z, DOUBLE quality);
-extern DOUBLE iteratedlll(COEFF **b, int s, int z, int no_iterates, DOUBLE quality);
-extern DOUBLE bkz(COEFF **b, int s, int z, DOUBLE delta, int beta, int p);
+extern double orthogonal_defect(coeff_t **lattice, DOUBLE *c, int s, int z);
+extern void lll(coeff_t **b, int s, int z, DOUBLE quality);
+extern DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality);
+extern DOUBLE bkz(coeff_t **b, int s, int z, DOUBLE delta, int beta, int p);
 extern DOUBLE enumerate(DOUBLE **mu, DOUBLE *c, long *u, int s, int start_block, int end_block, int p);
-extern DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows);
+extern DOUBLE explicit_enumeration(coeff_t **lattice, int columns, int rows);
 
 extern DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max);
 extern void compute_w2(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows);
 extern void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows);
-extern void gramschmidt(COEFF **lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq);
-extern void givens(COEFF **lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq);
+extern void gramschmidt(coeff_t **lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq);
+extern void givens(coeff_t **lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq);
 extern void inverse(DOUBLE **mu, DOUBLE **muinv, int columns);
 extern int exacttest(DOUBLE *v, int rows, DOUBLE Fq);
 extern int prune0(DOUBLE li, DOUBLE re);

@@ -62,10 +62,8 @@ void print_delta_time(int l, char *str) {
 }
 
 void incorrect_input_file() {
-#ifndef NO_OUTPUT
     fprintf(stderr,"Incomplete input file -> exit\n");
     fflush(stderr);
-#endif
     exit(1);
 }
 
@@ -139,9 +137,7 @@ int main(int argc, char *argv[]) {
     for (i = 1; i < argc; i++) {
         if (strcmp(argv[i],"-silent")==0) {
             silent = 1;
-    #ifndef NO_OUTPUT
             fprintf(stderr,"No output of solutions, just counting.\n");
-    #endif
         } else if (strncmp(argv[i],"-iterate",8)==0) {
             strcpy(suffix,argv[i]+8);
             iterate_no  = atoi(suffix);
@@ -175,12 +171,11 @@ int main(int argc, char *argv[]) {
         } else if (strncmp(argv[i],"-o",2)==0) {
             strcpy(solfilename,argv[i]+2);
         } else if (strcmp(argv[i],"-?")==0 || strcmp(argv[i],"-h")==0) {
-    #ifndef NO_OUTPUT
             fprintf(stderr,"\nsolvediophant --- multiple precision version --- \n");
             fprintf(stderr,"solvediophant");
             fprintf(stderr," -iterate*|(-bkz -beta* -p*) [-c*] [-maxnorm*] [-scalelastline*] [-time*] [-silent] [-o*]");
             fprintf(stderr," inputfile\n\n");
-    #endif
+
             exit(3);
         }
     }
