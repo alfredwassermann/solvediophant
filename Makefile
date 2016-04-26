@@ -30,11 +30,14 @@ ASSEMBLERLIB=
 #all: solvediophant.dvi diophant.pdf solvediophant
 all: sd2
 
-sd2: sd2.c dio2.o
-	$(CC) $(CFLAGS) -o sd2 dio2.o sd2.c $(ASSEMBLERLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
-
 dio2.o: dio2.c dio2.h
 	$(CC) $(CFLAGS) -c dio2.c $(GMPINC)
+
+gls.o: gls.c gls.h
+	$(CC) $(CFLAGS) -c gls.c $(GMPINC)
+
+sd2: sd2.c dio2.o gls.o
+	$(CC) $(CFLAGS) -o sd2 dio2.o gls.o sd2.c $(ASSEMBLERLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
 
 solvediophant.tex: solvediophant.w
 	cweave solvediophant.w

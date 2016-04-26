@@ -70,8 +70,7 @@ static FILE* fp;
 #define smult_lattice(i,j,factor) mpz_mul(lattice[i][j+1].c,lattice[i][j+1].c,factor)
 #define get_entry(i,j) lattice[i][j+1].c
 
-long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
-    int no_columns, int no_rows,
+long diophant(gls_t GLS,
     mpz_t factor_input, mpz_t norm_input, mpz_t scalelastlinefactor,
     int silent, int iterate, int iterate_no,
     int bkz_beta_input, int bkz_p_input,
@@ -112,8 +111,8 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     nom = 1;
     denom = 2;
 
-    system_rows = no_rows;
-    system_columns = no_columns;
+    system_rows = GLS.num_rows;
+    system_columns = GLS.num_cols;
     nboundvars = nboundedvars;
 
 #if BLAS
@@ -152,11 +151,11 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     /**
      * read the system
      */
-    for (j=0;j<system_rows;j++) {
-        for (i=0;i<system_columns;i++) {
-            mpz_mul(lattice[i][j+1].c,a_input[j][i],matrix_factor);
+    for (j = 0; j < system_rows; j++) {
+        for (i = 0; i < system_columns; i++) {
+            mpz_mul(lattice[i][j+1].c, GLS.matrix[j][i], matrix_factor);
         }
-        mpz_mul(lattice[system_columns][j+1].c,b_input[j],matrix_factor);
+        mpz_mul(lattice[system_columns][j+1].c, GLS.rhs[j], matrix_factor);
     }
 
     /**
@@ -164,21 +163,26 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
      */
     mpz_init_set_si(upperbounds_max,1);
     iszeroone = 1;
-    if (upperbounds_input==NULL) {
+    if (GLS.upperbounds == NULL) {
         fprintf(stderr, "No upper bounds: 0/1 variables are assumed \n"); fflush(stderr);
     } else {
-        upperbounds = (mpz_t*)calloc(system_columns,sizeof(mpz_t));
-        for (i=0;i<system_columns;i++) mpz_init_set_si(upperbounds[i],1);
-        for (i=0;i<nboundvars/*|system_columns|*/;i++) {
-            mpz_set(upperbounds[i],upperbounds_input[i]);
+        upperbounds = (mpz_t*)calloc(system_columns, sizeof(mpz_t));
+        for (i = 0; i < system_columns; i++)
+            mpz_init_set_si(upperbounds[i], 1);
+        for (i = 0; i < nboundvars/*|system_columns|*/; i++) {
+            mpz_set(upperbounds[i], GLS.upperbounds[i]);
             if (mpz_sgn(upperbounds[i])!=0) {
                 mpz_lcm(upperbounds_max,upperbounds_max,upperbounds[i]);
             }
         }
-        if (mpz_cmp_si(upperbounds_max,1)>0) iszeroone = 0;
-        fprintf(stderr,"upper bounds found. Max="); fflush(stderr);
-        mpz_out_str(stderr,10,upperbounds_max);
-        fprintf(stderr,"\n");
+        if (mpz_cmp_si(upperbounds_max, 1) > 0)
+            iszeroone = 0;
+
+        fprintf(stderr,"upper bounds found. Max=");
+        fflush(stderr);
+
+        mpz_out_str(stderr, 10, upperbounds_max);
+        fprintf(stderr, "\n");
         fflush(stderr);
     }
 

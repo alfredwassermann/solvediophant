@@ -1,6 +1,7 @@
 #ifndef _DIOPHANT_H
 #define _DIOPHANT_H
 #include <gmp.h>
+#include <stdio.h>
 
 #define SQRT sqrt
 #define DOUBLE double
@@ -8,7 +9,7 @@
 /**
  * Definition of the lattice data structures
 */
-struct GLS {
+struct Gls {
     int num_rows;
     int num_cols;
 
@@ -16,6 +17,7 @@ struct GLS {
     mpz_t *rhs;
     mpz_t *upperbounds;
 };
+#define gls_t struct Gls
 
 struct Coeff {
     mpz_t c;
@@ -31,8 +33,7 @@ struct Lattice {
 };
 #define lattice_t struct Lattice
 
-extern long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
-    int no_columns, int no_rows,
+extern long diophant(gls_t GLS,
     mpz_t factor_input, mpz_t norm_input, mpz_t scalelastlinefactor,
     int silent, int iterate, int iterate_no,
     int bkz_beta_input, int bkz_p_input,

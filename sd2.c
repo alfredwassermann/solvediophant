@@ -6,6 +6,7 @@
 #include <sys/times.h>  /* For run time measurements */
 #include <unistd.h>
 #include "dio2.h"
+#include "gls.h"
 
 #define  zlength 16000
 
@@ -90,8 +91,10 @@ int main(int argc, char *argv[]) {
     mpz_t factor_input;
     mpz_t norm_input;
     mpz_t scalelastlinefactor;
-    mpz_t *upperb;
-    mpz_t **A, *rhs;
+
+	//mpz_t *upperb;
+    //mpz_t **A, *rhs;
+	gls_t GLS;
 
     int bkz_beta_input = 0;
     int bkz_p_input = 0;
@@ -100,7 +103,7 @@ int main(int argc, char *argv[]) {
     int silent;
     int maxruntime = 0;
 
-    int no_rows, no_columns;
+    //int no_rows, GLS.num_cols;
 
     long stop_after_solutions;
     long stop_after_loops;
@@ -228,7 +231,7 @@ int main(int argc, char *argv[]) {
      */
     txt = fopen(inputfile_name, "r");
     if (txt==NULL) {
-        printf("Could not open file '%s'!\n",inputfile_name);
+        printf("Could not open file '%s'!\n", inputfile_name);
         fflush(stdout);
         exit(1);
     }
@@ -253,31 +256,22 @@ int main(int argc, char *argv[]) {
         }
     }
     while (zeile[0]=='%');
-    sscanf(zeile,"%d%d%d",&no_rows,&no_columns,&flag);
+    sscanf(zeile,"%d%d%d", &(GLS.num_rows), &(GLS.num_cols), &flag);
 
-    /**
-     * Allocate memnory for input matrix
-     */
-     A = (mpz_t**)calloc(no_rows,sizeof(mpz_t*));
-     for(j=0;j<no_rows;j++) {
-         A[j] = (mpz_t*)calloc(no_columns,sizeof(mpz_t));
-         for (i=0;i<no_columns;i++) mpz_init(A[j][i]);
-     }
-     rhs = (mpz_t*)calloc(no_rows,sizeof(mpz_t));
-     for (i=0;i<no_rows;i++) mpz_init(rhs[i]);
+	gls_allocate_mem(&GLS);
 
     /**
      * Read linear system
      */
-     for (j=0;j<no_rows;j++) {
-         for (i=0;i<no_columns;i++) {
-             mpz_inp_str(A[j][i],txt,10);
-             if (res==0) {
+     for (j = 0; j < GLS.num_rows; j++) {
+         for (i=0;i<GLS.num_cols;i++) {
+             mpz_inp_str(GLS.matrix[j][i], txt, 10);
+             if (res == 0) {
                  incorrect_input_file();
              }
          }
-         res = mpz_inp_str(rhs[j],txt,10);
-         if (res==0) {
+         res = mpz_inp_str(GLS.rhs[j], txt, 10);
+         if (res == 0) {
              incorrect_input_file();
          }
      }
@@ -285,11 +279,11 @@ int main(int argc, char *argv[]) {
     /**
      * Read upper bounds
      */
-     upperb = NULL;
+     GLS.upperbounds = NULL;
      fclose(txt);
      txt = fopen(inputfile_name, "r");
      if (txt==NULL) {
-         printf("Could not open file %s !\n",inputfile_name);
+         printf("Could not open file %s !\n", inputfile_name);
          fflush(stdout);
          exit(1);
      }
@@ -297,30 +291,32 @@ int main(int argc, char *argv[]) {
      sprintf(detectstring,"BOUNDS");
      do {
          rowp=fgets(zeile,zlength,txt);
-     } while ((rowp!=NULL)&&(strstr(zeile,detectstring)==NULL));
+     } while ((rowp != NULL) && (strstr(zeile,detectstring) == NULL));
 
-     if (rowp==NULL) {
-         upperb=NULL;
-         printf("No %s \n",detectstring); fflush(stdout);
-         nboundedvars = no_columns;
+     if (rowp == NULL) {
+         GLS.upperbounds = NULL;
+         printf("No %s \n",detectstring);
+		 fflush(stdout);
+         nboundedvars = GLS.num_cols;
      } else {
-         nboundedvars = no_columns;
-         sscanf(zeile,"BOUNDS %d",&nboundedvars);
-         if (nboundedvars>0) {
-             fprintf(stderr,"Nr. bounded variables=%d\n",nboundedvars);
+         nboundedvars = GLS.num_cols;
+         sscanf(zeile,"BOUNDS %d", &nboundedvars);
+         if (nboundedvars > 0) {
+             fprintf(stderr, "Nr. bounded variables=%d\n", nboundedvars);
          } else {
              nboundedvars = 0;
          }
 
-         upperb = (mpz_t*)calloc(no_columns,sizeof(mpz_t));
-         for (i=0;i<nboundedvars;i++) {
-             mpz_init(upperb[i]);
-             mpz_inp_str(upperb[i],txt,10);
+         GLS.upperbounds = (mpz_t*)calloc(GLS.num_cols, sizeof(mpz_t));
+         for (i = 0; i < nboundedvars; i++) {
+             mpz_init(GLS.upperbounds[i]);
+             mpz_inp_str(GLS.upperbounds[i], txt, 10);
          }
      }
      fclose(txt);
+
      txt = fopen(inputfile_name, "r");
-     if (txt==NULL) {
+     if (txt == NULL) {
          printf("Could not open file %s !\n",inputfile_name);
          fflush(stdout);
          exit(1);
@@ -340,7 +336,7 @@ int main(int argc, char *argv[]) {
           if (res==(long)NULL || res==(long)EOF) {
              incorrect_input_file();
          }
-     } else no_original_columns = no_columns;
+     } else no_original_columns = GLS.num_cols;
 
       original_columns = (int*)calloc(no_original_columns,sizeof(int));
 
@@ -359,10 +355,10 @@ int main(int argc, char *argv[]) {
     solfile = fopen(solfilename, "w");
     time_0 = os_ticks();
 
-    diophant(A, rhs, upperb, no_columns, no_rows,
+    diophant(GLS,
         factor_input, norm_input, scalelastlinefactor, silent, iterate, iterate_no, bkz_beta_input, bkz_p_input,
         stop_after_solutions, stop_after_loops,
-        free_RHS, original_columns, no_original_columns, cut_after, nboundedvars,solfile);
+        free_RHS, original_columns, no_original_columns, cut_after, nboundedvars, solfile);
 
     time_1 = os_ticks();
     fclose(solfile);
@@ -379,20 +375,8 @@ int main(int argc, char *argv[]) {
     mpz_clear(factor_input);
     mpz_clear(norm_input);
     mpz_clear(scalelastlinefactor);
-    for(j=0;j<no_rows;j++) {
-        for (i=0;i<no_columns;i++) mpz_clear(A[j][i]);
-        free(A[j]);
-    }
-    free(A);
-    rhs = (mpz_t*)calloc(no_rows,sizeof(mpz_t));
-    for (i=0;i<no_rows;i++) mpz_clear(rhs[i]);
-    free(rhs);
 
-    if (upperb!=NULL) {
-        for (i=0;i<nboundedvars;i++) {
-            mpz_clear(upperb[i]);
-        }
-        free(upperb);
-    }
+	gls_free_mem(&GLS);
+
     return 0;
 }
