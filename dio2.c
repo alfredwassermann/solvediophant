@@ -370,7 +370,7 @@ long diophant(mpz_t **a_input, mpz_t *b_input, mpz_t *upperbounds_input,
     read_NTL_lattice();
 #endif // Do reduction
 
-#if 0
+#if 1
     printf("Before enumeration\n");
     /*|print_NTL_lattice();|*/   /* Version for the NTL output */
     print_lattice();
@@ -1415,13 +1415,14 @@ DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows) {
 #if FINCKEPOHST
     fipo=(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
     muinv=(DOUBLE**)calloc(columns,sizeof(DOUBLE*));
-    for(i=0;i<columns;++i) muinv[i]=(DOUBLE*)calloc(rows,sizeof(DOUBLE));
+    for(i = 0; i < columns; ++i)
+        muinv[i] = (DOUBLE*)calloc(rows,sizeof(DOUBLE));
 
     fipo_LB=(DOUBLE**)calloc(columns+1,sizeof(DOUBLE*));
     fipo_UB=(DOUBLE**)calloc(columns+1,sizeof(DOUBLE*));
-    for(i=0;i<=columns;++i) {
-        fipo_LB[i]=(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
-        fipo_UB[i]=(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
+    for (i = 0; i <= columns; ++i) {
+        fipo_LB[i] = (DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
+        fipo_UB[i] = (DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
     }
 #endif
 
@@ -1624,6 +1625,7 @@ DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows) {
     /* the loop of the exhaustive enumeration */
     do {
         /* increase loop counter */
+printf("\nLOOP %d:\n", level);
         loops++;
         if ((stop_after_loops > 0) && (stop_after_loops <= loops))
             goto afterloop;
@@ -1650,13 +1652,13 @@ DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows) {
             stepWidth = dum[level] - olddum;
         }
 
-        if ( (cs[level] < Fd) /*|&& (!prune0(fabs(dum[level]),N[level]))|*/)  {
+printf("CS: %lf, %lf\n", cs[level], Fd);
+        if ((cs[level] < Fd) /*|&& (!prune0(fabs(dum[level]),N[level]))|*/)  {
 #if FINCKEPOHST
             if (fabs(us[level]) > fipo[level]) {
                 fipo_success++;
                 goto side_step;
             }
-
 #endif
             if (isSideStep) {
                 compute_w2(w, bd, stepWidth, level, rows);
@@ -1669,6 +1671,8 @@ DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows) {
                 i = prune_only_zeros(w, level, rows, Fq, first_nonzero_in_column, firstp,
                                      bd, y, us, columns);
 
+printf("Prune zero: %d\n", i);
+                //i = 0;
                 if (i < 0) {
                     goto step_back;
                 } else if (i > 0) {
@@ -1686,6 +1690,7 @@ DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows) {
                 }
 
                 if (prune(w[level], cs[level], rows, Fqeps)) {
+printf("DO PRUNE\n");
                     if (eta[level] == 1) {
                         goto step_back;
                     }
@@ -1694,6 +1699,7 @@ DOUBLE explicit_enumeration(COEFF **lattice, int columns, int rows) {
                     if (delta[level]*d[level]>=0) delta[level] += d[level];
                     us[level] = v[level] + delta[level];
                 } else {
+printf("DO NOT PRUNE\n");
                     level--;
                     delta[level] = eta[level] = 0;
                     y[level] = compute_y(mu_trans,us,level,level_max);
@@ -1998,9 +2004,11 @@ int prune0(DOUBLE li, DOUBLE re) {
 int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps) {
     /*|hoelder_no++;|*/
 
-#if BLAS
-    if (cs < Fqeps * cblas_dasum(rows, w, 1))
+#if 0
+    if (cs < Fqeps * cblas_dasum(rows, w, 1)) {
+printf("do not prune\n");
         return 0;
+    }
 #else
     DOUBLE reseite;
     int i;
@@ -2010,9 +2018,13 @@ int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps) {
         reseite += fabs(w[i]);
         i--;
     } while (i >= 0);
+
+printf("do prune %lf %lf %lf %lf\n", cs, Fqeps, reseite, Fqeps * reseite);
     if (cs < Fqeps * reseite) return 0;
 #endif
     /*|hoelder_success++;|*/
+// printf("do prune %lf %lf %lf %lf\n", cs, Fqeps, cblas_dasum(rows, w, 1), Fqeps * cblas_dasum(rows, w, 1));
+
     return 1;
 }
 
@@ -2248,7 +2260,7 @@ void shufflelattice() {
     int i, j, r;
     unsigned int s;
 
-#if 1
+#if 0
     s = (unsigned)(time(0))*getpid();
 #else
     s = 1300964772;
