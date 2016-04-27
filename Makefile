@@ -19,8 +19,8 @@ CFLAGS= -O3 -Wall -ffast-math \
 #ASSEMBLERLIB=./GotoBLAS2/libgoto2.a
 #ASSEMBLERLIB=./OpenBLAS/libopenblas.a
 #ASSEMBLERLIB=/usr/lib/openblas-base/libblas.a
-#ASSEMBLERLIB=./OpenBLAS/libopenblas_sandybridgep-r0.2.8.a
-ASSEMBLERLIB=
+ASSEMBLERLIB=./OpenBLAS/libopenblas.a
+#ASSEMBLERLIB=
 
 #GMPLIB=-L../gmp-4.2.1/bin/lib
 #GMPINC=-I../gmp-4.2.1/bin/include
