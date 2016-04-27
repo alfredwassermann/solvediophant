@@ -39,6 +39,8 @@ gls.o: gls.c gls.h
 sd2: sd2.c dio2.o gls.o
 	$(CC) $(CFLAGS) -o sd2 dio2.o gls.o sd2.c $(ASSEMBLERLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
 
+################################################################################
+
 solvediophant.tex: solvediophant.w
 	cweave solvediophant.w
 

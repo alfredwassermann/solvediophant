@@ -1,3 +1,4 @@
+#include <signal.h>
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
@@ -1587,7 +1588,7 @@ DOUBLE explicit_enumeration(coeff_t **lattice, int columns, int rows) {
 
 #if VERBOSE > -1
         if (loops % 100000000 ==0) {                 /*10000000*/
-            printf("%ld loops, solutions: %ld ",loops,nosolutions);
+            printf("%ld loops, solutions: %ld ", loops, nosolutions);
 #if FINCKEPOHST
             printf("fipo: %ld ", fipo_success);
 #endif
@@ -1683,7 +1684,7 @@ afterloop:
 
     /* final output */
     fprintf(stderr, "Prune_cs: %ld\n", cs_success);
-    fprintf(stderr, "Prune_only_zeros: %ld of %ld\n", only_zeros_success,only_zeros_no);
+    fprintf(stderr, "Prune_only_zeros: %ld of %ld\n", only_zeros_success, only_zeros_no);
     fprintf(stderr, "Prune_hoelder: %ld of %ld\n", hoelder_success, hoelder_no);
     fprintf(stderr, "Prune_N: %ld\n", N_success);
 #if FINCKEPOHST
@@ -2097,9 +2098,13 @@ int print_solution(DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns) {
     return 1;
 }
 
-void stopProgram() {
+void stopProgram(int sig) {
+    if (sig != SIGALRM)
+       return;
+
     printf("Stopped after SIGALRM, number of solutions: %ld\n", nosolutions);
     print_num_solutions(nosolutions);
+    
     exit(11);
 }
 

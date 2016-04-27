@@ -223,7 +223,7 @@ int main(int argc, char *argv[]) {
      */
     if (maxruntime > 0) {
         signal(SIGALRM, stopProgram); // stopProgram in diophant.c
-        //alarm(maxruntime);
+        alarm(maxruntime);
     }
 
     /**
