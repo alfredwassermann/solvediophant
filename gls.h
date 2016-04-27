@@ -1,6 +1,22 @@
 #ifndef _GLS_H
 #define _GLS_H
-#include "dio2.h"
+#include <stdio.h>
+#include <gmp.h>
+
+struct Gls {
+    int num_rows;
+    int num_cols;
+
+    mpz_t **matrix;
+    mpz_t *rhs;
+    mpz_t *upperbounds;
+
+    int num_boundedvars;
+
+    int num_original_cols;
+    int *original_cols;
+};
+#define gls_t struct Gls
 
 #define ZLENGTH 16000
 

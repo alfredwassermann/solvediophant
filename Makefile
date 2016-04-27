@@ -30,11 +30,11 @@ ASSEMBLERLIB=./OpenBLAS/libopenblas.a
 #all: solvediophant.dvi diophant.pdf solvediophant
 all: sd2
 
-%.o: %.c
+%.o: %.c %.h
 	$(CC) $(CFLAGS) -c $< $(GMPINC)
 
 sd2: sd2.o dio2.o gls.o
 	$(CC) $(CFLAGS) -o sd2 sd2.o dio2.o gls.o $(ASSEMBLERLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
 
 clean:
-	rm *.o 
+	rm *.o

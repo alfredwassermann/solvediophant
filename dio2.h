@@ -1,7 +1,7 @@
 #ifndef _DIOPHANT_H
 #define _DIOPHANT_H
 #include <gmp.h>
-#include <stdio.h>
+#include "gls.h"
 
 #define SQRT sqrt
 #define DOUBLE double
@@ -9,21 +9,6 @@
 /**
  * Definition of the lattice data structures
 */
-struct Gls {
-    int num_rows;
-    int num_cols;
-
-    mpz_t **matrix;
-    mpz_t *rhs;
-    mpz_t *upperbounds;
-
-    int num_boundedvars;
-
-    int num_original_cols;
-    int *original_cols;
-};
-#define gls_t struct Gls
-
 struct Coeff {
     mpz_t c;
     int p;
