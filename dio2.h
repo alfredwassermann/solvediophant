@@ -16,6 +16,11 @@ struct Gls {
     mpz_t **matrix;
     mpz_t *rhs;
     mpz_t *upperbounds;
+
+    int num_boundedvars;
+
+    int num_original_cols;
+    int *original_cols;
 };
 #define gls_t struct Gls
 
@@ -38,8 +43,8 @@ extern long diophant(gls_t GLS,
     int silent, int iterate, int iterate_no,
     int bkz_beta_input, int bkz_p_input,
     long stop_after_sol_input, long stop_after_loops_input,
-    int free_RHS_input, int *org_col_input, int no_org_col_input,
-    int cut_after, int nboundedvars, FILE* solfile);
+    int free_RHS_input,
+    int cut_after, FILE* solfile);
 
 extern long nosolutions;
 

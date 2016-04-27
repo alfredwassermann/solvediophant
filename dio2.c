@@ -8,10 +8,10 @@
 #include <math.h>
 #include <gmp.h>
 #include "dio2.h"
-//#include "OpenBLAS/common.h"
-//#include "OpenBLAS/cblas.h"
+#include "OpenBLAS/common.h"
+#include "OpenBLAS/cblas.h"
 
-#define BLAS 0
+#define BLAS 1
 #define DEEPINSERT 1
 #define DEEPINSERT_CONST 100
 #define VERBOSE 1
@@ -76,8 +76,8 @@ long diophant(gls_t GLS,
     int silent, int iterate, int iterate_no,
     int bkz_beta_input, int bkz_p_input,
     long stop_after_sol_input, long stop_after_loops_input,
-    int free_RHS_input, int *org_col_input, int no_org_col_input,
-    int cut_after, int nboundedvars, FILE* solfile) {
+    int free_RHS_input,
+    int cut_after, FILE* solfile) {
 
     int i,j;
     DOUBLE lD, lDnew;
@@ -114,10 +114,10 @@ long diophant(gls_t GLS,
 
     system_rows = GLS.num_rows;
     system_columns = GLS.num_cols;
-    nboundvars = nboundedvars;
+    nboundvars = GLS.num_boundedvars;
 
 #if BLAS
-    /*|goto_set_num_threads(1); |*/
+    //openblas_set_num_threads(8);
 #endif
 
     /* In case, a time limit as been set by -time
@@ -190,18 +190,21 @@ long diophant(gls_t GLS,
     /**
      * handle preselected columns
      */
-    if (org_col_input!=NULL)
-        no_original_columns = no_org_col_input;
+    if (GLS.original_cols != NULL)
+        no_original_columns = GLS.num_original_cols;
     else
-        no_original_columns = system_columns;
+        no_original_columns = GLS.num_cols;
 
-    original_columns = (int*)calloc(no_original_columns,sizeof(int));
+    original_columns = (int*)calloc(GLS.num_original_cols, sizeof(int));
 
-    if (org_col_input!=NULL)
-        for (i=0;i<no_original_columns;i++) original_columns[i] = org_col_input[i];
+    if (GLS.original_cols != NULL)
+        for (i = 0; i < no_original_columns; i++)
+            original_columns[i] = GLS.original_cols[i];
     else {
-        for (i=0;i<no_original_columns;i++) original_columns[i] = 1;
-        fprintf(stderr, "No preselected columns \n"); fflush(stderr);
+        for (i = 0; i < no_original_columns; i++)
+            original_columns[i] = 1;
+        fprintf(stderr, "No preselected columns \n");
+        fflush(stderr);
     }
 
     /**
@@ -1026,9 +1029,9 @@ void lll(coeff_t **b, int s, int z, DOUBLE quality) {
     DOUBLE **bs;
     int r;
 
-    lllalloc(&mu,&c,&N,&bs,s,z);
-    r = lllfp(b,mu,c,N,bs,1,s,z,quality);
-    lllfree(mu,c,N,bs,s);
+    lllalloc(&mu, &c, &N, &bs, s, z);
+    r = lllfp(b, mu, c, N, bs, 1, s, z, quality);
+    lllfree(mu, c, N, bs, s);
 
     return;
 }
@@ -1874,7 +1877,7 @@ void givens(coeff_t **lattice, int columns, int rows, DOUBLE **mu,
         }
     }
 
-/* Finally some scaling has to be done, since $Q$ is a orthonormal matrix */
+    /* Finally some scaling has to be done, since $Q$ is a orthonormal matrix */
     for (i = 0; i < columns; i++) {
         c[i] = mu[i][i]*mu[i][i];
         N[i] = 0.0;
@@ -1885,19 +1888,21 @@ void givens(coeff_t **lattice, int columns, int rows, DOUBLE **mu,
         N[i] /= c[i];
         N[i] *= Fq;
 
-/*|        N[i] *= 1.0 + EPSILON; |*/
+        /* N[i] *= 1.0 + EPSILON; */
 
         for (j = columns - 1; j >= i; j--)
             mu[j][i] /= mu[i][i];
-#if VERBOSE > -1
-        printf("%6.3f ",(double)c[i]);
-        if (i>0 && i%15==0) printf("\n");
-#endif
+
+        #if VERBOSE > -1
+            printf("%6.3f ",(double)c[i]);
+            if (i>0 && i%15==0) printf("\n");
+        #endif
     }
-#if VERBOSE > -1
-    printf("\n\n");
-    fflush(stdout);
-#endif
+    #if VERBOSE > -1
+        printf("\n\n");
+        fflush(stdout);
+    #endif
+
     return;
 }
 
@@ -1920,7 +1925,7 @@ void inverse(DOUBLE **mu, DOUBLE **muinv, int columns) {
 
 /* There are several pruning methods.*/
 int exacttest(DOUBLE *v, int rows, DOUBLE Fq) {
-    int i;
+    register int i;
     i = rows - 1;
     do {
         if (fabs(v[i]) > Fq*(1.0 + EPSILON)) {
@@ -1942,14 +1947,14 @@ int prune0(DOUBLE li, DOUBLE re) {
 
 /* Pruning according to H\"olders inequality */
 int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps) {
-    /*|hoelder_no++;|*/
 #if BLAS
     if (cs < Fqeps * cblas_dasum(rows, w, 1)) {
         return 0;
     }
 #else
-    DOUBLE reseite;
-    int i;
+    register DOUBLE reseite;
+    register int i;
+
     reseite = 0.0; /*|-cs/Fqeps;|*/ /* | * (1-eps) | */
     i = rows - 1;
     do {
@@ -1958,8 +1963,6 @@ int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps) {
     } while (i >= 0);
     if (cs < Fqeps * reseite) return 0;
 #endif
-    /*|hoelder_success++;|*/
-// printf("do prune %lf %lf %lf %lf\n", cs, Fqeps, cblas_dasum(rows, w, 1), Fqeps * cblas_dasum(rows, w, 1));
 
     return 1;
 }
@@ -2104,7 +2107,7 @@ void stopProgram(int sig) {
 
     printf("Stopped after SIGALRM, number of solutions: %ld\n", nosolutions);
     print_num_solutions(nosolutions);
-    
+
     exit(11);
 }
 

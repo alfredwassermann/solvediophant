@@ -8,8 +8,6 @@
 #include "dio2.h"
 #include "gls.h"
 
-#define  zlength 16000
-
 /*
  * Global variables for time measurements
  */
@@ -62,12 +60,6 @@ void print_delta_time(int l, char *str) {
     print_delta_time_tps(l, os_ticks_per_second(), str);
 }
 
-void incorrect_input_file() {
-    fprintf(stderr,"Incomplete input file -> exit\n");
-    fflush(stderr);
-    exit(1);
-}
-
 /**
  * Main program
  * @param  argc number of command line arguments
@@ -83,7 +75,7 @@ void incorrect_input_file() {
  *
  */
 int main(int argc, char *argv[]) {
-    int i,j,flag;
+    int i, flag;
 
     /*
         Variables
@@ -92,8 +84,6 @@ int main(int argc, char *argv[]) {
     mpz_t norm_input;
     mpz_t scalelastlinefactor;
 
-	//mpz_t *upperb;
-    //mpz_t **A, *rhs;
 	gls_t GLS;
 
     int bkz_beta_input = 0;
@@ -103,24 +93,15 @@ int main(int argc, char *argv[]) {
     int silent;
     int maxruntime = 0;
 
-    //int no_rows, GLS.num_cols;
-
     long stop_after_solutions;
     long stop_after_loops;
     int cut_after;
     int free_RHS;
     FILE *txt;
-    char *inputfile_name, *rowp;
+    char *inputfile_name;
 
-    char zeile[zlength];
+    char zeile[ZLENGTH];
     char suffix[1024];
-    char detectstring[100];
-
-    int *original_columns;
-    int no_original_columns;
-    int res=1;
-
-    int nboundedvars;
 
     FILE* solfile;
     char solfilename[1024];
@@ -241,7 +222,7 @@ int main(int argc, char *argv[]) {
     stop_after_solutions = 0;
     cut_after = -1;
     do {
-        fgets(zeile,zlength,txt);
+        fgets(zeile, ZLENGTH, txt);
         if (strstr(zeile,"% stopafter")!=NULL) {
             sscanf(zeile,"%% stopafter %ld",&stop_after_solutions);
         }
@@ -256,101 +237,14 @@ int main(int argc, char *argv[]) {
         }
     }
     while (zeile[0]=='%');
+
     sscanf(zeile,"%d%d%d", &(GLS.num_rows), &(GLS.num_cols), &flag);
 
 	gls_allocate_mem(&GLS);
-
-    /**
-     * Read linear system
-     */
-     for (j = 0; j < GLS.num_rows; j++) {
-         for (i=0;i<GLS.num_cols;i++) {
-             mpz_inp_str(GLS.matrix[j][i], txt, 10);
-             if (res == 0) {
-                 incorrect_input_file();
-             }
-         }
-         res = mpz_inp_str(GLS.rhs[j], txt, 10);
-         if (res == 0) {
-             incorrect_input_file();
-         }
-     }
-
-    /**
-     * Read upper bounds
-     */
-     GLS.upperbounds = NULL;
-     fclose(txt);
-     txt = fopen(inputfile_name, "r");
-     if (txt==NULL) {
-         printf("Could not open file %s !\n", inputfile_name);
-         fflush(stdout);
-         exit(1);
-     }
-     zeile[0] = '\0';
-     sprintf(detectstring,"BOUNDS");
-     do {
-         rowp=fgets(zeile,zlength,txt);
-     } while ((rowp != NULL) && (strstr(zeile,detectstring) == NULL));
-
-     if (rowp == NULL) {
-         GLS.upperbounds = NULL;
-         printf("No %s \n",detectstring);
-		 fflush(stdout);
-         nboundedvars = GLS.num_cols;
-     } else {
-         nboundedvars = GLS.num_cols;
-         sscanf(zeile,"BOUNDS %d", &nboundedvars);
-         if (nboundedvars > 0) {
-             fprintf(stderr, "Nr. bounded variables=%d\n", nboundedvars);
-         } else {
-             nboundedvars = 0;
-         }
-
-         GLS.upperbounds = (mpz_t*)calloc(GLS.num_cols, sizeof(mpz_t));
-         for (i = 0; i < nboundedvars; i++) {
-             mpz_init(GLS.upperbounds[i]);
-             mpz_inp_str(GLS.upperbounds[i], txt, 10);
-         }
-     }
-     fclose(txt);
-
-     txt = fopen(inputfile_name, "r");
-     if (txt == NULL) {
-         printf("Could not open file %s !\n",inputfile_name);
-         fflush(stdout);
-         exit(1);
-     }
-
-    /**
-     * Search for pre-selected variables
-     */
-     sprintf(detectstring,"SELECTEDCOLUMNS");
-     do {
-         rowp=fgets(zeile,zlength,txt);
-     } while ((rowp!=NULL)&&(strstr(zeile,detectstring)==NULL));
-
-      if (rowp!=NULL) {
-         printf("SELECTEDCOLUMNS detected\n"); fflush(stdout);
-          res = fscanf(txt,"%d",&(no_original_columns));
-          if (res==(long)NULL || res==(long)EOF) {
-             incorrect_input_file();
-         }
-     } else no_original_columns = GLS.num_cols;
-
-      original_columns = (int*)calloc(no_original_columns,sizeof(int));
-
-     if (rowp!=NULL) {
-         for (i=0;i<no_original_columns;i++) {
-             res = fscanf(txt,"%d",&(original_columns[i]));
-             if (res==(long)NULL || res==(long)EOF) {
-                 incorrect_input_file();
-             }
-         }
-     } else {
-         for (i=0;i<no_original_columns;i++) original_columns[i] = 1;
-     }
-     fclose(txt);
+    read_linear_system(txt, &GLS);
+    fclose(txt);
+    read_upper_bounds(inputfile_name, &GLS);
+    read_selected_cols(inputfile_name, &GLS);
 
     solfile = fopen(solfilename, "w");
     time_0 = os_ticks();
@@ -358,7 +252,7 @@ int main(int argc, char *argv[]) {
     diophant(GLS,
         factor_input, norm_input, scalelastlinefactor, silent, iterate, iterate_no, bkz_beta_input, bkz_p_input,
         stop_after_solutions, stop_after_loops,
-        free_RHS, original_columns, no_original_columns, cut_after, nboundedvars, solfile);
+        free_RHS, cut_after, solfile);
 
     time_1 = os_ticks();
     fclose(solfile);

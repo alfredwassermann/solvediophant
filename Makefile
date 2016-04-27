@@ -19,8 +19,8 @@ CFLAGS= -O3 -Wall -ffast-math \
 #ASSEMBLERLIB=./GotoBLAS2/libgoto2.a
 #ASSEMBLERLIB=./OpenBLAS/libopenblas.a
 #ASSEMBLERLIB=/usr/lib/openblas-base/libblas.a
-#ASSEMBLERLIB=./OpenBLAS/libopenblas_sandybridgep-r0.2.8.a
-ASSEMBLERLIB=
+ASSEMBLERLIB=./OpenBLAS/libopenblas.a
+#ASSEMBLERLIB=
 
 #GMPLIB=-L../gmp-4.2.1/bin/lib
 #GMPINC=-I../gmp-4.2.1/bin/include
@@ -30,49 +30,11 @@ ASSEMBLERLIB=
 #all: solvediophant.dvi diophant.pdf solvediophant
 all: sd2
 
-dio2.o: dio2.c dio2.h
-	$(CC) $(CFLAGS) -c dio2.c $(GMPINC)
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< $(GMPINC)
 
-gls.o: gls.c gls.h
-	$(CC) $(CFLAGS) -c gls.c $(GMPINC)
+sd2: sd2.o dio2.o gls.o
+	$(CC) $(CFLAGS) -o sd2 sd2.o dio2.o gls.o $(ASSEMBLERLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
 
-sd2: sd2.c dio2.o gls.o
-	$(CC) $(CFLAGS) -o sd2 dio2.o gls.o sd2.c $(ASSEMBLERLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
-
-################################################################################
-
-solvediophant.tex: solvediophant.w
-	cweave solvediophant.w
-
-solvediophant.dvi: solvediophant.tex
-	tex solvediophant.tex
-
-solvediophant.c: solvediophant.w
-	ctangle solvediophant.w
-
-solvediophant: solvediophant.c diophant.o diophant.h
-	$(CC) $(CFLAGS) -o solvediophant solvediophant.c diophant.o \
-	$(ASSEMBLERLIB) \
-	-lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
-	#strip solvediophant
-#	$(CC) -static $(CFLAGS) -o solvediophant solvediophant.c diophant.o \
-
-diophant.tex: diophant.w
-	cweave diophant.w
-
-diophant.dvi: diophant.tex
-	tex diophant.tex
-
-diophant.ps: diophant.dvi
-	dvips diophant.dvi
-
-diophant.pdf: diophant.tex
-	pdftex diophant.tex
-
-diophant.c: diophant.w
-	#ctangle diophant.w 20erVersion.ch
-	ctangle diophant.w
-
-diophant.o: diophant.c
-	$(CC) $(CFLAGS) -c diophant.c $(GMPINC)
-#	$(CC) $(CFLAGS)-DBLAS -c diophant.c $(GMPINC)
+clean:
+	rm *.o 
