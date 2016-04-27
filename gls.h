@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <gmp.h>
 
-struct Gls {
+typedef struct {
     int num_rows;
     int num_cols;
 
@@ -15,8 +15,7 @@ struct Gls {
 
     int num_original_cols;
     int *original_cols;
-};
-#define gls_t struct Gls
+} gls_t;
 
 #define ZLENGTH 16000
 

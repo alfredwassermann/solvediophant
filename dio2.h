@@ -9,21 +9,19 @@
 /**
  * Definition of the lattice data structures
 */
-struct Coeff {
+typedef struct {
     mpz_t c;
     int p;
-};
-#define coeff_t struct Coeff
+} coeff_t;
 
-struct Lattice {
+typedef struct {
     int num_rows;
     int num_cols;
     coeff_t **basis;
     coeff_t *swap;
-};
-#define lattice_t struct Lattice
+} lattice_t;
 
-struct LLL_params {
+typedef struct {
     mpz_t scalelastlinefactor;
     int iterate;
     int iterate_no;
@@ -31,8 +29,7 @@ struct LLL_params {
         int beta;
         int p;
     } bkz;
-};
-#define lll_params_t struct LLL_params
+} lll_params_t;
 
 /* -------------------------------------------------------------------- */
 
