@@ -1,7 +1,7 @@
 #ifndef _DIOPHANT_H
 #define _DIOPHANT_H
 #include <gmp.h>
-#include <stdio.h>
+#include "gls.h"
 
 #define SQRT sqrt
 #define DOUBLE double
@@ -9,16 +9,6 @@
 /**
  * Definition of the lattice data structures
 */
-struct Gls {
-    int num_rows;
-    int num_cols;
-
-    mpz_t **matrix;
-    mpz_t *rhs;
-    mpz_t *upperbounds;
-};
-#define gls_t struct Gls
-
 struct Coeff {
     mpz_t c;
     int p;
@@ -33,13 +23,25 @@ struct Lattice {
 };
 #define lattice_t struct Lattice
 
-extern long diophant(gls_t GLS,
-    mpz_t factor_input, mpz_t norm_input, mpz_t scalelastlinefactor,
-    int silent, int iterate, int iterate_no,
-    int bkz_beta_input, int bkz_p_input,
+struct LLL_params {
+    mpz_t scalelastlinefactor;
+    int iterate;
+    int iterate_no;
+    struct Bkz {
+        int beta;
+        int p;
+    } bkz;
+};
+#define lll_params_t struct LLL_params
+
+/* -------------------------------------------------------------------- */
+
+extern long diophant(gls_t *GLS, lll_params_t *LLL_params,
+    mpz_t factor_input, mpz_t norm_input,
+    int silent,
     long stop_after_sol_input, long stop_after_loops_input,
-    int free_RHS_input, int *org_col_input, int no_org_col_input,
-    int cut_after, int nboundedvars, FILE* solfile);
+    int free_RHS_input,
+    int cut_after, FILE* solfile);
 
 extern long nosolutions;
 
@@ -55,6 +57,7 @@ extern int solutiontest(int position);
 
 extern DOUBLE scalarproductlfp (coeff_t *v, coeff_t *w);
 extern DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n);
+extern void size_reduction(coeff_t **b, DOUBLE **mu, mpz_t musvl, DOUBLE mus, int k, int j);
 extern int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z);
 extern int lllfree(DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs, int s);
 extern double orthogonal_defect(coeff_t **lattice, DOUBLE *c, int s, int z);

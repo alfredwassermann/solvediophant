@@ -32,9 +32,9 @@ mpz_t max_norm;
 mpz_t max_norm_initial;
 mpz_t max_up;
 mpz_t dummy;
+
 long nom, denom;
 mpz_t lastlines_factor;
-mpz_t snd_q, snd_r, snd_s;
 
 int system_rows, system_columns;
 int lattice_rows, lattice_columns;
@@ -51,9 +51,9 @@ int cut_after_coeff;
 long stop_after_solutions;
 long stop_after_loops;
 long nosolutions;
-int iterate;
-int no_iterates;
-int bkz_beta, bkz_p;
+//int iterate;
+//int no_iterates;
+//int bkz_beta, bkz_p;
 int SILENT;
 int nboundvars;
 
@@ -71,13 +71,13 @@ static FILE* fp;
 #define smult_lattice(i,j,factor) mpz_mul(lattice[i][j+1].c,lattice[i][j+1].c,factor)
 #define get_entry(i,j) lattice[i][j+1].c
 
-long diophant(gls_t GLS,
-    mpz_t factor_input, mpz_t norm_input, mpz_t scalelastlinefactor,
-    int silent, int iterate, int iterate_no,
-    int bkz_beta_input, int bkz_p_input,
-    long stop_after_sol_input, long stop_after_loops_input,
-    int free_RHS_input, int *org_col_input, int no_org_col_input,
-    int cut_after, int nboundedvars, FILE* solfile) {
+long diophant(gls_t *GLS, lll_params_t *LLL_params,
+    mpz_t factor_input, mpz_t norm_input,
+    int silent,
+    long stop_after_sol_input,
+    long stop_after_loops_input,
+    int free_RHS_input,
+    int cut_after, FILE* solfile) {
 
     int i,j;
     DOUBLE lD, lDnew;
@@ -91,20 +91,18 @@ long diophant(gls_t GLS,
     mpz_init(lastlines_factor);
     mpz_init(upfac);
 
-    mpz_init(snd_q);
-    mpz_init(snd_r);
-    mpz_init(snd_s);
-
     mpz_init(soltest_u);
     mpz_init(soltest_s);
-    mpz_init_set_ui(soltest_upfac,1);
+    mpz_init_set_ui(soltest_upfac, 1);
 
-    if (iterate) {
-        no_iterates = iterate_no;
+    /*
+    if (LLL_params->iterate) {
+        no_iterates = LLL_params->iterate_no;
     } else {
-        bkz_beta = bkz_beta_input;
-        bkz_p = bkz_p_input;
+        bkz_beta = LLL_params->bkz.beta;
+        bkz_p = LLL_params->bkz.p;
     }
+    */
     SILENT = silent;
     stop_after_solutions = stop_after_sol_input;
     stop_after_loops = stop_after_loops_input;
@@ -112,12 +110,12 @@ long diophant(gls_t GLS,
     nom = 1;
     denom = 2;
 
-    system_rows = GLS.num_rows;
-    system_columns = GLS.num_cols;
-    nboundvars = nboundedvars;
+    system_rows = GLS->num_rows;
+    system_columns = GLS->num_cols;
+    nboundvars = GLS->num_boundedvars;
 
 #if BLAS
-    /*|goto_set_num_threads(1); |*/
+    //openblas_set_num_threads(8);
 #endif
 
     /* In case, a time limit as been set by -time
@@ -144,9 +142,10 @@ long diophant(gls_t GLS,
      * allocate memory
      */
     lattice = (coeff_t**)calloc(lattice_columns,sizeof(coeff_t*));
-    for(j=0;j<lattice_columns;j++) {
-        lattice[j] = (coeff_t*)calloc(lattice_rows+1,sizeof(coeff_t));
-        for (i=0;i<=lattice_rows;i++) mpz_init(lattice[j][i].c);
+    for (j = 0; j < lattice_columns; j++) {
+        lattice[j] = (coeff_t*)calloc(lattice_rows + 1, sizeof(coeff_t));
+        for (i = 0; i <= lattice_rows; i++)
+            mpz_init(lattice[j][i].c);
     }
 
     /**
@@ -154,9 +153,9 @@ long diophant(gls_t GLS,
      */
     for (j = 0; j < system_rows; j++) {
         for (i = 0; i < system_columns; i++) {
-            mpz_mul(lattice[i][j+1].c, GLS.matrix[j][i], matrix_factor);
+            mpz_mul(lattice[i][j+1].c, GLS->matrix[j][i], matrix_factor);
         }
-        mpz_mul(lattice[system_columns][j+1].c, GLS.rhs[j], matrix_factor);
+        mpz_mul(lattice[system_columns][j+1].c, GLS->rhs[j], matrix_factor);
     }
 
     /**
@@ -164,16 +163,16 @@ long diophant(gls_t GLS,
      */
     mpz_init_set_si(upperbounds_max,1);
     iszeroone = 1;
-    if (GLS.upperbounds == NULL) {
+    if (GLS->upperbounds == NULL) {
         fprintf(stderr, "No upper bounds: 0/1 variables are assumed \n"); fflush(stderr);
     } else {
         upperbounds = (mpz_t*)calloc(system_columns, sizeof(mpz_t));
         for (i = 0; i < system_columns; i++)
             mpz_init_set_si(upperbounds[i], 1);
         for (i = 0; i < nboundvars/*|system_columns|*/; i++) {
-            mpz_set(upperbounds[i], GLS.upperbounds[i]);
-            if (mpz_sgn(upperbounds[i])!=0) {
-                mpz_lcm(upperbounds_max,upperbounds_max,upperbounds[i]);
+            mpz_set(upperbounds[i], GLS->upperbounds[i]);
+            if (mpz_sgn(upperbounds[i]) != 0) {
+                mpz_lcm(upperbounds_max, upperbounds_max, upperbounds[i]);
             }
         }
         if (mpz_cmp_si(upperbounds_max, 1) > 0)
@@ -190,35 +189,38 @@ long diophant(gls_t GLS,
     /**
      * handle preselected columns
      */
-    if (org_col_input!=NULL)
-        no_original_columns = no_org_col_input;
+    if (GLS->original_cols != NULL)
+        no_original_columns = GLS->num_original_cols;
     else
-        no_original_columns = system_columns;
+        no_original_columns = GLS->num_cols;
 
-    original_columns = (int*)calloc(no_original_columns,sizeof(int));
+    original_columns = (int*)calloc(GLS->num_original_cols, sizeof(int));
 
-    if (org_col_input!=NULL)
-        for (i=0;i<no_original_columns;i++) original_columns[i] = org_col_input[i];
+    if (GLS->original_cols != NULL)
+        for (i = 0; i < no_original_columns; i++)
+            original_columns[i] = GLS->original_cols[i];
     else {
-        for (i=0;i<no_original_columns;i++) original_columns[i] = 1;
-        fprintf(stderr, "No preselected columns \n"); fflush(stderr);
+        for (i = 0; i < no_original_columns; i++)
+            original_columns[i] = 1;
+        fprintf(stderr, "No preselected columns \n");
+        fflush(stderr);
     }
 
     /**
      * append the other parts of lattice
      */
     for (j=system_rows;j<lattice_rows;j++) {
-        mpz_mul_si(lattice[j-system_rows][j+1].c,max_norm,denom);
-        mpz_mul_si(lattice[lattice_columns-2][j+1].c,max_norm,nom);
+        mpz_mul_si(lattice[j-system_rows][j+1].c,max_norm, denom);
+        mpz_mul_si(lattice[lattice_columns-2][j+1].c,max_norm, nom);
     }
-    mpz_set(lattice[system_columns+free_RHS][lattice_rows].c,max_norm);
+    mpz_set(lattice[system_columns+free_RHS][lattice_rows].c, max_norm);
 
     if (free_RHS) {
-        mpz_set_si(lattice[system_columns][lattice_rows-1].c,1);
-        mpz_set_si(lattice[system_columns+1][lattice_rows-1].c,0);
+        mpz_set_si(lattice[system_columns][lattice_rows-1].c, 1);
+        mpz_set_si(lattice[system_columns+1][lattice_rows-1].c, 0);
     }
-    mpz_set(lattice[system_columns+free_RHS][lattice_rows].c,max_norm);
-    for (i=0;i<lattice_columns-1;i++) coeffinit(lattice[i],lattice_rows);
+    mpz_set(lattice[system_columns+free_RHS][lattice_rows].c, max_norm);
+    for (i=0;i<lattice_columns-1;i++) coeffinit(lattice[i], lattice_rows);
 
     /**
      * open solution file
@@ -282,7 +284,7 @@ long diophant(gls_t GLS,
     /**
      * first reduction
      */
-    mpz_set_ui(lastlines_factor,1);
+    mpz_set_ui(lastlines_factor, 1);
     fprintf(stderr, "\n"); fflush(stderr);
     lll(lattice,lattice_columns-1,lattice_rows,LLLCONST_LOW);
 
@@ -310,8 +312,8 @@ long diophant(gls_t GLS,
     /**
      * second reduction
      */
-    mpz_set_ui(lastlines_factor,1);
-    lll(lattice,lattice_columns-1,lattice_rows,LLLCONST_HIGH);
+    mpz_set_ui(lastlines_factor, 1);
+    lll(lattice, lattice_columns-1, lattice_rows, LLLCONST_HIGH);
     fprintf(stderr, "Second reduction successful\n"); fflush(stderr);
 #endif
 
@@ -324,8 +326,7 @@ long diophant(gls_t GLS,
     /**
      * scale last rows
      */
-    /*|mpz_set_str(lastlines_factor,LASTLINESFACTOR,10);|*/
-    mpz_set(lastlines_factor, scalelastlinefactor);
+    mpz_set(lastlines_factor, LLL_params->scalelastlinefactor);
     for (i=0;i<lattice_columns;i++)
         mpz_mul(lattice[i][lattice_rows].c,lattice[i][lattice_rows].c,lastlines_factor);
     if (free_RHS)
@@ -343,21 +344,23 @@ long diophant(gls_t GLS,
      * third reduction
      */
     fprintf(stderr, "\n"); fflush(stderr);
-    if (iterate) {
-        iteratedlll(lattice,lattice_columns-1,lattice_rows,no_iterates,LLLCONST_HIGH);
+    if (LLL_params->iterate) {
+        iteratedlll(lattice, lattice_columns-1, lattice_rows, LLL_params->iterate_no, LLLCONST_HIGH);
     } else {
         shufflelattice();
-        lDnew = bkz(lattice,lattice_columns,lattice_rows,LLLCONST_HIGHER,40,bkz_p);
+        lDnew = bkz(lattice, lattice_columns, lattice_rows, LLLCONST_HIGHER,
+                        LLL_params->bkz.beta, LLL_params->bkz.p);
 
         i = 0;
         do {
             lD = lDnew;
             shufflelattice();
-            lDnew = bkz(lattice,lattice_columns,lattice_rows,LLLCONST_HIGH,bkz_beta,bkz_p);
-            printf("%0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD-lDnew);
+            lDnew = bkz(lattice,lattice_columns,lattice_rows,LLLCONST_HIGH,
+                        LLL_params->bkz.beta, LLL_params->bkz.p);
+            printf("%0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
             i++;
         }
-        while (i<1 && fabs(lDnew-lD)>0.01);
+        while (i < 1 && fabs(lDnew - lD) > 0.01);
     }
     fprintf(stderr, "Third reduction successful\n"); fflush(stderr);
 
@@ -626,7 +629,7 @@ int solutiontest(int position) {
 
 #define TWOTAUHALF 67108864.0 /* $2^{\tau/2}$*/
 
-int lllfp (coeff_t **b, DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs,
+int lllfp(coeff_t **b, DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs,
             int start, int s, int z, DOUBLE delta) {
 
     int i, j, k;
@@ -638,9 +641,7 @@ int lllfp (coeff_t **b, DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs,
     mpz_t hv;
     DOUBLE *swapd;
 
-    int ii, iii;
     coeff_t *swapvl;
-    coeff_t *bb;
 
 #if VERBOSE > 3
     int counter;
@@ -699,16 +700,19 @@ int lllfp (coeff_t **b, DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs,
           computation of $\mu_{k,1},\ldots,\mu_{k,k-1}$ and $c_k = ||\hat{b}_k||^2.$
           This is done with Gram Schmidt Orthogonalization.
         */
-        if (k == 1)
+        if (k == 1) {
             c[0] = N[0] * N[0];
+        }
+
         c[k] = N[k] * N[k];
         for (j = 0; j < k; j++) {
-            ss = scalarproductfp(bs[k],bs[j],z);
+            ss = scalarproductfp(bs[k], bs[j], z);
             if (fabs(ss) < N[k] * N[j] / TWOTAUHALF) {
                 ss = (DOUBLE)scalarproductlfp(b[k],b[j]);
             }
-            for (i = 0; i < j; i++)
+            for (i = 0; i < j; i++) {
                 ss -= mu[j][i] * mu[k][i] * c[i];
+            }
             mu[k][j] = ss / c[j];
             c[k] -= ss * mu[k][j];
         }
@@ -717,78 +721,20 @@ if (c[k] < EPSILON) {
     fprintf(stderr, "c[%d] is very small: %lf\n", k, c[k]);
 }
 
-
         /* third step: size reduction of $b_k$ */
         Fc = Fr = 0;
         for (j = k - 1; j >= 0; j--) {
             if (fabs(mu[k][j]) > ETACONST) {
                 /* round the Gram Schmidt coefficient */
                 mus = ROUND(mu[k][j]);
-                mpz_set_d(musvl,mus);
-                if (fabs(mus)>TWOTAUHALF) {
+                mpz_set_d(musvl, mus);
+                if (fabs(mus) > TWOTAUHALF) {
                     Fc = 1;
                 }
 
                 Fr = 1;
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
-                switch (mpz_get_si(musvl)) {
-                case 1:
-                    /* $\lceil\mu_{k,j}\rfloor = 1$ */
-                    i = b[j][0].p;
-                    while (i != 0) {
-                            bb = &(b[k][i]);
-                            mpz_sub(bb->c, bb->c, b[j][i].c);
-                            iii = bb->p;
-                            if ((b[k][i-1].p != i) && (mpz_sgn(bb->c) != 0))
-                                for (ii= i - 1; (ii >=0) && (b[k][ii].p == iii); ii--)
-                                    b[k][ii].p = i;
-                            else if (mpz_sgn(bb->c) == 0) {
-                                for (ii = i - 1;  (ii >= 0) && (b[k][ii].p == i); ii--)
-                                    b[k][ii].p = iii;
-                            }
-                            i = b[j][i].p;
-                    }
-                    for(i=0;i<j;i++) mu[k][i] -= mu[j][i];
-                    break;
-
-                case -1:
-                    /* $\lceil\mu_{k,j}\rfloor = -1$ */
-                    i = b[j][0].p;
-                    while (i != 0) {
-                            bb = &(b[k][i]);
-                            mpz_add(bb->c, bb->c, b[j][i].c);
-                            iii = bb->p;
-                            if ((b[k][i-1].p!=i)&&(mpz_sgn(bb->c)!=0))
-                                for (ii=i-1;(ii>=0)&&(b[k][ii].p==iii);ii--) b[k][ii].p = i;
-                            else if (mpz_sgn(bb->c)==0) {
-                                for (ii=i-1;(ii>=0)&&(b[k][ii].p==i);ii--) b[k][ii].p = iii;
-                            }
-                            i = b[j][i].p;
-                    }
-                    for(i=0;i<j;i++) mu[k][i] += mu[j][i];
-                    break;
-
-                default:
-                    /* $\lceil\mu_{k,j}\rfloor \neq \pm 1$ */
-                    i=b[j][0].p;
-                    while (i!=0) {
-                            bb=&(b[k][i]);
-                            mpz_submul(bb->c,b[j][i].c,musvl);
-                            iii = bb->p;
-                            if ((b[k][i-1].p!=i)&&(mpz_sgn(bb->c)!=0))
-                                for (ii=i-1;(ii>=0)&&(b[k][ii].p==iii);ii--) b[k][ii].p = i;
-                            else if (mpz_sgn(bb->c)==0) {
-                                for (ii=i-1;(ii>=0)&&(b[k][ii].p==i);ii--) b[k][ii].p = iii;
-                            }
-                            i = b[j][i].p;
-                    }
-#if 0
-                    daxpy(j,-mus,mu[k],1,mu[j],1);
-#endif
-                    for(i=0;i<j;i++) mu[k][i] -= mu[j][i]*mus;
-
-                }
-
+                size_reduction(b, mu, musvl, mus, k, j);
 
                 if (Fc == 1)
                     fprintf(stderr, "Problems in rounding mu, step back to k=%d; %lf %lf\n", k-1, mus, mu[k][j]);
@@ -961,6 +907,69 @@ DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n) {
 #endif
 }
 
+void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, int j) {
+    int i, ii, iii;
+    coeff_t *bb;
+
+    switch (mpz_get_si(musvl)) {
+    case 1:
+        /* $\lceil\mu_{k,j}\rfloor = 1$ */
+        i = b[j][0].p;
+        while (i != 0) {
+                bb = &(b[k][i]);
+                mpz_sub(bb->c, bb->c, b[j][i].c);
+                iii = bb->p;
+                if ((b[k][i-1].p != i) && (mpz_sgn(bb->c) != 0))
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == iii); ii--)
+                        b[k][ii].p = i;
+                else if (mpz_sgn(bb->c) == 0) {
+                    for (ii = i - 1;  (ii >= 0) && (b[k][ii].p == i); ii--)
+                        b[k][ii].p = iii;
+                }
+                i = b[j][i].p;
+        }
+        for (i = 0; i < j; i++) mu[k][i] -= mu[j][i];
+        break;
+
+    case -1:
+        /* $\lceil\mu_{k,j}\rfloor = -1$ */
+        i = b[j][0].p;
+        while (i != 0) {
+                bb = &(b[k][i]);
+                mpz_add(bb->c, bb->c, b[j][i].c);
+                iii = bb->p;
+                if ((b[k][i-1].p!=i)&&(mpz_sgn(bb->c)!=0))
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == iii); ii--) b[k][ii].p = i;
+                else if (mpz_sgn(bb->c)==0) {
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--) b[k][ii].p = iii;
+                }
+                i = b[j][i].p;
+        }
+        for(i=0;i<j;i++) mu[k][i] += mu[j][i];
+        break;
+
+    default:
+        /* $\lceil\mu_{k,j}\rfloor \neq \pm 1$ */
+        i = b[j][0].p;
+        while (i != 0) {
+                bb = &(b[k][i]);
+                mpz_submul(bb->c, b[j][i].c,musvl);
+                iii = bb->p;
+                if ((b[k][i-1].p!=i)&&(mpz_sgn(bb->c)!=0))
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p ==  iii); ii--) b[k][ii].p = i;
+                else if (mpz_sgn(bb->c) == 0) {
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--) b[k][ii].p = iii;
+                }
+                i = b[j][i].p;
+        }
+#if 0
+        daxpy(j,-mus,mu[k],1,mu[j],1);
+#endif
+        for(i = 0; i < j; i++) mu[k][i] -= mu[j][i]*mus;
+
+    }
+}
+
 int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z) {
     int i, m;
 
@@ -1026,9 +1035,9 @@ void lll(coeff_t **b, int s, int z, DOUBLE quality) {
     DOUBLE **bs;
     int r;
 
-    lllalloc(&mu,&c,&N,&bs,s,z);
-    r = lllfp(b,mu,c,N,bs,1,s,z,quality);
-    lllfree(mu,c,N,bs,s);
+    lllalloc(&mu, &c, &N, &bs, s, z);
+    r = lllfp(b, mu, c, N, bs, 1, s, z, quality);
+    lllfree(mu, c, N, bs, s);
 
     return;
 }
@@ -1874,7 +1883,7 @@ void givens(coeff_t **lattice, int columns, int rows, DOUBLE **mu,
         }
     }
 
-/* Finally some scaling has to be done, since $Q$ is a orthonormal matrix */
+    /* Finally some scaling has to be done, since $Q$ is a orthonormal matrix */
     for (i = 0; i < columns; i++) {
         c[i] = mu[i][i]*mu[i][i];
         N[i] = 0.0;
@@ -1885,19 +1894,21 @@ void givens(coeff_t **lattice, int columns, int rows, DOUBLE **mu,
         N[i] /= c[i];
         N[i] *= Fq;
 
-/*|        N[i] *= 1.0 + EPSILON; |*/
+        /* N[i] *= 1.0 + EPSILON; */
 
         for (j = columns - 1; j >= i; j--)
             mu[j][i] /= mu[i][i];
-#if VERBOSE > -1
-        printf("%6.3f ",(double)c[i]);
-        if (i>0 && i%15==0) printf("\n");
-#endif
+
+        #if VERBOSE > -1
+            printf("%6.3f ",(double)c[i]);
+            if (i>0 && i%15==0) printf("\n");
+        #endif
     }
-#if VERBOSE > -1
-    printf("\n\n");
-    fflush(stdout);
-#endif
+    #if VERBOSE > -1
+        printf("\n\n");
+        fflush(stdout);
+    #endif
+
     return;
 }
 
@@ -1920,7 +1931,7 @@ void inverse(DOUBLE **mu, DOUBLE **muinv, int columns) {
 
 /* There are several pruning methods.*/
 int exacttest(DOUBLE *v, int rows, DOUBLE Fq) {
-    int i;
+    register int i;
     i = rows - 1;
     do {
         if (fabs(v[i]) > Fq*(1.0 + EPSILON)) {
@@ -1942,14 +1953,14 @@ int prune0(DOUBLE li, DOUBLE re) {
 
 /* Pruning according to H\"olders inequality */
 int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps) {
-    /*|hoelder_no++;|*/
 #if BLAS
     if (cs < Fqeps * cblas_dasum(rows, w, 1)) {
         return 0;
     }
 #else
-    DOUBLE reseite;
-    int i;
+    register DOUBLE reseite;
+    register int i;
+
     reseite = 0.0; /*|-cs/Fqeps;|*/ /* | * (1-eps) | */
     i = rows - 1;
     do {
@@ -1958,8 +1969,6 @@ int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps) {
     } while (i >= 0);
     if (cs < Fqeps * reseite) return 0;
 #endif
-    /*|hoelder_success++;|*/
-// printf("do prune %lf %lf %lf %lf\n", cs, Fqeps, cblas_dasum(rows, w, 1), Fqeps * cblas_dasum(rows, w, 1));
 
     return 1;
 }
@@ -2104,7 +2113,7 @@ void stopProgram(int sig) {
 
     printf("Stopped after SIGALRM, number of solutions: %ld\n", nosolutions);
     print_num_solutions(nosolutions);
-    
+
     exit(11);
 }
 
