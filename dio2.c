@@ -142,9 +142,10 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params,
      * allocate memory
      */
     lattice = (coeff_t**)calloc(lattice_columns,sizeof(coeff_t*));
-    for(j=0;j<lattice_columns;j++) {
-        lattice[j] = (coeff_t*)calloc(lattice_rows+1,sizeof(coeff_t));
-        for (i=0;i<=lattice_rows;i++) mpz_init(lattice[j][i].c);
+    for (j = 0; j < lattice_columns; j++) {
+        lattice[j] = (coeff_t*)calloc(lattice_rows + 1, sizeof(coeff_t));
+        for (i = 0; i <= lattice_rows; i++)
+            mpz_init(lattice[j][i].c);
     }
 
     /**
