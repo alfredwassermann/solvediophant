@@ -86,13 +86,6 @@ int main(int argc, char *argv[]) {
 	gls_t GLS;
     lll_params_t LLL_params;
 
-    /*
-    int bkz_beta_input = 0;
-    int bkz_p_input = 0;
-    int iterate = 0;
-    int iterate_no = 0;
-    */
-
     int silent;
     int maxruntime = 0;
 

@@ -32,9 +32,9 @@ mpz_t max_norm;
 mpz_t max_norm_initial;
 mpz_t max_up;
 mpz_t dummy;
+
 long nom, denom;
 mpz_t lastlines_factor;
-mpz_t snd_q, snd_r, snd_s;
 
 int system_rows, system_columns;
 int lattice_rows, lattice_columns;
@@ -51,9 +51,9 @@ int cut_after_coeff;
 long stop_after_solutions;
 long stop_after_loops;
 long nosolutions;
-int iterate;
-int no_iterates;
-int bkz_beta, bkz_p;
+//int iterate;
+//int no_iterates;
+//int bkz_beta, bkz_p;
 int SILENT;
 int nboundvars;
 
@@ -74,7 +74,8 @@ static FILE* fp;
 long diophant(gls_t GLS, lll_params_t LLL_params,
     mpz_t factor_input, mpz_t norm_input,
     int silent,
-    long stop_after_sol_input, long stop_after_loops_input,
+    long stop_after_sol_input,
+    long stop_after_loops_input,
     int free_RHS_input,
     int cut_after, FILE* solfile) {
 
@@ -90,20 +91,18 @@ long diophant(gls_t GLS, lll_params_t LLL_params,
     mpz_init(lastlines_factor);
     mpz_init(upfac);
 
-    mpz_init(snd_q);
-    mpz_init(snd_r);
-    mpz_init(snd_s);
-
     mpz_init(soltest_u);
     mpz_init(soltest_s);
     mpz_init_set_ui(soltest_upfac,1);
 
+    /*
     if (LLL_params.iterate) {
         no_iterates = LLL_params.iterate_no;
     } else {
         bkz_beta = LLL_params.bkz.beta;
         bkz_p = LLL_params.bkz.p;
     }
+    */
     SILENT = silent;
     stop_after_solutions = stop_after_sol_input;
     stop_after_loops = stop_after_loops_input;
@@ -171,8 +170,8 @@ long diophant(gls_t GLS, lll_params_t LLL_params,
             mpz_init_set_si(upperbounds[i], 1);
         for (i = 0; i < nboundvars/*|system_columns|*/; i++) {
             mpz_set(upperbounds[i], GLS.upperbounds[i]);
-            if (mpz_sgn(upperbounds[i])!=0) {
-                mpz_lcm(upperbounds_max,upperbounds_max,upperbounds[i]);
+            if (mpz_sgn(upperbounds[i]) != 0) {
+                mpz_lcm(upperbounds_max, upperbounds_max, upperbounds[i]);
             }
         }
         if (mpz_cmp_si(upperbounds_max, 1) > 0)
@@ -210,17 +209,17 @@ long diophant(gls_t GLS, lll_params_t LLL_params,
      * append the other parts of lattice
      */
     for (j=system_rows;j<lattice_rows;j++) {
-        mpz_mul_si(lattice[j-system_rows][j+1].c,max_norm,denom);
-        mpz_mul_si(lattice[lattice_columns-2][j+1].c,max_norm,nom);
+        mpz_mul_si(lattice[j-system_rows][j+1].c,max_norm, denom);
+        mpz_mul_si(lattice[lattice_columns-2][j+1].c,max_norm, nom);
     }
-    mpz_set(lattice[system_columns+free_RHS][lattice_rows].c,max_norm);
+    mpz_set(lattice[system_columns+free_RHS][lattice_rows].c, max_norm);
 
     if (free_RHS) {
-        mpz_set_si(lattice[system_columns][lattice_rows-1].c,1);
-        mpz_set_si(lattice[system_columns+1][lattice_rows-1].c,0);
+        mpz_set_si(lattice[system_columns][lattice_rows-1].c, 1);
+        mpz_set_si(lattice[system_columns+1][lattice_rows-1].c, 0);
     }
-    mpz_set(lattice[system_columns+free_RHS][lattice_rows].c,max_norm);
-    for (i=0;i<lattice_columns-1;i++) coeffinit(lattice[i],lattice_rows);
+    mpz_set(lattice[system_columns+free_RHS][lattice_rows].c, max_norm);
+    for (i=0;i<lattice_columns-1;i++) coeffinit(lattice[i], lattice_rows);
 
     /**
      * open solution file
@@ -284,7 +283,7 @@ long diophant(gls_t GLS, lll_params_t LLL_params,
     /**
      * first reduction
      */
-    mpz_set_ui(lastlines_factor,1);
+    mpz_set_ui(lastlines_factor, 1);
     fprintf(stderr, "\n"); fflush(stderr);
     lll(lattice,lattice_columns-1,lattice_rows,LLLCONST_LOW);
 
@@ -312,8 +311,8 @@ long diophant(gls_t GLS, lll_params_t LLL_params,
     /**
      * second reduction
      */
-    mpz_set_ui(lastlines_factor,1);
-    lll(lattice,lattice_columns-1,lattice_rows,LLLCONST_HIGH);
+    mpz_set_ui(lastlines_factor, 1);
+    lll(lattice, lattice_columns-1, lattice_rows, LLLCONST_HIGH);
     fprintf(stderr, "Second reduction successful\n"); fflush(stderr);
 #endif
 
@@ -326,7 +325,6 @@ long diophant(gls_t GLS, lll_params_t LLL_params,
     /**
      * scale last rows
      */
-    /*|mpz_set_str(lastlines_factor,LASTLINESFACTOR,10);|*/
     mpz_set(lastlines_factor, LLL_params.scalelastlinefactor);
     for (i=0;i<lattice_columns;i++)
         mpz_mul(lattice[i][lattice_rows].c,lattice[i][lattice_rows].c,lastlines_factor);
@@ -345,21 +343,23 @@ long diophant(gls_t GLS, lll_params_t LLL_params,
      * third reduction
      */
     fprintf(stderr, "\n"); fflush(stderr);
-    if (iterate) {
-        iteratedlll(lattice,lattice_columns-1,lattice_rows,no_iterates,LLLCONST_HIGH);
+    if (LLL_params.iterate) {
+        iteratedlll(lattice, lattice_columns-1, lattice_rows, LLL_params.iterate_no, LLLCONST_HIGH);
     } else {
         shufflelattice();
-        lDnew = bkz(lattice,lattice_columns,lattice_rows,LLLCONST_HIGHER,40,bkz_p);
+        lDnew = bkz(lattice, lattice_columns, lattice_rows, LLLCONST_HIGHER,
+                        LLL_params.bkz.beta, LLL_params.bkz.p);
 
         i = 0;
         do {
             lD = lDnew;
             shufflelattice();
-            lDnew = bkz(lattice,lattice_columns,lattice_rows,LLLCONST_HIGH,bkz_beta,bkz_p);
-            printf("%0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD-lDnew);
+            lDnew = bkz(lattice,lattice_columns,lattice_rows,LLLCONST_HIGH,
+                        LLL_params.bkz.beta, LLL_params.bkz.p);
+            printf("%0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
             i++;
         }
-        while (i<1 && fabs(lDnew-lD)>0.01);
+        while (i < 1 && fabs(lDnew - lD) > 0.01);
     }
     fprintf(stderr, "Third reduction successful\n"); fflush(stderr);
 
