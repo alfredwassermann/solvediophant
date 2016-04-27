@@ -629,7 +629,7 @@ int solutiontest(int position) {
 
 #define TWOTAUHALF 67108864.0 /* $2^{\tau/2}$*/
 
-int lllfp (coeff_t **b, DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs,
+int lllfp(coeff_t **b, DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs,
             int start, int s, int z, DOUBLE delta) {
 
     int i, j, k;
@@ -641,9 +641,7 @@ int lllfp (coeff_t **b, DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs,
     mpz_t hv;
     DOUBLE *swapd;
 
-    int ii, iii;
     coeff_t *swapvl;
-    coeff_t *bb;
 
 #if VERBOSE > 3
     int counter;
@@ -702,16 +700,19 @@ int lllfp (coeff_t **b, DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs,
           computation of $\mu_{k,1},\ldots,\mu_{k,k-1}$ and $c_k = ||\hat{b}_k||^2.$
           This is done with Gram Schmidt Orthogonalization.
         */
-        if (k == 1)
+        if (k == 1) {
             c[0] = N[0] * N[0];
+        }
+
         c[k] = N[k] * N[k];
         for (j = 0; j < k; j++) {
-            ss = scalarproductfp(bs[k],bs[j],z);
+            ss = scalarproductfp(bs[k], bs[j], z);
             if (fabs(ss) < N[k] * N[j] / TWOTAUHALF) {
                 ss = (DOUBLE)scalarproductlfp(b[k],b[j]);
             }
-            for (i = 0; i < j; i++)
+            for (i = 0; i < j; i++) {
                 ss -= mu[j][i] * mu[k][i] * c[i];
+            }
             mu[k][j] = ss / c[j];
             c[k] -= ss * mu[k][j];
         }
@@ -720,78 +721,20 @@ if (c[k] < EPSILON) {
     fprintf(stderr, "c[%d] is very small: %lf\n", k, c[k]);
 }
 
-
         /* third step: size reduction of $b_k$ */
         Fc = Fr = 0;
         for (j = k - 1; j >= 0; j--) {
             if (fabs(mu[k][j]) > ETACONST) {
                 /* round the Gram Schmidt coefficient */
                 mus = ROUND(mu[k][j]);
-                mpz_set_d(musvl,mus);
-                if (fabs(mus)>TWOTAUHALF) {
+                mpz_set_d(musvl, mus);
+                if (fabs(mus) > TWOTAUHALF) {
                     Fc = 1;
                 }
 
                 Fr = 1;
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
-                switch (mpz_get_si(musvl)) {
-                case 1:
-                    /* $\lceil\mu_{k,j}\rfloor = 1$ */
-                    i = b[j][0].p;
-                    while (i != 0) {
-                            bb = &(b[k][i]);
-                            mpz_sub(bb->c, bb->c, b[j][i].c);
-                            iii = bb->p;
-                            if ((b[k][i-1].p != i) && (mpz_sgn(bb->c) != 0))
-                                for (ii= i - 1; (ii >=0) && (b[k][ii].p == iii); ii--)
-                                    b[k][ii].p = i;
-                            else if (mpz_sgn(bb->c) == 0) {
-                                for (ii = i - 1;  (ii >= 0) && (b[k][ii].p == i); ii--)
-                                    b[k][ii].p = iii;
-                            }
-                            i = b[j][i].p;
-                    }
-                    for(i=0;i<j;i++) mu[k][i] -= mu[j][i];
-                    break;
-
-                case -1:
-                    /* $\lceil\mu_{k,j}\rfloor = -1$ */
-                    i = b[j][0].p;
-                    while (i != 0) {
-                            bb = &(b[k][i]);
-                            mpz_add(bb->c, bb->c, b[j][i].c);
-                            iii = bb->p;
-                            if ((b[k][i-1].p!=i)&&(mpz_sgn(bb->c)!=0))
-                                for (ii=i-1;(ii>=0)&&(b[k][ii].p==iii);ii--) b[k][ii].p = i;
-                            else if (mpz_sgn(bb->c)==0) {
-                                for (ii=i-1;(ii>=0)&&(b[k][ii].p==i);ii--) b[k][ii].p = iii;
-                            }
-                            i = b[j][i].p;
-                    }
-                    for(i=0;i<j;i++) mu[k][i] += mu[j][i];
-                    break;
-
-                default:
-                    /* $\lceil\mu_{k,j}\rfloor \neq \pm 1$ */
-                    i=b[j][0].p;
-                    while (i!=0) {
-                            bb=&(b[k][i]);
-                            mpz_submul(bb->c,b[j][i].c,musvl);
-                            iii = bb->p;
-                            if ((b[k][i-1].p!=i)&&(mpz_sgn(bb->c)!=0))
-                                for (ii=i-1;(ii>=0)&&(b[k][ii].p==iii);ii--) b[k][ii].p = i;
-                            else if (mpz_sgn(bb->c)==0) {
-                                for (ii=i-1;(ii>=0)&&(b[k][ii].p==i);ii--) b[k][ii].p = iii;
-                            }
-                            i = b[j][i].p;
-                    }
-#if 0
-                    daxpy(j,-mus,mu[k],1,mu[j],1);
-#endif
-                    for(i=0;i<j;i++) mu[k][i] -= mu[j][i]*mus;
-
-                }
-
+                size_reduction(b, mu, musvl, mus, k, j);
 
                 if (Fc == 1)
                     fprintf(stderr, "Problems in rounding mu, step back to k=%d; %lf %lf\n", k-1, mus, mu[k][j]);
@@ -962,6 +905,69 @@ DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n) {
     for (i = n - 1; i >= 0; i--) r += v[i] * w[i];
     return r;
 #endif
+}
+
+void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, int j) {
+    int i, ii, iii;
+    coeff_t *bb;
+
+    switch (mpz_get_si(musvl)) {
+    case 1:
+        /* $\lceil\mu_{k,j}\rfloor = 1$ */
+        i = b[j][0].p;
+        while (i != 0) {
+                bb = &(b[k][i]);
+                mpz_sub(bb->c, bb->c, b[j][i].c);
+                iii = bb->p;
+                if ((b[k][i-1].p != i) && (mpz_sgn(bb->c) != 0))
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == iii); ii--)
+                        b[k][ii].p = i;
+                else if (mpz_sgn(bb->c) == 0) {
+                    for (ii = i - 1;  (ii >= 0) && (b[k][ii].p == i); ii--)
+                        b[k][ii].p = iii;
+                }
+                i = b[j][i].p;
+        }
+        for (i = 0; i < j; i++) mu[k][i] -= mu[j][i];
+        break;
+
+    case -1:
+        /* $\lceil\mu_{k,j}\rfloor = -1$ */
+        i = b[j][0].p;
+        while (i != 0) {
+                bb = &(b[k][i]);
+                mpz_add(bb->c, bb->c, b[j][i].c);
+                iii = bb->p;
+                if ((b[k][i-1].p!=i)&&(mpz_sgn(bb->c)!=0))
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == iii); ii--) b[k][ii].p = i;
+                else if (mpz_sgn(bb->c)==0) {
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--) b[k][ii].p = iii;
+                }
+                i = b[j][i].p;
+        }
+        for(i=0;i<j;i++) mu[k][i] += mu[j][i];
+        break;
+
+    default:
+        /* $\lceil\mu_{k,j}\rfloor \neq \pm 1$ */
+        i = b[j][0].p;
+        while (i != 0) {
+                bb = &(b[k][i]);
+                mpz_submul(bb->c, b[j][i].c,musvl);
+                iii = bb->p;
+                if ((b[k][i-1].p!=i)&&(mpz_sgn(bb->c)!=0))
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p ==  iii); ii--) b[k][ii].p = i;
+                else if (mpz_sgn(bb->c) == 0) {
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--) b[k][ii].p = iii;
+                }
+                i = b[j][i].p;
+        }
+#if 0
+        daxpy(j,-mus,mu[k],1,mu[j],1);
+#endif
+        for(i = 0; i < j; i++) mu[k][i] -= mu[j][i]*mus;
+
+    }
 }
 
 int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z) {
