@@ -165,7 +165,7 @@ void read_selected_cols(char *file_name, gls_t *GLS) {
 }
 
 /**
- * Content of inpout file can not be read.
+ * Content of input file can not be read.
  */
 void incorrect_input_file() {
     fprintf(stderr,"Incomplete input file -> exit\n");

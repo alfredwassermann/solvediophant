@@ -16,8 +16,7 @@ CFLAGS= -O3 -Wall -ffast-math \
 #CFLAGS= -O3 -mcpu=i686 -march=i686 -fforce-addr -funroll-loops -frerun-cse-after-loop -frerun-loop-opt -malign-functions=4
 
 #CFLAGS= -g -Wall
-#ASSEMBLERLIB=./GotoBLAS2/libgoto2.a
-#ASSEMBLERLIB=./OpenBLAS/libopenblas.a
+
 #ASSEMBLERLIB=/usr/lib/openblas-base/libblas.a
 ASSEMBLERLIB=./OpenBLAS/libopenblas.a
 #ASSEMBLERLIB=

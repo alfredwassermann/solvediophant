@@ -36,7 +36,7 @@ struct LLL_params {
 
 /* -------------------------------------------------------------------- */
 
-extern long diophant(gls_t GLS, lll_params_t LLL_params,
+extern long diophant(gls_t *GLS, lll_params_t *LLL_params,
     mpz_t factor_input, mpz_t norm_input,
     int silent,
     long stop_after_sol_input, long stop_after_loops_input,

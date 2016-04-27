@@ -71,7 +71,7 @@ static FILE* fp;
 #define smult_lattice(i,j,factor) mpz_mul(lattice[i][j+1].c,lattice[i][j+1].c,factor)
 #define get_entry(i,j) lattice[i][j+1].c
 
-long diophant(gls_t GLS, lll_params_t LLL_params,
+long diophant(gls_t *GLS, lll_params_t *LLL_params,
     mpz_t factor_input, mpz_t norm_input,
     int silent,
     long stop_after_sol_input,
@@ -93,14 +93,14 @@ long diophant(gls_t GLS, lll_params_t LLL_params,
 
     mpz_init(soltest_u);
     mpz_init(soltest_s);
-    mpz_init_set_ui(soltest_upfac,1);
+    mpz_init_set_ui(soltest_upfac, 1);
 
     /*
-    if (LLL_params.iterate) {
-        no_iterates = LLL_params.iterate_no;
+    if (LLL_params->iterate) {
+        no_iterates = LLL_params->iterate_no;
     } else {
-        bkz_beta = LLL_params.bkz.beta;
-        bkz_p = LLL_params.bkz.p;
+        bkz_beta = LLL_params->bkz.beta;
+        bkz_p = LLL_params->bkz.p;
     }
     */
     SILENT = silent;
@@ -110,9 +110,9 @@ long diophant(gls_t GLS, lll_params_t LLL_params,
     nom = 1;
     denom = 2;
 
-    system_rows = GLS.num_rows;
-    system_columns = GLS.num_cols;
-    nboundvars = GLS.num_boundedvars;
+    system_rows = GLS->num_rows;
+    system_columns = GLS->num_cols;
+    nboundvars = GLS->num_boundedvars;
 
 #if BLAS
     //openblas_set_num_threads(8);
@@ -152,9 +152,9 @@ long diophant(gls_t GLS, lll_params_t LLL_params,
      */
     for (j = 0; j < system_rows; j++) {
         for (i = 0; i < system_columns; i++) {
-            mpz_mul(lattice[i][j+1].c, GLS.matrix[j][i], matrix_factor);
+            mpz_mul(lattice[i][j+1].c, GLS->matrix[j][i], matrix_factor);
         }
-        mpz_mul(lattice[system_columns][j+1].c, GLS.rhs[j], matrix_factor);
+        mpz_mul(lattice[system_columns][j+1].c, GLS->rhs[j], matrix_factor);
     }
 
     /**
@@ -162,14 +162,14 @@ long diophant(gls_t GLS, lll_params_t LLL_params,
      */
     mpz_init_set_si(upperbounds_max,1);
     iszeroone = 1;
-    if (GLS.upperbounds == NULL) {
+    if (GLS->upperbounds == NULL) {
         fprintf(stderr, "No upper bounds: 0/1 variables are assumed \n"); fflush(stderr);
     } else {
         upperbounds = (mpz_t*)calloc(system_columns, sizeof(mpz_t));
         for (i = 0; i < system_columns; i++)
             mpz_init_set_si(upperbounds[i], 1);
         for (i = 0; i < nboundvars/*|system_columns|*/; i++) {
-            mpz_set(upperbounds[i], GLS.upperbounds[i]);
+            mpz_set(upperbounds[i], GLS->upperbounds[i]);
             if (mpz_sgn(upperbounds[i]) != 0) {
                 mpz_lcm(upperbounds_max, upperbounds_max, upperbounds[i]);
             }
@@ -188,16 +188,16 @@ long diophant(gls_t GLS, lll_params_t LLL_params,
     /**
      * handle preselected columns
      */
-    if (GLS.original_cols != NULL)
-        no_original_columns = GLS.num_original_cols;
+    if (GLS->original_cols != NULL)
+        no_original_columns = GLS->num_original_cols;
     else
-        no_original_columns = GLS.num_cols;
+        no_original_columns = GLS->num_cols;
 
-    original_columns = (int*)calloc(GLS.num_original_cols, sizeof(int));
+    original_columns = (int*)calloc(GLS->num_original_cols, sizeof(int));
 
-    if (GLS.original_cols != NULL)
+    if (GLS->original_cols != NULL)
         for (i = 0; i < no_original_columns; i++)
-            original_columns[i] = GLS.original_cols[i];
+            original_columns[i] = GLS->original_cols[i];
     else {
         for (i = 0; i < no_original_columns; i++)
             original_columns[i] = 1;
@@ -325,7 +325,7 @@ long diophant(gls_t GLS, lll_params_t LLL_params,
     /**
      * scale last rows
      */
-    mpz_set(lastlines_factor, LLL_params.scalelastlinefactor);
+    mpz_set(lastlines_factor, LLL_params->scalelastlinefactor);
     for (i=0;i<lattice_columns;i++)
         mpz_mul(lattice[i][lattice_rows].c,lattice[i][lattice_rows].c,lastlines_factor);
     if (free_RHS)
@@ -343,19 +343,19 @@ long diophant(gls_t GLS, lll_params_t LLL_params,
      * third reduction
      */
     fprintf(stderr, "\n"); fflush(stderr);
-    if (LLL_params.iterate) {
-        iteratedlll(lattice, lattice_columns-1, lattice_rows, LLL_params.iterate_no, LLLCONST_HIGH);
+    if (LLL_params->iterate) {
+        iteratedlll(lattice, lattice_columns-1, lattice_rows, LLL_params->iterate_no, LLLCONST_HIGH);
     } else {
         shufflelattice();
         lDnew = bkz(lattice, lattice_columns, lattice_rows, LLLCONST_HIGHER,
-                        LLL_params.bkz.beta, LLL_params.bkz.p);
+                        LLL_params->bkz.beta, LLL_params->bkz.p);
 
         i = 0;
         do {
             lD = lDnew;
             shufflelattice();
             lDnew = bkz(lattice,lattice_columns,lattice_rows,LLLCONST_HIGH,
-                        LLL_params.bkz.beta, LLL_params.bkz.p);
+                        LLL_params->bkz.beta, LLL_params->bkz.p);
             printf("%0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
             i++;
         }

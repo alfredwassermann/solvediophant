@@ -255,7 +255,7 @@ int main(int argc, char *argv[]) {
     solfile = fopen(solfilename, "w");
     time_0 = os_ticks();
 
-    diophant(GLS, LLL_params,
+    diophant(&GLS, &LLL_params,
         factor_input, norm_input, silent,
         stop_after_solutions, stop_after_loops,
         free_RHS, cut_after, solfile);
