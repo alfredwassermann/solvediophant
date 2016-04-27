@@ -23,10 +23,22 @@ struct Lattice {
 };
 #define lattice_t struct Lattice
 
-extern long diophant(gls_t GLS,
-    mpz_t factor_input, mpz_t norm_input, mpz_t scalelastlinefactor,
-    int silent, int iterate, int iterate_no,
-    int bkz_beta_input, int bkz_p_input,
+struct LLL_params {
+    mpz_t scalelastlinefactor;
+    int iterate;
+    int iterate_no;
+    struct Bkz {
+        int beta;
+        int p;
+    } bkz;
+};
+#define lll_params_t struct LLL_params
+
+/* -------------------------------------------------------------------- */
+
+extern long diophant(gls_t GLS, lll_params_t LLL_params,
+    mpz_t factor_input, mpz_t norm_input,
+    int silent,
     long stop_after_sol_input, long stop_after_loops_input,
     int free_RHS_input,
     int cut_after, FILE* solfile);

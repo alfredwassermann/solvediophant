@@ -71,10 +71,9 @@ static FILE* fp;
 #define smult_lattice(i,j,factor) mpz_mul(lattice[i][j+1].c,lattice[i][j+1].c,factor)
 #define get_entry(i,j) lattice[i][j+1].c
 
-long diophant(gls_t GLS,
-    mpz_t factor_input, mpz_t norm_input, mpz_t scalelastlinefactor,
-    int silent, int iterate, int iterate_no,
-    int bkz_beta_input, int bkz_p_input,
+long diophant(gls_t GLS, lll_params_t LLL_params,
+    mpz_t factor_input, mpz_t norm_input,
+    int silent,
     long stop_after_sol_input, long stop_after_loops_input,
     int free_RHS_input,
     int cut_after, FILE* solfile) {
@@ -99,11 +98,11 @@ long diophant(gls_t GLS,
     mpz_init(soltest_s);
     mpz_init_set_ui(soltest_upfac,1);
 
-    if (iterate) {
-        no_iterates = iterate_no;
+    if (LLL_params.iterate) {
+        no_iterates = LLL_params.iterate_no;
     } else {
-        bkz_beta = bkz_beta_input;
-        bkz_p = bkz_p_input;
+        bkz_beta = LLL_params.bkz.beta;
+        bkz_p = LLL_params.bkz.p;
     }
     SILENT = silent;
     stop_after_solutions = stop_after_sol_input;
@@ -328,7 +327,7 @@ long diophant(gls_t GLS,
      * scale last rows
      */
     /*|mpz_set_str(lastlines_factor,LASTLINESFACTOR,10);|*/
-    mpz_set(lastlines_factor, scalelastlinefactor);
+    mpz_set(lastlines_factor, LLL_params.scalelastlinefactor);
     for (i=0;i<lattice_columns;i++)
         mpz_mul(lattice[i][lattice_rows].c,lattice[i][lattice_rows].c,lastlines_factor);
     if (free_RHS)

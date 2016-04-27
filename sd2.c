@@ -5,8 +5,8 @@
 #include <string.h>
 #include <sys/times.h>  /* For run time measurements */
 #include <unistd.h>
-#include "dio2.h"
 #include "gls.h"
+#include "dio2.h"
 
 /*
  * Global variables for time measurements
@@ -82,14 +82,17 @@ int main(int argc, char *argv[]) {
      */
     mpz_t factor_input;
     mpz_t norm_input;
-    mpz_t scalelastlinefactor;
 
 	gls_t GLS;
+    lll_params_t LLL_params;
 
+    /*
     int bkz_beta_input = 0;
     int bkz_p_input = 0;
     int iterate = 0;
     int iterate_no = 0;
+    */
+
     int silent;
     int maxruntime = 0;
 
@@ -108,93 +111,103 @@ int main(int argc, char *argv[]) {
 
     mpz_init(factor_input);
     mpz_init(norm_input);
-    mpz_init(scalelastlinefactor);
 
     strcpy(solfilename,"solutions");
-    iterate = -1;
-    bkz_beta_input = bkz_p_input = -1;
+
+    LLL_params.iterate = LLL_params.bkz.beta = LLL_params.bkz.p = -1;
+    mpz_init(LLL_params.scalelastlinefactor);
+    mpz_set_si(LLL_params.scalelastlinefactor, -1);
+
     mpz_set_si(factor_input,-1);
     mpz_set_si(norm_input,-1);
-    mpz_set_si(scalelastlinefactor, -1);
     silent = 0;
 
     for (i = 1; i < argc; i++) {
-        if (strcmp(argv[i],"-silent")==0) {
+        if (strcmp(argv[i],"-silent") == 0) {
             silent = 1;
             fprintf(stderr,"No output of solutions, just counting.\n");
-        } else if (strncmp(argv[i],"-iterate",8)==0) {
+
+        } else if (strncmp(argv[i],"-iterate",8) == 0) {
             strcpy(suffix,argv[i]+8);
-            iterate_no  = atoi(suffix);
-            iterate = 1;
-        } else if (strncmp(argv[i],"-bkz",4)==0) {
-            iterate = 0;
-        } else if (strncmp(argv[i],"-beta",5)==0) {
+            LLL_params.iterate_no  = atoi(suffix);
+            LLL_params.iterate = 1;
+
+        } else if (strncmp(argv[i],"-bkz",4) == 0) {
+            LLL_params.iterate = 0;
+
+        } else if (strncmp(argv[i],"-beta",5) == 0) {
             strcpy(suffix,argv[i]+5);
-            bkz_beta_input = atoi(suffix);
-        } else if (strncmp(argv[i],"-p",2)==0) {
+            LLL_params.bkz.beta = atoi(suffix);
+
+        } else if (strncmp(argv[i],"-p",2) == 0) {
             strcpy(suffix,argv[i]+2);
-            bkz_p_input = atoi(suffix);
-        } else if (strncmp(argv[i],"-time",5)==0) {
+            LLL_params.bkz.p = atoi(suffix);
+
+        } else if (strncmp(argv[i],"-time",5) == 0) {
             strcpy(suffix,argv[i]+5);
             maxruntime = atoi(suffix);
-        } else if (strncmp(argv[i],"-c",2)==0) {
+
+        } else if (strncmp(argv[i],"-c",2) == 0) {
             strcpy(suffix,argv[i]+2);
     #if 1
-            mpz_set_str(factor_input,suffix,10);  /* Regular version */
+            mpz_set_str(factor_input, suffix, 10);  /* Regular version */
     #else
-            mpz_ui_pow_ui(factor_input,10,atoi(suffix)); /* Version for the NTL output */
+            mpz_ui_pow_ui(factor_input, 10, atoi(suffix)); /* Version for the NTL output */
     #endif
-        } else if (strncmp(argv[i],"-maxnorm",8)==0) {
+        } else if (strncmp(argv[i],"-maxnorm",8) == 0) {
             strcpy(suffix,argv[i]+8);
             mpz_set_str(norm_input,suffix,10);
-        } else if (strncmp(argv[i],"-scalelastline",14)==0) {
+
+        } else if (strncmp(argv[i],"-scalelastline",14) == 0) {
             strcpy(suffix,argv[i]+14);
-            mpz_set_str(scalelastlinefactor,suffix,10);
-        } else if (strncmp(argv[i],"-i",2)==0) {
+            mpz_set_str(LLL_params.scalelastlinefactor,suffix,10);
+
+        } else if (strncmp(argv[i],"-i",2) == 0) {
             strcpy(suffix,argv[i]+2);
-        } else if (strncmp(argv[i],"-o",2)==0) {
+
+        } else if (strncmp(argv[i],"-o",2) == 0) {
             strcpy(solfilename,argv[i]+2);
-        } else if (strcmp(argv[i],"-?")==0 || strcmp(argv[i],"-h")==0) {
-            fprintf(stderr,"\nsolvediophant --- multiple precision version --- \n");
-            fprintf(stderr,"solvediophant");
+
+        } else if (strcmp(argv[i],"-?") == 0 || strcmp(argv[i],"-h") == 0) {
+            fprintf(stderr,"\nsd2 --- multiple precision version --- \n");
+            fprintf(stderr,"sd2");
             fprintf(stderr," -iterate*|(-bkz -beta* -p*) [-c*] [-maxnorm*] [-scalelastline*] [-time*] [-silent] [-o*]");
             fprintf(stderr," inputfile\n\n");
 
             exit(3);
         }
     }
-    if (argc<2 || strncmp(argv[argc-1],"-",1)==0) {
+    if (argc < 2 || strncmp(argv[argc-1], "-",1) == 0) {
         fprintf(stderr,"The last parameter on the command line\n");
         fprintf(stderr,"has to be the input file name.\n");
         exit(1);
     }
-    if (iterate==-1) {
+    if (LLL_params.iterate == -1) {
         fprintf(stderr,"No reduction was chosen.\n");
         fprintf(stderr,"It is set to iterate=1.\n");
 
-        iterate = 1;
-        iterate_no = 1;
+        LLL_params.iterate = 1;
+        LLL_params.iterate_no = 1;
     }
-    if (iterate==0 && (bkz_beta_input==-1 ||  bkz_p_input==-1)) {
+    if (LLL_params.iterate == 0 && (LLL_params.bkz.beta == -1 ||  LLL_params.bkz.p == -1)) {
         fprintf(stderr,"You have chosen bkz reduction. You also have to specify the parameters");
         fprintf(stderr," -beta* -p*\n");
         exit(1);
     }
-    if (mpz_cmp_si(factor_input,0)<=0) {
+    if (mpz_cmp_si(factor_input, 0) <= 0) {
         fprintf(stderr,"You did not supply the options -c*. ");
         fprintf(stderr,"It is set to 10000000000000.\n");
-        mpz_set_str(factor_input,"10000000000000",10);
+        mpz_set_str(factor_input,"10000000000000", 10);
     }
-
-    if (mpz_cmp_si(norm_input,0)<=0) {
+    if (mpz_cmp_si(norm_input, 0) <= 0) {
         fprintf(stderr,"You did not supply the options -maxnorm*. ");
         fprintf(stderr,"It is set to 1.\n");
         mpz_set_si(norm_input,1);
     }
-    if (mpz_cmp_si(scalelastlinefactor,0)<=0) {
+    if (mpz_cmp_si(LLL_params.scalelastlinefactor, 0) <= 0) {
         fprintf(stderr,"You did not supply the options -scalelastline*. ");
         fprintf(stderr,"It is set to 1.\n");
-        mpz_set_si(scalelastlinefactor,1);
+        mpz_set_si(LLL_params.scalelastlinefactor, 1);
     }
 
     inputfile_name = argv[argc-1];
@@ -249,8 +262,8 @@ int main(int argc, char *argv[]) {
     solfile = fopen(solfilename, "w");
     time_0 = os_ticks();
 
-    diophant(GLS,
-        factor_input, norm_input, scalelastlinefactor, silent, iterate, iterate_no, bkz_beta_input, bkz_p_input,
+    diophant(GLS, LLL_params,
+        factor_input, norm_input, silent,
         stop_after_solutions, stop_after_loops,
         free_RHS, cut_after, solfile);
 
@@ -268,7 +281,7 @@ int main(int argc, char *argv[]) {
      */
     mpz_clear(factor_input);
     mpz_clear(norm_input);
-    mpz_clear(scalelastlinefactor);
+    mpz_clear(LLL_params.scalelastlinefactor);
 
 	gls_free_mem(&GLS);
 
