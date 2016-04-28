@@ -22,7 +22,7 @@
 #define LLLCONST_LOW  0.60 /* 0.75*/
 #define LLLCONST_HIGH 0.90    /* 0.99 */
 #define LLLCONST_HIGHER 0.999
-#define ETACONST 0.55
+#define ETACONST 0.51
 
 /**
  * global variables
@@ -273,14 +273,15 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params,
      * permute lattice columns
      */
     swap_vec = lattice[lattice_columns-2];
-    for (i=lattice_columns-2;i>0;i--) lattice[i] = lattice[i-1];
+    for (i = lattice_columns - 2; i > 0; i--)
+        lattice[i] = lattice[i-1];
     lattice[0] = swap_vec;
 
-#if 0
+#if 1
     printf("After permute\n");
     print_lattice();
 #endif
-    shufflelattice();
+    //shufflelattice();
     /**
      * first reduction
      */
@@ -288,7 +289,7 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params,
     fprintf(stderr, "\n"); fflush(stderr);
     lll(lattice,lattice_columns-1,lattice_rows,LLLCONST_LOW);
 
-#if 0
+#if 1
     printf("After first reduction\n");
     print_lattice();
 #endif
@@ -302,13 +303,13 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params,
         return 0;
     }
 
-#if 0
+#if 1
     printf("After cutting\n");
     print_lattice();
 #endif
 
 #if 1
-    shufflelattice();
+    //shufflelattice();
     /**
      * second reduction
      */
@@ -850,6 +851,184 @@ if (c[k] < EPSILON) {
 
 }
 
+int lllHfp(coeff_t **b, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
+            int start, int s, int z, DOUBLE delta) {
+
+    int i, j, k;
+    DOUBLE ss, x;
+    DOUBLE zeta;
+    DOUBLE rkk, rii;
+    DOUBLE beta[32768];
+    DOUBLE w;
+    DOUBLE norm;
+
+    DOUBLE mus;
+    mpz_t musvl;
+    mpz_t sum_mu;
+    mpz_t hv;
+
+    coeff_t *swapvl;
+
+#if VERBOSE > 3
+    int counter;
+#endif
+
+fprintf(stderr, "------------------------NEW LLLHfp-----------------------------\n");
+fflush(stderr);
+
+    mpz_init(musvl);
+    mpz_init(hv);
+    mpz_init(sum_mu);
+
+    /* Test for trivial cases. */
+    if ((z <= 1) || (s <= 1)) {
+        fprintf(stderr, "Wrong dimensions in lllfp\n");
+        fflush(stderr);
+        return(0);
+    }
+
+    k = (start > 0) ? start : 0;
+    //if (k < 1) k = 1;
+    k = 0;
+
+#if VERBOSE > 3
+    counter = 0;
+#endif
+
+    /* The main loop */
+    while (k < s) {
+#if VERBOSE > 3
+        if ((counter % 500) == 0) {
+            fprintf(stderr, "LLL_H: %d k:%d\n", counter, k);
+            fflush(stderr);
+        }
+        counter++;
+#endif
+
+fprintf(stderr, "\nk %d\n", k);
+start_tricol:
+
+        /* Recompute column k of R */
+        for (j = 0; j < z; ++j) {
+            R[k][j] = (DOUBLE)mpz_get_d(b[k][j+1].c);
+        }
+
+        for (i = 0; i < k; ++i) {
+            for (j = i, w = 0.0; j < z; ++j) {
+                w += R[k][j] * H[i][j];
+            }
+            for (j = 0; j < z; ++j) {
+                R[k][j] -= w * beta[i] * H[i][j];
+            }
+        }
+        /* Now, R[k] is updated. */
+
+        // Norm of pivot column
+        for (j = k, norm = 0.0; j < z; ++j) {
+            norm += R[k][j] * R[k][j];
+        }
+        norm = sqrt(norm);
+
+        for (j = k; j < z; ++j) {
+            H[k][j] = R[k][j] / norm;
+        }
+        H[k][k] += (R[k][k] >= 0.0) ? 1 : -1;
+        beta[k] = 1.0 / (1.0 + abs(R[k][k]) / norm);
+        for (j = k, ss = 0.0; j < z; ++j) {
+            ss += H[k][j] * H[k][j];
+        }
+        beta[k] = 2.0 / ss;
+
+        for (j = k, w = 0.0; j < z; ++j) {
+            w += R[k][j] * H[k][j];
+        }
+fprintf(stderr, "beta %lf, beta_s %lf, w %lf\n", beta[k], 2.0 / ss, w);
+
+        for (j = k; j < z; ++j) {
+            R[k][j] -= beta[k] * w * H[k][j];
+        }
+
+#if 0
+fprintf(stderr, "H\n");
+for (i = 0; i <=k; i++) {
+    for (j = 0; j < z; ++j) {
+        fprintf(stderr, "%0.4lf ", H[i][j]);
+    }
+    fprintf(stderr, "\n");
+}
+
+fprintf(stderr, "R\n");
+for (i = 0; i <=k; i++) {
+    for (j = 0; j < z; ++j) {
+        fprintf(stderr, "%0.4lf ", R[i][j]);
+    }
+    fprintf(stderr, "\n");
+}
+
+for (i = 0; i < z; i++) {
+    for (j = 0; j < z; ++j) {
+        if (i == j)
+            fprintf(stderr, "%0.4lf ", 1 - beta[k] * H[k][i] * H[k][j]);
+        else
+            fprintf(stderr, "%0.4lf ", 0 - beta[k] * H[k][i] * H[k][j]);
+    }
+    fprintf(stderr, "\n");
+}
+
+#endif
+
+//if (k > 1)
+//    exit(1);
+        /* third step: size reduction of $b_k$ */
+        mpz_set_si(sum_mu, 0);
+        for (j = k - 1; j >= 0; j--) {
+            ss = R[k][j] / R[j][j];
+            if (fabs(ss) > ETACONST) {
+                mus = ROUND(ss);
+//fprintf(stderr, "mu %lf\n", mus);
+                mpz_set_d(musvl, mus);
+                mpz_add_ui(sum_mu, sum_mu, (unsigned long)abs(mus));
+
+                /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
+                size_reduction(b, R, musvl, mus, k, j);
+                solutiontest(k);
+            }
+        }
+        if (mpz_cmp_si(sum_mu, 0) != 0) {
+            fprintf(stderr, "REDO tricol\n");
+            goto start_tricol;
+        }
+
+
+            /*
+            Before going to step 4 we test if $b_k$ is linear dependent.
+            This is the case if $||N_k||<{1\over 2}$.
+            If we found a linear dependent vector $b_k$,
+            we shift $b_k$ to the last column of the
+            matrix and restart |lllfp| with $s:= s-1$.
+            */
+
+        /* fourth step: swap columns */
+        if (k > 0 &&
+            delta * R[k-1][k-1]*R[k-1][k-1] > R[k][k-1]*R[k-1][k] + R[k][k]*R[k][k]) {
+
+fprintf(stderr, "SWAP %d %d\n", k-1, k);
+            swapvl = b[k];
+            b[k] = b[k-1];
+            b[k-1] = swapvl;
+
+            //k = (k-1 > 1) ? k-1 : 1; /* $k = \max(k-1,1)$ */
+            k--;
+        } else {
+            k++;
+        }
+    }
+    mpz_clear(hv);
+    mpz_clear(musvl);
+    return(1);
+
+}
+
 /**
  * LLL-subroutines
  */
@@ -953,9 +1132,9 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
         i = b[j][0].p;
         while (i != 0) {
                 bb = &(b[k][i]);
-                mpz_submul(bb->c, b[j][i].c,musvl);
+                mpz_submul(bb->c, b[j][i].c, musvl);
                 iii = bb->p;
-                if ((b[k][i-1].p!=i)&&(mpz_sgn(bb->c)!=0))
+                if ((b[k][i-1].p != i) && (mpz_sgn(bb->c) != 0))
                     for (ii = i - 1; (ii >= 0) && (b[k][ii].p ==  iii); ii--) b[k][ii].p = i;
                 else if (mpz_sgn(bb->c) == 0) {
                     for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--) b[k][ii].p = iii;
@@ -965,7 +1144,7 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
 #if 0
         daxpy(j,-mus,mu[k],1,mu[j],1);
 #endif
-        for(i = 0; i < j; i++) mu[k][i] -= mu[j][i]*mus;
+        for (i = 0; i < j; i++) mu[k][i] -= mu[j][i]*mus;
 
     }
 }
@@ -978,12 +1157,13 @@ int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z) 
     (*c) = (DOUBLE*)calloc(s,sizeof(DOUBLE));
     (*N) = (DOUBLE*)calloc(s,sizeof(DOUBLE));
     (*mu) = (DOUBLE**)calloc(s,sizeof(DOUBLE*));
-    for(i = 0; i < s; i++) (*mu)[i] = (DOUBLE*)calloc(z,sizeof(DOUBLE));
+    for (i = 0; i < s; i++)
+        (*mu)[i] = (DOUBLE*)calloc(z, sizeof(DOUBLE));
 
     m = (z > s) ? z : s;
     (*bs) = (DOUBLE**)calloc(m,sizeof(DOUBLE*));
 
-    for (i = 0; i < m; i++) (*bs)[i] = (DOUBLE*)calloc(z,sizeof(DOUBLE));
+    for (i = 0; i < m; i++) (*bs)[i] = (DOUBLE*)calloc(z, sizeof(DOUBLE));
 
     return 1;
 }
@@ -1036,7 +1216,7 @@ void lll(coeff_t **b, int s, int z, DOUBLE quality) {
     int r;
 
     lllalloc(&mu, &c, &N, &bs, s, z);
-    r = lllfp(b, mu, c, N, bs, 1, s, z, quality);
+    r = lllHfp(b, mu, c, N, bs, 1, s, z, quality);
     lllfree(mu, c, N, bs, s);
 
     return;
@@ -1052,7 +1232,7 @@ DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality) {
     DOUBLE lD;
 
     lllalloc(&mu,&c,&N,&bs,s,z);
-    r = lllfp(b,mu,c,N,bs,1,s,z,quality);
+    r = lllHfp(b, mu, c, N, bs, 1, s, z, quality);
 
     lD = logD(b,c,s,z);
     fprintf(stderr, "   log(D)= %f\n", lD);
