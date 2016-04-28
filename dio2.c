@@ -1252,7 +1252,7 @@ DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality) {
             }
         }
 
-        r = lllfp(b,mu,c,N,bs,1,s,z,quality);
+        r = lllHfp(b,mu,c,N,bs,1,s,z,quality);
         lD = logD(b,c,s,z);
         fprintf(stderr, "%d: log(D)= %f\n", runs, lD);
         fflush(stdout);
@@ -1297,7 +1297,7 @@ DOUBLE bkz(coeff_t **b, int s, int z, DOUBLE delta, int beta, int p) {
     for (i = 0; i < s; i++) u[i] = 0;
 
     lllalloc(&mu,&c,&N,&bs,s,z);
-    lllfp(b,mu,c,N,bs,1,s,z,delta);
+    lllHfp(b,mu,c,N,bs,1,s,z,delta);
 
     start_block = zaehler = -1;
     while (zaehler < last) {
