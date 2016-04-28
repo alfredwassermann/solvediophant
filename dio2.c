@@ -855,17 +855,17 @@ int lllHfp(coeff_t **b, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
             int start, int s, int z, DOUBLE delta) {
 
     int i, j, k;
-    DOUBLE ss, x;
+    DOUBLE ss;
     DOUBLE zeta;
-    DOUBLE rkk, rii;
     DOUBLE beta[32768];
+    DOUBLE w_beta;
     DOUBLE w;
     DOUBLE bb;
     DOUBLE norm;
+    int mu_all_zero;
 
     DOUBLE mus;
     mpz_t musvl;
-    mpz_t sum_mu;
     mpz_t hv;
 
     coeff_t *swapvl;
@@ -879,7 +879,7 @@ fflush(stderr);
 
     mpz_init(musvl);
     mpz_init(hv);
-    mpz_init(sum_mu);
+    //mpz_init(sum_mu);
 
     /* Test for trivial cases. */
     if ((z <= 1) || (s <= 1)) {
@@ -918,8 +918,9 @@ start_tricol:
             for (j = i, w = 0.0; j < z; ++j) {
                 w += R[k][j] * H[i][j];
             }
+            w_beta = w * beta[i];
             for (j = 0; j < z; ++j) {
-                R[k][j] -= w * beta[i] * H[i][j];
+                R[k][j] -= w_beta * H[i][j];
             }
         }
         /* Now, R[k] is updated. */
@@ -940,14 +941,15 @@ start_tricol:
             ss += H[k][j] * H[k][j];
         }
         beta[k] = 2.0 / ss;
+        //fprintf(stderr, "beta %d: %lf, beta_s %lf\n", k, beta[k], bb);
 
         for (j = k, w = 0.0; j < z; ++j) {
             w += R[k][j] * H[k][j];
         }
-//fprintf(stderr, "beta %lf, beta_s %lf, w %lf\n", beta[k], bb, w);
 
+        w_beta = w * beta[k];
         for (j = k; j < z; ++j) {
-            R[k][j] -= beta[k] * w * H[k][j];
+            R[k][j] -= w_beta * H[k][j];
         }
 
 #if 0
@@ -982,21 +984,24 @@ for (i = 0; i < z; i++) {
 //if (k > 1)
 //    exit(1);
         /* third step: size reduction of $b_k$ */
-        mpz_set_si(sum_mu, 0);
+        mu_all_zero = 1;
         for (j = k - 1; j >= 0; j--) {
             ss = R[k][j] / R[j][j];
             if (fabs(ss) > ETACONST) {
                 mus = ROUND(ss);
 //fprintf(stderr, "mu %lf\n", mus);
                 mpz_set_d(musvl, mus);
-                mpz_add_ui(sum_mu, sum_mu, (unsigned long)abs(mus));
+                //mpz_add_ui(sum_mu, sum_mu, (unsigned long)abs(mus));
+                if (mpz_cmp_si(musvl, 0) != 0) {
+                    mu_all_zero = 0;
 
-                /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
-                size_reduction(b, R, musvl, mus, k, j);
-                solutiontest(k);
+                    /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
+                    size_reduction(b, R, musvl, mus, k, j);
+                    solutiontest(k);
+                }
             }
         }
-        if (mpz_cmp_si(sum_mu, 0) != 0) {
+        if (!mu_all_zero) {
 //            fprintf(stderr, "REDO tricol\n");
             goto start_tricol;
         }
