@@ -11,7 +11,7 @@
 #include "OpenBLAS/common.h"
 #include "OpenBLAS/cblas.h"
 
-#define BLAS 0
+#define BLAS 1
 #define DEEPINSERT 1
 #define DEEPINSERT_CONST 100
 #define VERBOSE 1
