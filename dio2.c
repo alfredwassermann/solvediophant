@@ -849,7 +849,7 @@ int lllHfp(coeff_t **b, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
     DOUBLE zeta;
     DOUBLE beta[32768];
     DOUBLE w_beta;
-    DOUBLE w;
+    DOUBLE w, x;
     DOUBLE norm;
     int mu_all_zero;
 
@@ -857,7 +857,7 @@ int lllHfp(coeff_t **b, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
     mpz_t musvl;
     mpz_t hv;
 
-    DOUBLE lhs, rhs;
+    DOUBLE rhs;
     coeff_t *swapvl;
 
 #if VERBOSE > 0
@@ -900,6 +900,34 @@ start_tricol:
             R[k][j] = (DOUBLE)mpz_get_d(b[k][j+1].c);
         }
 
+    #if BLAS
+        // Compute R[k]
+        for (i = 0; i < k; ++i) {
+            w = cblas_ddot(z - i, &(R[k][i]), 1, &(H[i][i]), 1);
+            w_beta = w * beta[i];
+            cblas_daxpy(z, -w_beta, &(H[i][0]), 1, &(R[k][0]), 1);
+        }
+        // |R[k]|
+        j = cblas_idamax(z - k, &(R[k][k]), 1);
+        zeta = fabs(R[k][k + j]);
+        cblas_dscal(z - k, 1 / zeta, &(R[k][k]), 1);
+        norm = zeta * cblas_dnrm2(z - k, &(R[k][k]), 1);
+        cblas_dscal(z - k, zeta, &(R[k][k]), 1);
+
+        // H[k] = R[k] / |R[k]|
+        cblas_dcopy(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
+        cblas_dscal(z - k, 1 / norm, &(H[k][k]), 1);
+
+        H[k][k] += (R[k][k] >= -eps) ? 1.0 : -1.0;
+        beta[k] = 1.0 / (1.0 + fabs(R[k][k]) / norm);
+
+        // w = <R[k], H[k]>
+        w = cblas_ddot(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
+        w_beta = w * beta[k];
+
+        // R[k] -= -w * beta * H[k]
+        cblas_daxpy(z - k, -w_beta, &(H[k][k]), 1, &(R[k][k]), 1);
+    #else
         for (i = 0; i < k; ++i) {
             for (j = i, w = 0.0; j < z; ++j) {
                 w += R[k][j] * H[i][j];
@@ -909,49 +937,36 @@ start_tricol:
                 R[k][j] -= w_beta * H[i][j];
             }
         }
-        /* Now, R[k] is updated. */
 
         // Norm of pivot column
-        for (j = k, norm = 0.0; j < z; ++j) {
-            norm += R[k][j] * R[k][j];
+        // Use zeta for stability
+        for (j = k, zeta = 0.0; j < z; ++j) {
+            if (fabs(R[k][j]) > zeta) {
+                zeta = fabs(R[k][j]);
+            }
         }
-        norm = sqrt(norm);
+        for (j = k, norm = 0.0; j < z; ++j) {
+            x = R[k][j] / zeta;
+            norm += x * x;
+        }
+        norm = zeta * sqrt(norm);
 
         for (j = k; j < z; ++j) {
             H[k][j] = R[k][j] / norm;
         }
-        H[k][k] += (R[k][k] >= -eps) ? 1.0 : -1.0;
 
+        H[k][k] += (R[k][k] >= -eps) ? 1.0 : -1.0;
         beta[k] = 1.0 / (1.0 + fabs(R[k][k]) / norm);
-        /*
-        for (j = k, ss = 0.0; j < z; ++j) {
-            ss += H[k][j] * H[k][j];
-        }
-        beta[k] = 2.0 / ss;
-        */
 
         for (j = k, w = 0.0; j < z; ++j) {
             w += R[k][j] * H[k][j];
         }
 
-/*
-if (fabs(beta[k] - bb) > eps) {
-    fprintf(stderr, "beta %lf, beta_s %lf, plus %lf\n", beta[k], bb,  (R[k][k] >= 0.0) ? 1.0 : -1.0);
-    for (j = 0; j < z; ++j) {
-        fprintf(stderr, "%0.4lf ", R[k][j]);
-    }
-    fprintf(stderr, "\n");
-    for (j = 0; j < z; ++j) {
-        fprintf(stderr, "%0.4lf ", H[k][j]);
-    }
-    fprintf(stderr, "\n");
-}
-*/
-
         w_beta = w * beta[k];
         for (j = k; j < z; ++j) {
             R[k][j] -= w_beta * H[k][j];
         }
+    #endif
 
         /* third step: size reduction of $b_k$ */
         mu_all_zero = 1;
@@ -1002,14 +1017,14 @@ if (fabs(beta[k] - bb) > eps) {
             }
             b[insert_pos] = swapvl;
 
-fprintf(stderr, "INSERT %d at %d\n", k, insert_pos);
+            fprintf(stderr, "INSERT %d at %d\n", k, insert_pos);
 
             k = insert_pos;
 #else
         if (k > 0 &&
             delta * R[k-1][k-1]*R[k-1][k-1] > R[k][k-1]*R[k][k-1] + R[k][k]*R[k][k]) {
 
-fprintf(stderr, "SWAP %d %d\n", k-1, k);
+            fprintf(stderr, "SWAP %d %d\n", k-1, k);
             swapvl = b[k];
             b[k] = b[k-1];
             b[k-1] = swapvl;
@@ -1073,7 +1088,7 @@ DOUBLE scalarproductlfp (coeff_t *v, coeff_t *w) {
 
 DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n) {
 #if BLAS
-    return cblas_ddot(n,v,1,w,1);
+    return cblas_ddot(n, v, 1, w, 1);
 #else
     DOUBLE r;
     int i;
@@ -1104,7 +1119,12 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
                 }
                 i = b[j][i].p;
         }
+    #if BLAS
+        cblas_daxpy(j, -1.0, mu[j], 1, mu[k], 1);
+    #else
         for (i = 0; i < j; i++) mu[k][i] -= mu[j][i];
+    #endif
+
         break;
 
     case -1:
@@ -1121,7 +1141,12 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
                 }
                 i = b[j][i].p;
         }
-        for(i=0;i<j;i++) mu[k][i] += mu[j][i];
+
+    #if BLAS
+        cblas_daxpy(j, 1.0, mu[j], 1, mu[k], 1);
+    #else
+        for(i = 0; i < j; i++) mu[k][i] += mu[j][i];
+    #endif
         break;
 
     default:
@@ -1138,10 +1163,11 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
                 }
                 i = b[j][i].p;
         }
-#if 0
-        daxpy(j,-mus,mu[k],1,mu[j],1);
-#endif
+    #if BLAS
+        cblas_daxpy(j, -mus, mu[j], 1, mu[k], 1);
+    #else
         for (i = 0; i < j; i++) mu[k][i] -= mu[j][i]*mus;
+    #endif
 
     }
 }
