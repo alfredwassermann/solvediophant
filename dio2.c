@@ -20,7 +20,7 @@
 #define LASTLINESFACTOR "1000000" /* "100000000" */
 #define EPSILON 0.000001      /* 0.0001  */
 #define LLLCONST_LOW  0.70 /* 0.75*/
-#define LLLCONST_HIGH 0.90    /* 0.99 */
+#define LLLCONST_HIGH 0.99    /* 0.99 */
 #define LLLCONST_HIGHER 0.999
 #define ETACONST 0.51
 
@@ -996,20 +996,28 @@ start_tricol:
             matrix and restart |lllfp| with $s:= s-1$.
         */
         /* fourth step: swap columns */
-        rhs = R[k][k]*R[k][k];
+    #if DEEPINSERT
+        #if BLAS
+            rhs = cblas_ddot(k + 1, R[k], 1, R[k], 1);
+        #else
+            for (j = 0, rhs = 0.0; j <= k; ++j) {
+                rhs += R[k][j]*R[k][j];
+            }
+        #endif
+        j = 0;
+    #else
         j = k - 1;
+        rhs = R[k][j]*R[k][j];
+    #endif
+
         insert_pos = k;
-        while (j >= 0) {
-            rhs += R[k][j]*R[k][j];
+        while (j < k) {
             if (delta * R[j][j]*R[j][j] > rhs) {
                 insert_pos = j;
-            } else {
                 break;
             }
-#if !DEEPINSERT
-            break;
-#endif
-            j--;
+            rhs -= R[k][j]*R[k][j];
+            j++;
         }
 
         if (insert_pos < k) {
