@@ -999,7 +999,6 @@ start_tricol:
             matrix and restart |lllfp| with $s:= s-1$.
         */
         /* fourth step: swap columns */
-#if DEEPINSERT
         rhs = R[k][k]*R[k][k];
         j = k - 1;
         insert_pos = k;
@@ -1010,6 +1009,9 @@ start_tricol:
             } else {
                 break;
             }
+#if !DEEPINSERT
+            break;
+#endif
             j--;
         }
 
@@ -1021,19 +1023,7 @@ start_tricol:
             b[insert_pos] = swapvl;
 
             fprintf(stderr, "INSERT %d at %d\n", k, insert_pos);
-
             k = insert_pos;
-#else
-        if (k > 0 &&
-            delta * R[k-1][k-1]*R[k-1][k-1] > R[k][k-1]*R[k][k-1] + R[k][k]*R[k][k]) {
-
-            fprintf(stderr, "SWAP %d %d\n", k-1, k);
-            swapvl = b[k];
-            b[k] = b[k-1];
-            b[k-1] = swapvl;
-
-            k--;
-#endif
         } else {
             k++;
         }
