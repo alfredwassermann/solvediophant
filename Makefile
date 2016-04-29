@@ -17,6 +17,7 @@ CFLAGS= -O3 -Wall -ffast-math \
 
 #CFLAGS= -g -Wall
 
+VIMFLAGS=-c 'set printoptions=number:y' -c 'set printfont=Courier:h9'
 #ASSEMBLERLIB=/usr/lib/openblas-base/libblas.a
 ASSEMBLERLIB=./OpenBLAS/libopenblas.a
 #ASSEMBLERLIB=
@@ -37,8 +38,20 @@ sd2: sd2.o dio2.o gls.o
 
 dio2.pdf: dio2.c
 	#vim -c 'set printfont=DejaVu\ Sans\ Mono:h9' -c 'set printoptions=number:y' -c 'hardcopy > dio2.ps' -c quit dio2.c
-	vim -c 'set printoptions=number:y' -c 'hardcopy > dio2.ps' -c quit dio2.c
+	vim $(VIMFLAGS) -c 'hardcopy > dio2.ps' -c quit dio2.c
 	ps2pdf dio2.ps
+	rm dio2.ps
+
+sd2.pdf: sd2.c
+	vim $(VIMFLAGS) -c 'hardcopy > sd2.ps' -c quit sd2.c
+	ps2pdf sd2.ps
+	rm sd2.ps
+
+gls.pdf: gls.c
+	vim $(VIMFLAGS) -c 'hardcopy > gls.ps' -c quit gls.c
+	ps2pdf gls.ps
+	rm gls.ps
+
 
 clean:
 	rm *.o
