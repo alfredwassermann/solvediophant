@@ -19,7 +19,7 @@
 #define GIVENS 1
 #define LASTLINESFACTOR "1000000" /* "100000000" */
 #define EPSILON 0.000001      /* 0.0001  */
-#define LLLCONST_LOW  0.7 /* 0.75*/
+#define LLLCONST_LOW  0.60 /* 0.75*/
 #define LLLCONST_HIGH 0.90    /* 0.99 */
 #define LLLCONST_HIGHER 0.999
 #define ETACONST 0.51
@@ -859,8 +859,8 @@ int lllHfp(coeff_t **b, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
     DOUBLE zeta;
     DOUBLE rkk, rii;
     DOUBLE beta[32768];
+    double bb;
     DOUBLE w;
-    DOUBLE bb;
     DOUBLE norm;
 
     DOUBLE mus;
@@ -870,8 +870,8 @@ int lllHfp(coeff_t **b, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
 
     coeff_t *swapvl;
 
-#if VERBOSE > 3
-    int counter;
+#if VERBOSE > 0
+    int counter = 0;
 #endif
 
 fprintf(stderr, "------------------------NEW LLLHfp-----------------------------\n");
@@ -892,13 +892,9 @@ fflush(stderr);
     //if (k < 1) k = 1;
     k = 0;
 
-#if VERBOSE > 3
-    counter = 0;
-#endif
-
     /* The main loop */
     while (k < s) {
-#if VERBOSE > 3
+#if VERBOSE > 0
         if ((counter % 500) == 0) {
             fprintf(stderr, "LLL_H: %d k:%d\n", counter, k);
             fflush(stderr);
@@ -906,7 +902,7 @@ fflush(stderr);
         counter++;
 #endif
 
-//fprintf(stderr, "\nk %d\n", k);
+fprintf(stderr, "\nk %d\n", k);
 start_tricol:
 
         /* Recompute column k of R */
@@ -933,7 +929,7 @@ start_tricol:
         for (j = k; j < z; ++j) {
             H[k][j] = R[k][j] / norm;
         }
-        H[k][k] += (R[k][k] >= 0.0) ? 1 : -1;
+        H[k][k] += (R[k][k] >= 0.0) ? 1.0 : -1.0;
 
         bb = 1.0 / (1.0 + abs(R[k][k]) / norm);
         for (j = k, ss = 0.0; j < z; ++j) {
@@ -944,7 +940,13 @@ start_tricol:
         for (j = k, w = 0.0; j < z; ++j) {
             w += R[k][j] * H[k][j];
         }
-//fprintf(stderr, "beta %lf, beta_s %lf, w %lf\n", beta[k], bb, w);
+fprintf(stderr, "beta %lf, beta_s %lf, w %lf\n", beta[k], bb, w);
+if (beta[k] != bb) {
+    for (j = 0; j < z; ++j) {
+        fprintf(stderr, "%0.4lf ", H[i][j]);
+    }
+    fprintf(stderr, "\n");
+}
 
         for (j = k; j < z; ++j) {
             R[k][j] -= beta[k] * w * H[k][j];
@@ -966,7 +968,7 @@ for (i = 0; i <=k; i++) {
     }
     fprintf(stderr, "\n");
 }
-/*
+
 for (i = 0; i < z; i++) {
     for (j = 0; j < z; ++j) {
         if (i == j)
@@ -976,7 +978,7 @@ for (i = 0; i < z; i++) {
     }
     fprintf(stderr, "\n");
 }
-*/
+
 #endif
 
 //if (k > 1)
@@ -997,7 +999,7 @@ for (i = 0; i < z; i++) {
             }
         }
         if (mpz_cmp_si(sum_mu, 0) != 0) {
-//            fprintf(stderr, "REDO tricol\n");
+            fprintf(stderr, "REDO tricol\n");
             goto start_tricol;
         }
 
@@ -1012,7 +1014,7 @@ for (i = 0; i < z; i++) {
 
         /* fourth step: swap columns */
         if (k > 0 &&
-            delta * R[k-1][k-1]*R[k-1][k-1] > R[k][k-1]*R[k][k-1] + R[k][k]*R[k][k]) {
+            delta * R[k-1][k-1]*R[k-1][k-1] > R[k][k-1]*R[k-1][k] + R[k][k]*R[k][k]) {
 
 fprintf(stderr, "SWAP %d %d\n", k-1, k);
             swapvl = b[k];
@@ -1126,7 +1128,7 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
                 }
                 i = b[j][i].p;
         }
-        for (i = 0; i < j; i++) mu[k][i] += mu[j][i];
+        for(i=0;i<j;i++) mu[k][i] += mu[j][i];
         break;
 
     default:
@@ -1146,7 +1148,7 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
 #if 0
         daxpy(j,-mus,mu[k],1,mu[j],1);
 #endif
-        for (i = 0; i < j; i++) mu[k][i] -= mu[j][i] * mus;
+        for (i = 0; i < j; i++) mu[k][i] -= mu[j][i]*mus;
 
     }
 }
@@ -1156,9 +1158,9 @@ int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z) 
 
     if ((z < 1) || (s < 1)) return 0;
 
-    (*c) = (DOUBLE*)calloc(s, sizeof(DOUBLE));
-    (*N) = (DOUBLE*)calloc(s, sizeof(DOUBLE));
-    (*mu) = (DOUBLE**)calloc(z, sizeof(DOUBLE*));
+    (*c) = (DOUBLE*)calloc(s,sizeof(DOUBLE));
+    (*N) = (DOUBLE*)calloc(s,sizeof(DOUBLE));
+    (*mu) = (DOUBLE**)calloc(s,sizeof(DOUBLE*));
     for (i = 0; i < s; i++)
         (*mu)[i] = (DOUBLE*)calloc(z, sizeof(DOUBLE));
 
