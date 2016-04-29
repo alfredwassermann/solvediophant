@@ -19,8 +19,8 @@
 #define GIVENS 1
 #define LASTLINESFACTOR "1000000" /* "100000000" */
 #define EPSILON 0.000001      /* 0.0001  */
-#define LLLCONST_LOW  0.60 /* 0.75*/
-#define LLLCONST_HIGH 0.90    /* 0.99 */
+#define LLLCONST_LOW  0.70 /* 0.75*/
+#define LLLCONST_HIGH 0.92    /* 0.99 */
 #define LLLCONST_HIGHER 0.999
 #define ETACONST 0.51
 
@@ -51,9 +51,6 @@ int cut_after_coeff;
 long stop_after_solutions;
 long stop_after_loops;
 long nosolutions;
-//int iterate;
-//int no_iterates;
-//int bkz_beta, bkz_p;
 int SILENT;
 int nboundvars;
 
@@ -95,14 +92,6 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params,
     mpz_init(soltest_s);
     mpz_init_set_ui(soltest_upfac, 1);
 
-    /*
-    if (LLL_params->iterate) {
-        no_iterates = LLL_params->iterate_no;
-    } else {
-        bkz_beta = LLL_params->bkz.beta;
-        bkz_p = LLL_params->bkz.p;
-    }
-    */
     SILENT = silent;
     stop_after_solutions = stop_after_sol_input;
     stop_after_loops = stop_after_loops_input;
@@ -998,24 +987,24 @@ if (fabs(beta[k] - bb) > eps) {
 #if DEEPINSERT
         rhs = R[k][k]*R[k][k];
         j = k - 1;
-        int insert_at = k;
+        int insert_pos = k;
         while (j >= 0) {
             rhs += R[k][j]*R[k][j];
             if (delta * R[j][j]*R[j][j] > rhs) {
-                insert_at = j;
+                insert_pos = j;
             }
-            i--;
+            j--;
         }
-        if (insert_at < k) {
+        if (insert_pos < k) {
             swapvl = b[k];
-            for (j = insert_at; j < k; ++j) {
-                b[j + 1] = b[j];
+            for (j = k; j > insert_pos; --j) {
+                b[j] = b[j - 1];
             }
-            b[insert_at] = swapvl;
+            b[insert_pos] = swapvl;
 
-            fprintf(stderr, "INSERT %d %d\n", insert_at, k);
+fprintf(stderr, "INSERT %d at %d\n", k, insert_pos);
 
-            k = insert_at;
+            k = insert_pos;
 #else
         if (k > 0 &&
             delta * R[k-1][k-1]*R[k-1][k-1] > R[k][k-1]*R[k][k-1] + R[k][k]*R[k][k]) {
@@ -1247,6 +1236,7 @@ DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality) {
     fflush(stderr);
 
     for (runs = 1; runs < no_iterates; runs++) {
+#if 0
         for (j = s - 1; j > 0; j--) {
             for (l = j - 1; l >= 0; l--) {
                 /*|if (N[l] < N[j]) {|*/    /* $<$ sorts 'in descending order.' */
@@ -1257,9 +1247,18 @@ DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality) {
                 }
             }
         }
-
-        r = lllHfp(b,mu,c,N,bs,1,s,z,quality);
-        lD = logD(b,c,s,z);
+#endif
+        // Shuffle
+        for (j = 0; j < 100; j++) {
+            for (i = s - 1; i > 0; i--) {
+                r = rand() % i;
+                swapvl = b[i];
+                b[i] = b[r];
+                b[r] = swapvl;
+            }
+        }
+        r = lllHfp(b, mu, c, N, bs, 1, s, z, quality);
+        lD = logD(b, c, s, z);
         fprintf(stderr, "%d: log(D)= %f\n", runs, lD);
         fflush(stdout);
     }
@@ -2319,7 +2318,7 @@ void shufflelattice() {
     srand(s);
 
     for (j = 0; j < 100; j++) {
-        for(i=lattice_columns-2; i>0; i--) {
+        for (i = lattice_columns - 2; i > 0; i--) {
             r = rand() % i;
             tmp = lattice[r];
             lattice[r] = lattice[i];

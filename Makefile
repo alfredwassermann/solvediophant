@@ -35,5 +35,10 @@ all: sd2
 sd2: sd2.o dio2.o gls.o
 	$(CC) $(CFLAGS) -o sd2 sd2.o dio2.o gls.o $(ASSEMBLERLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
 
+dio2.pdf: dio2.c
+	#vim -c 'set printfont=DejaVu\ Sans\ Mono:h9' -c 'set printoptions=number:y' -c 'hardcopy > dio2.ps' -c quit dio2.c
+	vim -c 'set printoptions=number:y' -c 'hardcopy > dio2.ps' -c quit dio2.c
+	ps2pdf dio2.ps
+
 clean:
 	rm *.o
