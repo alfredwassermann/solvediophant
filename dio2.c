@@ -20,7 +20,7 @@
 #define LASTLINESFACTOR "1000000" /* "100000000" */
 #define EPSILON 0.000001      /* 0.0001  */
 #define LLLCONST_LOW  0.70 /* 0.75*/
-#define LLLCONST_HIGH 0.92    /* 0.99 */
+#define LLLCONST_HIGH 0.99    /* 0.99 */
 #define LLLCONST_HIGHER 0.999
 #define ETACONST 0.51
 
@@ -976,7 +976,6 @@ start_tricol:
             if (fabs(mu) > ETACONST) {
                 mus = ROUND(mu);
                 mpz_set_d(musvl, mus);
-                //mpz_add_ui(sum_mu, sum_mu, (unsigned long)abs(mus));
                 if (mpz_cmp_si(musvl, 0) != 0) {
                     mu_all_zero = 0;
 

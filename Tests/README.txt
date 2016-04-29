@@ -9,7 +9,7 @@
 0/1 problem, 2 solutions 
 ./solvediophant -bkz -beta100 -p40 Tests/KM_PSL_2_23_7_8.in
 
-* unitals_v1.txt, unitals_v1.txt:
+* unitals_v1.txt:
 0/1 problems, 78 solutions
 
 * n8_279.txt:
