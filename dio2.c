@@ -277,7 +277,7 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params,
         lattice[i] = lattice[i-1];
     lattice[0] = swap_vec;
 
-#if 1
+#if 0
     printf("After permute\n");
     print_lattice();
 #endif
@@ -855,14 +855,11 @@ int lllHfp(coeff_t **b, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
             int start, int s, int z, DOUBLE delta) {
 
     int i, j, k;
-    DOUBLE ss;
+    DOUBLE eps = 0.0000000001;
+    DOUBLE mu;
     DOUBLE zeta;
     DOUBLE beta[32768];
-<<<<<<< HEAD
-    double bb;
-=======
     DOUBLE w_beta;
->>>>>>> 53a617b74dc091627203f748447ea7c52ef16689
     DOUBLE w;
     DOUBLE norm;
     int mu_all_zero;
@@ -871,6 +868,7 @@ int lllHfp(coeff_t **b, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
     mpz_t musvl;
     mpz_t hv;
 
+    DOUBLE lhs, rhs;
     coeff_t *swapvl;
 
 #if VERBOSE > 0
@@ -905,7 +903,7 @@ fflush(stderr);
         counter++;
 #endif
 
-fprintf(stderr, "\nk %d\n", k);
+//fprintf(stderr, "\nk %d\n", k);
 start_tricol:
 
         /* Recompute column k of R */
@@ -933,70 +931,45 @@ start_tricol:
         for (j = k; j < z; ++j) {
             H[k][j] = R[k][j] / norm;
         }
-        H[k][k] += (R[k][k] >= 0.0) ? 1.0 : -1.0;
+        H[k][k] += (R[k][k] >= -eps) ? 1.0 : -1.0;
 
-        bb = 1.0 / (1.0 + abs(R[k][k]) / norm);
+        beta[k] = 1.0 / (1.0 + fabs(R[k][k]) / norm);
+        /*
         for (j = k, ss = 0.0; j < z; ++j) {
             ss += H[k][j] * H[k][j];
         }
         beta[k] = 2.0 / ss;
-        //fprintf(stderr, "beta %d: %lf, beta_s %lf\n", k, beta[k], bb);
+        */
 
         for (j = k, w = 0.0; j < z; ++j) {
             w += R[k][j] * H[k][j];
         }
 
-fprintf(stderr, "beta %lf, beta_s %lf, w %lf\n", beta[k], bb, w);
-if (beta[k] != bb) {
+/*
+if (fabs(beta[k] - bb) > eps) {
+    fprintf(stderr, "beta %lf, beta_s %lf, plus %lf\n", beta[k], bb,  (R[k][k] >= 0.0) ? 1.0 : -1.0);
     for (j = 0; j < z; ++j) {
-        fprintf(stderr, "%0.4lf ", H[i][j]);
+        fprintf(stderr, "%0.4lf ", R[k][j]);
+    }
+    fprintf(stderr, "\n");
+    for (j = 0; j < z; ++j) {
+        fprintf(stderr, "%0.4lf ", H[k][j]);
     }
     fprintf(stderr, "\n");
 }
+*/
 
         w_beta = w * beta[k];
         for (j = k; j < z; ++j) {
             R[k][j] -= w_beta * H[k][j];
         }
 
-#if 0
-fprintf(stderr, "H\n");
-for (i = 0; i <=k; i++) {
-    for (j = 0; j < z; ++j) {
-        fprintf(stderr, "%0.4lf ", H[i][j]);
-    }
-    fprintf(stderr, "\n");
-}
-
-fprintf(stderr, "R\n");
-for (i = 0; i <=k; i++) {
-    for (j = 0; j < z; ++j) {
-        fprintf(stderr, "%0.4lf ", R[i][j]);
-    }
-    fprintf(stderr, "\n");
-}
-
-for (i = 0; i < z; i++) {
-    for (j = 0; j < z; ++j) {
-        if (i == j)
-            fprintf(stderr, "%0.4lf ", 1 - beta[k] * H[k][i] * H[k][j]);
-        else
-            fprintf(stderr, "%0.4lf ", 0 - beta[k] * H[k][i] * H[k][j]);
-    }
-    fprintf(stderr, "\n");
-}
-
-#endif
-
-//if (k > 1)
-//    exit(1);
         /* third step: size reduction of $b_k$ */
         mu_all_zero = 1;
         for (j = k - 1; j >= 0; j--) {
-            ss = R[k][j] / R[j][j];
-            if (fabs(ss) > ETACONST) {
-                mus = ROUND(ss);
-//fprintf(stderr, "mu %lf\n", mus);
+            mu = R[k][j] / R[j][j];
+            if (fabs(mu) > ETACONST) {
+                mus = ROUND(mu);
                 mpz_set_d(musvl, mus);
                 //mpz_add_ui(sum_mu, sum_mu, (unsigned long)abs(mus));
                 if (mpz_cmp_si(musvl, 0) != 0) {
@@ -1008,36 +981,52 @@ for (i = 0; i < z; i++) {
                 }
             }
         }
-<<<<<<< HEAD
-        if (mpz_cmp_si(sum_mu, 0) != 0) {
-            fprintf(stderr, "REDO tricol\n");
-=======
         if (!mu_all_zero) {
 //            fprintf(stderr, "REDO tricol\n");
->>>>>>> 53a617b74dc091627203f748447ea7c52ef16689
             goto start_tricol;
         }
 
 
-            /*
+        /*
             Before going to step 4 we test if $b_k$ is linear dependent.
             This is the case if $||N_k||<{1\over 2}$.
             If we found a linear dependent vector $b_k$,
             we shift $b_k$ to the last column of the
             matrix and restart |lllfp| with $s:= s-1$.
-            */
-
+        */
         /* fourth step: swap columns */
+#if DEEPINSERT
+        rhs = R[k][k]*R[k][k];
+        j = k - 1;
+        int insert_at = k;
+        while (j >= 0) {
+            rhs += R[k][j]*R[k][j];
+            if (delta * R[j][j]*R[j][j] > rhs) {
+                insert_at = j;
+            }
+            i--;
+        }
+        if (insert_at < k) {
+            swapvl = b[k];
+            for (j = insert_at; j < k; ++j) {
+                b[j + 1] = b[j];
+            }
+            b[insert_at] = swapvl;
+
+            fprintf(stderr, "INSERT %d %d\n", insert_at, k);
+
+            k = insert_at;
+#else
         if (k > 0 &&
-            delta * R[k-1][k-1]*R[k-1][k-1] > R[k][k-1]*R[k-1][k] + R[k][k]*R[k][k]) {
+            delta * R[k-1][k-1]*R[k-1][k-1] > R[k][k-1]*R[k][k-1] + R[k][k]*R[k][k]) {
 
 fprintf(stderr, "SWAP %d %d\n", k-1, k);
             swapvl = b[k];
             b[k] = b[k-1];
             b[k-1] = swapvl;
 
-            //k = (k-1 > 1) ? k-1 : 1; /* $k = \max(k-1,1)$ */
             k--;
+#endif
         } else {
             k++;
         }
