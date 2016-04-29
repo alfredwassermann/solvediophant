@@ -858,6 +858,7 @@ int lllHfp(coeff_t **b, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
     mpz_t hv;
 
     DOUBLE rhs;
+    int insert_pos;
     coeff_t *swapvl;
 
 #if VERBOSE > 0
@@ -1002,14 +1003,17 @@ start_tricol:
 #if DEEPINSERT
         rhs = R[k][k]*R[k][k];
         j = k - 1;
-        int insert_pos = k;
+        insert_pos = k;
         while (j >= 0) {
             rhs += R[k][j]*R[k][j];
             if (delta * R[j][j]*R[j][j] > rhs) {
                 insert_pos = j;
+            } else {
+                break;
             }
             j--;
         }
+
         if (insert_pos < k) {
             swapvl = b[k];
             for (j = k; j > insert_pos; --j) {
