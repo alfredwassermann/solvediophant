@@ -976,20 +976,17 @@ start_tricol:
             if (fabs(mu) > ETACONST) {
                 mus = ROUND(mu);
                 mpz_set_d(musvl, mus);
-                if (mpz_cmp_si(musvl, 0) != 0) {
-                    mu_all_zero = 0;
+                mu_all_zero = 0;
 
-                    /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
-                    size_reduction(b, R, musvl, mus, k, j);
-                    solutiontest(k);
-                }
+                /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
+                size_reduction(b, R, musvl, mus, k, j);
+                solutiontest(k);
             }
         }
         if (!mu_all_zero) {
-//            fprintf(stderr, "REDO tricol\n");
+            // fprintf(stderr, "REDO tricol\n");
             goto start_tricol;
         }
-
 
         /*
             Before going to step 4 we test if $b_k$ is linear dependent.
