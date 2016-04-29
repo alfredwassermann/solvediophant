@@ -20,7 +20,7 @@
 #define LASTLINESFACTOR "1000000" /* "100000000" */
 #define EPSILON 0.000001      /* 0.0001  */
 #define LLLCONST_LOW  0.70 /* 0.75*/
-#define LLLCONST_HIGH 0.99    /* 0.99 */
+#define LLLCONST_HIGH 0.90    /* 0.99 */
 #define LLLCONST_HIGHER 0.999
 #define ETACONST 0.51
 
@@ -984,7 +984,7 @@ start_tricol:
             }
         }
         if (!mu_all_zero) {
-            // fprintf(stderr, "REDO tricol\n");
+            //fprintf(stderr, "REDO tricol\n");
             goto start_tricol;
         }
 
