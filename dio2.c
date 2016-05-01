@@ -19,8 +19,8 @@
 #define GIVENS 1
 #define LASTLINESFACTOR "1000000" /* "100000000" */
 #define EPSILON 0.000001      /* 0.0001  */
-#define LLLCONST_LOW  0.70 /* 0.75*/
-#define LLLCONST_HIGH 0.99    /* 0.99 */
+#define LLLCONST_LOW  0.72 /* 0.75*/
+#define LLLCONST_HIGH 0.90    /* 0.99 */
 #define LLLCONST_HIGHER 0.999
 #define ETACONST 0.51
 
@@ -886,7 +886,7 @@ fflush(stderr);
     /* The main loop */
     while (k < s) {
 #if VERBOSE > 0
-        if ((counter % 500) == 0) {
+        if ((counter % 10000) == 0) {
             fprintf(stderr, "LLL_H: %d k:%d\n", counter, k);
             fflush(stderr);
         }
@@ -1027,7 +1027,7 @@ start_tricol:
             }
             b[insert_pos] = swapvl;
 
-            fprintf(stderr, "INSERT %d at %d\n", k, insert_pos);
+            //fprintf(stderr, "INSERT %d at %d\n", k, insert_pos);
             k = insert_pos;
         } else {
             k++;
@@ -1850,7 +1850,9 @@ DOUBLE explicit_enumeration(coeff_t **lattice, int columns, int rows) {
                     goto side_step;
                 }
 
+                ++hoelder_no;
                 if (prune(w[level], cs[level], rows, Fqeps)) {
+                    ++hoelder_success;
                     if (eta[level] == 1) {
                         goto step_back;
                     }
