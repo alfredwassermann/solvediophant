@@ -19,7 +19,7 @@
 #define GIVENS 1
 #define LASTLINESFACTOR "1000000" /* "100000000" */
 #define EPSILON 0.000001      /* 0.0001  */
-#define LLLCONST_LOW  0.72 /* 0.75*/
+#define LLLCONST_LOW  0.75 /* 0.75*/
 #define LLLCONST_HIGH 0.90    /* 0.99 */
 #define LLLCONST_HIGHER 0.999
 #define ETACONST 0.51
@@ -276,7 +276,7 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params,
      */
     mpz_set_ui(lastlines_factor, 1);
     fprintf(stderr, "\n"); fflush(stderr);
-    lll(lattice,lattice_columns-1,lattice_rows,LLLCONST_LOW);
+    lll(lattice, lattice_columns-1, lattice_rows, LLLCONST_LOW);
 
 #if 1
     printf("After first reduction\n");
@@ -841,7 +841,7 @@ if (c[k] < EPSILON) {
 }
 
 int lllHfp(coeff_t **b, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
-            int start, int s, int z, DOUBLE delta) {
+            int start, int s, int z, DOUBLE delta, int deepinsert_blocksize) {
 
     int i, j, k;
     DOUBLE eps = 0.0000000001;
@@ -865,8 +865,9 @@ int lllHfp(coeff_t **b, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
     int counter = 0;
 #endif
 
-fprintf(stderr, "------------------------NEW LLLHfp-----------------------------\n");
-fflush(stderr);
+    fprintf(stderr, "----------------NEW LLLHfp-----------------------------\n");
+    fprintf(stderr, "deepinsert: %d\n", deepinsert_blocksize);
+    fflush(stderr);
 
     mpz_init(musvl);
     mpz_init(hv);
@@ -996,19 +997,19 @@ start_tricol:
             matrix and restart |lllfp| with $s:= s-1$.
         */
         /* fourth step: swap columns */
-    #if DEEPINSERT
-        #if BLAS
-            rhs = cblas_ddot(k + 1, R[k], 1, R[k], 1);
-        #else
-            for (j = 0, rhs = 0.0; j <= k; ++j) {
-                rhs += R[k][j]*R[k][j];
-            }
-        #endif
-        j = 0;
-    #else
-        j = k - 1;
-        rhs = R[k][j]*R[k][j];
-    #endif
+        if (deepinsert_blocksize > 0) {
+            j = 0;
+            #if BLAS
+                rhs = cblas_ddot(k + 1, R[k], 1, R[k], 1);
+            #else
+                for (j = 0, rhs = 0.0; j <= k; ++j) {
+                    rhs += R[k][j] * R[k][j];
+                }
+            #endif
+        } else {
+            j = (k > 0) ? k - 1 : 0;
+            rhs = R[k][k] * R[k][k] + R[k][j] * R[k][j];
+        }
 
         insert_pos = k;
         while (j < k) {
@@ -1237,7 +1238,7 @@ void lll(coeff_t **b, int s, int z, DOUBLE quality) {
     int r;
 
     lllalloc(&mu, &c, &N, &bs, s, z);
-    r = lllHfp(b, mu, c, N, bs, 1, s, z, quality);
+    r = lllHfp(b, mu, c, N, bs, 1, s, z, quality, -1);
     lllfree(mu, c, N, bs, s);
 
     return;
@@ -1253,7 +1254,7 @@ DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality) {
     DOUBLE lD;
 
     lllalloc(&mu,&c,&N,&bs,s,z);
-    r = lllHfp(b, mu, c, N, bs, 1, s, z, quality);
+    r = lllHfp(b, mu, c, N, bs, 1, s, z, quality, DEEPINSERT);
 
     lD = logD(b,c,s,z);
     fprintf(stderr, "   log(D)= %f\n", lD);
@@ -1281,7 +1282,7 @@ DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality) {
                 b[r] = swapvl;
             }
         }
-        r = lllHfp(b, mu, c, N, bs, 1, s, z, quality);
+        r = lllHfp(b, mu, c, N, bs, 1, s, z, quality, DEEPINSERT);
         lD = logD(b, c, s, z);
         fprintf(stderr, "%d: log(D)= %f\n", runs, lD);
         fflush(stdout);
@@ -1326,7 +1327,7 @@ DOUBLE bkz(coeff_t **b, int s, int z, DOUBLE delta, int beta, int p) {
     for (i = 0; i < s; i++) u[i] = 0;
 
     lllalloc(&mu,&c,&N,&bs,s,z);
-    lllHfp(b,mu,c,N,bs,1,s,z,delta);
+    lllHfp(b, mu, c, N, bs, 1, s, z, delta, -1);
 
     start_block = zaehler = -1;
     while (zaehler < last) {
