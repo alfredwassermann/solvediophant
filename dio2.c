@@ -276,7 +276,7 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params,
      */
     mpz_set_ui(lastlines_factor, 1);
     fprintf(stderr, "\n"); fflush(stderr);
-    lll(lattice, lattice_columns-1, lattice_rows, LLLCONST_LOW);
+    lll(lattice, lattice_columns-1, lattice_rows, LLLCONST_LOW, 0);
 
 #if 1
     printf("After first reduction\n");
@@ -298,12 +298,12 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params,
 #endif
 
 #if 1
-    //shufflelattice();
+    shufflelattice();
     /**
      * second reduction
      */
     mpz_set_ui(lastlines_factor, 1);
-    lll(lattice, lattice_columns-1, lattice_rows, LLLCONST_HIGH);
+    lll(lattice, lattice_columns-1, lattice_rows, LLLCONST_HIGH, 0);
     fprintf(stderr, "Second reduction successful\n"); fflush(stderr);
 #endif
 
@@ -335,7 +335,7 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params,
      */
     fprintf(stderr, "\n"); fflush(stderr);
     if (LLL_params->iterate) {
-        iteratedlll(lattice, lattice_columns-1, lattice_rows, LLL_params->iterate_no, LLLCONST_HIGH);
+        iteratedlll(lattice, lattice_columns-1, lattice_rows, LLL_params->iterate_no, LLLCONST_HIGH, DEEPINSERT_CONST);
     } else {
         shufflelattice();
         lDnew = bkz(lattice, lattice_columns, lattice_rows, LLLCONST_HIGHER,
@@ -988,6 +988,9 @@ start_tricol:
             //fprintf(stderr, "REDO tricol\n");
             goto start_tricol;
         }
+        if (0) {
+            check_precision(b[k], R[k], z, k);
+        }
 
         /*
             Before going to step 4 we test if $b_k$ is linear dependent.
@@ -1095,6 +1098,26 @@ DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n) {
     for (i = n - 1; i >= 0; i--) r += v[i] * w[i];
     return r;
 #endif
+}
+
+void check_precision(coeff_t *b, DOUBLE *R, int z, int k) {
+    int j;
+    mpz_t b_norm;
+    DOUBLE r_norm;
+
+    mpz_init(b_norm);
+    for (j = 0, r_norm = 0.0; j < z; ++j) {
+        mpz_addmul(b_norm, b[j+1].c, b[j+1].c);
+    }
+    for (j = 0, r_norm = 0.0; j <= k; ++j) {
+        r_norm += R[j] * R[j];
+    }
+    if (fabs(mpz_get_d(b_norm) - r_norm) > 0.1) {
+        fprintf(stderr, "precision check fails at %d: ", k);
+        mpz_out_str(stderr, 10, b_norm);
+        fprintf(stderr, " %lf\n", r_norm);
+        fflush(stderr);
+    }
 }
 
 void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, int j) {
@@ -1230,7 +1253,7 @@ double orthogonal_defect(coeff_t **lattice, DOUBLE *c, int s, int z) {
 /**
  * LLL variants
  */
-void lll(coeff_t **b, int s, int z, DOUBLE quality) {
+void lll(coeff_t **b, int s, int z, DOUBLE quality, int deepinsert_blocksize) {
     DOUBLE **mu;
     DOUBLE *c;
     DOUBLE *N;
@@ -1238,13 +1261,13 @@ void lll(coeff_t **b, int s, int z, DOUBLE quality) {
     int r;
 
     lllalloc(&mu, &c, &N, &bs, s, z);
-    r = lllHfp(b, mu, c, N, bs, 1, s, z, quality, -1);
+    r = lllHfp(b, mu, c, N, bs, 1, s, z, quality, deepinsert_blocksize);
     lllfree(mu, c, N, bs, s);
 
     return;
 }
 
-DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality) {
+DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality, int deepinsert_blocksize) {
     DOUBLE **mu;
     DOUBLE *c;
     DOUBLE *N;
@@ -1254,7 +1277,7 @@ DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality) {
     DOUBLE lD;
 
     lllalloc(&mu,&c,&N,&bs,s,z);
-    r = lllHfp(b, mu, c, N, bs, 1, s, z, quality, DEEPINSERT);
+    r = lllHfp(b, mu, c, N, bs, 1, s, z, quality, deepinsert_blocksize);
 
     lD = logD(b,c,s,z);
     fprintf(stderr, "   log(D)= %f\n", lD);
@@ -1282,7 +1305,7 @@ DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality) {
                 b[r] = swapvl;
             }
         }
-        r = lllHfp(b, mu, c, N, bs, 1, s, z, quality, DEEPINSERT);
+        r = lllHfp(b, mu, c, N, bs, 1, s, z, quality, deepinsert_blocksize);
         lD = logD(b, c, s, z);
         fprintf(stderr, "%d: log(D)= %f\n", runs, lD);
         fflush(stdout);

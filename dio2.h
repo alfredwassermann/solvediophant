@@ -54,12 +54,15 @@ extern int solutiontest(int position);
 
 extern DOUBLE scalarproductlfp (coeff_t *v, coeff_t *w);
 extern DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n);
+
+extern void check_precision(coeff_t *b, DOUBLE *R, int z, int k);
+
 extern void size_reduction(coeff_t **b, DOUBLE **mu, mpz_t musvl, DOUBLE mus, int k, int j);
 extern int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z);
 extern int lllfree(DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs, int s);
 extern double orthogonal_defect(coeff_t **lattice, DOUBLE *c, int s, int z);
-extern void lll(coeff_t **b, int s, int z, DOUBLE quality);
-extern DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality);
+extern void lll(coeff_t **b, int s, int z, DOUBLE quality, int deepinsert_blocksize);
+extern DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality, int deepinsert_blocksize);
 extern DOUBLE bkz(coeff_t **b, int s, int z, DOUBLE delta, int beta, int p);
 extern DOUBLE enumerate(DOUBLE **mu, DOUBLE *c, long *u, int s, int start_block, int end_block, int p);
 extern DOUBLE explicit_enumeration(coeff_t **lattice, int columns, int rows);
