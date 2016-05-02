@@ -13,14 +13,14 @@
 
 #define BLAS 1
 #define DEEPINSERT 1
-#define DEEPINSERT_CONST 20
+#define DEEPINSERT_CONST 50
 #define VERBOSE 1
 
 #define GIVENS 1
 #define LASTLINESFACTOR "1000000" /* "100000000" */
 #define EPSILON 0.000001      /* 0.0001  */
 #define LLLCONST_LOW  0.70 /* 0.75*/
-#define LLLCONST_HIGH 0.90    /* 0.99 */
+#define LLLCONST_HIGH 0.99    /* 0.99 */
 #define LLLCONST_HIGHER 0.999
 #define ETACONST 0.51
 
@@ -276,7 +276,7 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params,
      */
     mpz_set_ui(lastlines_factor, 1);
     fprintf(stderr, "\n"); fflush(stderr);
-    lll(lattice, lattice_columns-1, lattice_rows, LLLCONST_LOW, 0);
+    lll(lattice, lattice_columns-1, lattice_rows, LLLCONST_LOW, 5);
 
 #if 1
     printf("After first reduction\n");
@@ -303,7 +303,7 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params,
      * second reduction
      */
     mpz_set_ui(lastlines_factor, 1);
-    lll(lattice, lattice_columns-1, lattice_rows, LLLCONST_HIGH, 0);
+    lll(lattice, lattice_columns-1, lattice_rows, LLLCONST_HIGH, 10);
     fprintf(stderr, "Second reduction successful\n"); fflush(stderr);
 #endif
 
