@@ -13,13 +13,13 @@
 
 #define BLAS 1
 #define DEEPINSERT 1
-#define DEEPINSERT_CONST 100
+#define DEEPINSERT_CONST 20
 #define VERBOSE 1
 
 #define GIVENS 1
 #define LASTLINESFACTOR "1000000" /* "100000000" */
 #define EPSILON 0.000001      /* 0.0001  */
-#define LLLCONST_LOW  0.75 /* 0.75*/
+#define LLLCONST_LOW  0.70 /* 0.75*/
 #define LLLCONST_HIGH 0.90    /* 0.99 */
 #define LLLCONST_HIGHER 0.999
 #define ETACONST 0.51
@@ -1016,7 +1016,10 @@ start_tricol:
 
         insert_pos = k;
         while (j < k) {
-            if (delta * R[j][j]*R[j][j] > rhs) {
+            //if (delta * R[j][j]*R[j][j] > rhs) {
+            if (0.5 * delta * R[j][j]*R[j][j] > rhs ||
+                ((j < deepinsert_blocksize || k - j < deepinsert_blocksize) &&
+                  delta * R[j][j]*R[j][j] > rhs)) {
                 insert_pos = j;
                 break;
             }
