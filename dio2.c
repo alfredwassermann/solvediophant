@@ -844,13 +844,13 @@ int lllHfp(coeff_t **b, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
             int start, int s, int z, DOUBLE delta, int deepinsert_blocksize) {
 
     int i, j, k;
-    DOUBLE eps = 0.0000000001;
+    //DOUBLE eps = 0.0000000001;
     DOUBLE mu;
-    DOUBLE zeta;
+    //DOUBLE zeta;
     DOUBLE beta[32768];
-    DOUBLE w_beta;
-    DOUBLE w, x;
-    DOUBLE norm;
+    //DOUBLE w_beta;
+    //DOUBLE w, x;
+    //DOUBLE norm;
     int mu_all_zero;
 
     DOUBLE mus;
@@ -895,80 +895,21 @@ int lllHfp(coeff_t **b, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
 #endif
 
 //fprintf(stderr, "\nk %d\n", k);
-start_tricol:
 
         /* Recompute column k of R */
-        for (j = 0; j < z; ++j) {
-            R[k][j] = (DOUBLE)mpz_get_d(b[k][j+1].c);
-        }
-
-    #if BLAS
-        // Compute R[k]
-        for (i = 0; i < k; ++i) {
-            w = cblas_ddot(z - i, &(R[k][i]), 1, &(H[i][i]), 1);
-            w_beta = w * beta[i];
-            cblas_daxpy(z, -w_beta, &(H[i][0]), 1, &(R[k][0]), 1);
-        }
-        // |R[k]|
-        j = cblas_idamax(z - k, &(R[k][k]), 1);
-        zeta = fabs(R[k][k + j]);
-        cblas_dscal(z - k, 1 / zeta, &(R[k][k]), 1);
-        norm = zeta * cblas_dnrm2(z - k, &(R[k][k]), 1);
-        cblas_dscal(z - k, zeta, &(R[k][k]), 1);
-
-        // H[k] = R[k] / |R[k]|
-        cblas_dcopy(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
-        cblas_dscal(z - k, 1 / norm, &(H[k][k]), 1);
-
-        H[k][k] += (R[k][k] >= -eps) ? 1.0 : -1.0;
-        beta[k] = 1.0 / (1.0 + fabs(R[k][k]) / norm);
-
-        // w = <R[k], H[k]>
-        w = cblas_ddot(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
-        w_beta = w * beta[k];
-
-        // R[k] -= -w * beta * H[k]
-        cblas_daxpy(z - k, -w_beta, &(H[k][k]), 1, &(R[k][k]), 1);
-    #else
-        for (i = 0; i < k; ++i) {
-            for (j = i, w = 0.0; j < z; ++j) {
-                w += R[k][j] * H[i][j];
+        i = householder_column(b, R, H, beta, k, s, z);
+        if (i > k) {
+            swapvl = b[i];
+            for (j = i; j > k; --j) {
+                b[j] = b[j - 1];
             }
-            w_beta = w * beta[i];
-            for (j = 0; j < z; ++j) {
-                R[k][j] -= w_beta * H[i][j];
-            }
+            b[k] = swapvl;
+
+            //fprintf(stderr, "GET %d from %d\n", k, i);
         }
 
-        // Norm of pivot column
-        // Use zeta for stability
-        for (j = k, zeta = 0.0; j < z; ++j) {
-            if (fabs(R[k][j]) > zeta) {
-                zeta = fabs(R[k][j]);
-            }
-        }
-        for (j = k, norm = 0.0; j < z; ++j) {
-            x = R[k][j] / zeta;
-            norm += x * x;
-        }
-        norm = zeta * sqrt(norm);
-
-        for (j = k; j < z; ++j) {
-            H[k][j] = R[k][j] / norm;
-        }
-
-        H[k][k] += (R[k][k] >= -eps) ? 1.0 : -1.0;
-        beta[k] = 1.0 / (1.0 + fabs(R[k][k]) / norm);
-
-        for (j = k, w = 0.0; j < z; ++j) {
-            w += R[k][j] * H[k][j];
-        }
-
-        w_beta = w * beta[k];
-        for (j = k; j < z; ++j) {
-            R[k][j] -= w_beta * H[k][j];
-        }
-    #endif
+start_tricol:
+        i = householder_column(b, R, H, beta, k, k + 1, z);
 
         /* third step: size reduction of $b_k$ */
         mu_all_zero = 1;
@@ -1044,6 +985,97 @@ start_tricol:
     mpz_clear(musvl);
     return(1);
 
+}
+
+int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int s, int z) {
+    int i, j;
+    int l;
+    DOUBLE zeta;
+    DOUBLE w, w_beta;
+    DOUBLE norm;
+    DOUBLE eps = 0.0000000001;
+
+    DOUBLE min_val = 0.0;
+    DOUBLE min_idx = -1;
+
+    for (l = k; l < s; l++) {
+        for (j = 0; j < z; ++j) {
+            R[k][j] = (DOUBLE)mpz_get_d(b[l][j+1].c);
+        }
+
+    #if BLAS
+        // Compute R[k]
+        for (i = 0; i < k; ++i) {
+            w = cblas_ddot(z - i, &(R[k][i]), 1, &(H[i][i]), 1);
+            w_beta = w * beta[i];
+            cblas_daxpy(z, -w_beta, &(H[i][0]), 1, &(R[k][0]), 1);
+        }
+        // |R[k]|
+        j = cblas_idamax(z - k, &(R[k][k]), 1);
+        zeta = fabs(R[k][k + j]);
+        cblas_dscal(z - k, 1 / zeta, &(R[k][k]), 1);
+        norm = zeta * cblas_dnrm2(z - k, &(R[k][k]), 1);
+        cblas_dscal(z - k, zeta, &(R[k][k]), 1);
+
+        // H[k] = R[k] / |R[k]|
+        cblas_dcopy(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
+        cblas_dscal(z - k, 1 / norm, &(H[k][k]), 1);
+
+        H[k][k] += (R[k][k] >= -eps) ? 1.0 : -1.0;
+        beta[k] = 1.0 / (1.0 + fabs(R[k][k]) / norm);
+
+        // w = <R[k], H[k]>
+        w = cblas_ddot(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
+        w_beta = w * beta[k];
+
+        // R[k] -= -w * beta * H[k]
+        cblas_daxpy(z - k, -w_beta, &(H[k][k]), 1, &(R[k][k]), 1);
+    #else
+        for (i = 0; i < k; ++i) {
+            for (j = i, w = 0.0; j < z; ++j) {
+                w += R[k][j] * H[i][j];
+            }
+            w_beta = w * beta[i];
+            for (j = 0; j < z; ++j) {
+                R[k][j] -= w_beta * H[i][j];
+            }
+        }
+
+        // Norm of pivot column
+        // Use zeta for stability
+        for (j = k, zeta = 0.0; j < z; ++j) {
+            if (fabs(R[k][j]) > zeta) {
+                zeta = fabs(R[k][j]);
+            }
+        }
+        for (j = k, norm = 0.0; j < z; ++j) {
+            x = R[k][j] / zeta;
+            norm += x * x;
+        }
+        norm = zeta * sqrt(norm);
+
+        for (j = k; j < z; ++j) {
+            H[k][j] = R[k][j] / norm;
+        }
+
+        H[k][k] += (R[k][k] >= -eps) ? 1.0 : -1.0;
+        beta[k] = 1.0 / (1.0 + fabs(R[k][k]) / norm);
+
+        for (j = k, w = 0.0; j < z; ++j) {
+            w += R[k][j] * H[k][j];
+        }
+
+        w_beta = w * beta[k];
+        for (j = k; j < z; ++j) {
+            R[k][j] -= w_beta * H[k][j];
+        }
+    #endif
+        if (l == k || R[k][k] * R[k][k] < min_val) {
+            min_val = R[k][k] * R[k][k];
+            min_idx = l;
+        }
+    }
+    return min_idx;
 }
 
 /**
