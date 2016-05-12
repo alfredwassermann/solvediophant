@@ -281,7 +281,7 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params,
     fprintf(stderr, "\n"); fflush(stderr);
     lll(lattice, lattice_columns-1, lattice_rows, LLLCONST_LOW, 5);
 
-#if 1
+#if 0
     printf("After first reduction\n");
     print_lattice();
 #endif
@@ -295,7 +295,7 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params,
         return 0;
     }
 
-#if 1
+#if 0
     printf("After cutting\n");
     print_lattice();
 #endif
@@ -370,7 +370,7 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params,
     read_NTL_lattice();
 #endif // Do reduction
 
-#if 1
+#if 0
     printf("Before enumeration\n");
     /*|print_NTL_lattice();|*/   /* Version for the NTL output */
     print_lattice();
@@ -883,9 +883,9 @@ int lllHfp(coeff_t **b, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
         return(0);
     }
 
-    k = (start > 0) ? start : 0;
+    k = (start >= 0) ? start : 0;
     //if (k < 1) k = 1;
-    k = 0;
+    //k = 0;
 
     /* The main loop */
     while (k < s) {
@@ -1267,24 +1267,24 @@ int lllfree(DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs, int s) {
     return 1;
 }
 
-double logD(coeff_t **lattice, DOUBLE *c, int s, int z) {
+double log_potential(DOUBLE **R, int s, int z) {
     double d = 0.0;
     int i;
 
     for (i = 0; i < s; i++) {
-        d += log(c[i]) * (s - i);
+        d += log(fabs(R[i][i])) * (s - i);
     }
     d *= 0.5;
     return d;
 }
 
-double orthogonal_defect(coeff_t **lattice, DOUBLE *c, int s, int z) {
+double orthogonality_defect(coeff_t **lattice, DOUBLE **R, int s, int z) {
     double defect = 0.0;
 
-#if 0
+#if 1
     int i;
-    for (i=0;i<s;i++) defect += log((double)normfp(lattice[i]))
-        - log((double)c[i]);
+    for (i = 0; i < s; i++)
+        defect += log(scalarproductlfp(lattice[i], lattice[i])) - log(R[i][i]);
 #endif
 
     defect /= 2.0;
@@ -1302,14 +1302,14 @@ void lll(coeff_t **b, int s, int z, DOUBLE quality, int deepinsert_blocksize) {
     int r;
 
     lllalloc(&mu, &c, &N, &bs, s, z);
-    r = lllHfp(b, mu, c, N, bs, 1, s, z, quality, deepinsert_blocksize);
+    r = lllHfp(b, mu, c, N, bs, 0, s, z, quality, deepinsert_blocksize);
     lllfree(mu, c, N, bs, s);
 
     return;
 }
 
 DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality, int deepinsert_blocksize) {
-    DOUBLE **mu;
+    DOUBLE **R;
     DOUBLE *c;
     DOUBLE *N;
     DOUBLE **bs;
@@ -1317,10 +1317,10 @@ DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality, i
     coeff_t *swapvl;
     DOUBLE lD;
 
-    lllalloc(&mu,&c,&N,&bs,s,z);
-    r = lllHfp(b, mu, c, N, bs, 1, s, z, quality, deepinsert_blocksize);
+    lllalloc(&R, &c, &N, &bs, s, z);
+    r = lllHfp(b, R, c, N, bs, 0, s, z, quality, deepinsert_blocksize);
 
-    lD = logD(b,c,s,z);
+    lD = log_potential(R, s, z);
     fprintf(stderr, "   log(D)= %f\n", lD);
     fflush(stderr);
 
@@ -1346,13 +1346,13 @@ DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality, i
                 b[r] = swapvl;
             }
         }
-        r = lllHfp(b, mu, c, N, bs, 1, s, z, quality, deepinsert_blocksize);
-        lD = logD(b, c, s, z);
+        r = lllHfp(b, R, c, N, bs, 0, s, z, quality, deepinsert_blocksize);
+        lD = log_potential(R, s, z);
         fprintf(stderr, "%d: log(D)= %f\n", runs, lD);
         fflush(stdout);
     }
 
-    lllfree(mu, c, N, bs, s);
+    lllfree(R, c, N, bs, s);
 
     return lD;
 }
@@ -1391,14 +1391,15 @@ DOUBLE bkz(coeff_t **b, int s, int z, DOUBLE delta, int beta, int p) {
     for (i = 0; i < s; i++) u[i] = 0;
 
     lllalloc(&mu,&c,&N,&bs,s,z);
-    lllHfp(b, mu, c, N, bs, 1, s, z, delta, -1);
+    lllHfp(b, mu, c, N, bs, 0, s, z, delta, -1);
 
     start_block = zaehler = -1;
     while (zaehler < last) {
         start_block++;
         if (start_block == last) start_block = 0;
-        end_block = (start_block+beta-1 < last) ? start_block+beta-1 : last;
-        new_cj = enumerate(mu,c,u,s,start_block,end_block,p);
+        end_block = start_block + beta - 1;
+        end_block = (end_block < last) ? end_block : last;
+        new_cj = enumerate(mu, c, u, s, start_block, end_block, p);
 
         /* The exhaustive enumeration. */
         h = (end_block + 1 < last) ? end_block + 1 : last;
@@ -1443,10 +1444,10 @@ DOUBLE bkz(coeff_t **b, int s, int z, DOUBLE delta, int beta, int p) {
             coeffinit(b[start_block],z);
 
             b[last+1] = swapvl;
-            for (j = 1; j <= z; j++) mpz_set_si(b[last+1][j].c,0);
+            for (j = 1; j <= z; j++) mpz_set_si(b[last+1][j].c, 0);
             coeffinit(b[last+1],z);
 
-            lllfp(b,mu,c,N,bs,start_block-1,h+1,z,delta);
+            lllHfp(b, mu, c, N, bs, start_block - 1, h + 1, z, delta, 10);
 
             if (N[h]<-EPSILON) {
                 fprintf(stderr,"NN negativ\n");
@@ -1459,14 +1460,14 @@ DOUBLE bkz(coeff_t **b, int s, int z, DOUBLE delta, int beta, int p) {
             zaehler = -1;
         } else {
             if (h > 0) {
-                lllfp(b,mu,c,N,bs,h-2,h+1,z,delta);   /* For some unkown reason we have to
+                lllfp(b, mu, c, N, bs, h-2, h+1, z, delta);   /* For some unkown reason we have to
                                                         use $h-2$ as |start|. */
             }
             zaehler++;
         }
     } /* end of |while| */
 
-    lD = logD(b,c,s-1,z);
+    lD = log_potential(mu, s-1, z);
 
     fprintf(stderr, "bkz: log(D)= %f\n", lD);
     fflush(stdout);
@@ -1495,7 +1496,7 @@ DOUBLE enumerate(DOUBLE **mu, DOUBLE *c, long *u, int s, int start_block, int en
     static DOUBLE e = 2.718281828459045235360287471352662497757247093;
     int SCHNITT = 40;
 
-    if (c[start_block]<=EPSILON) {
+    if (c[start_block] <= EPSILON) {
         fprintf(stderr, "Hier ist was faul! start_block=%d %f\n", start_block, (double)c[start_block]);
         fflush(stderr);
         exit(1);

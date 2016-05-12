@@ -61,9 +61,12 @@ extern void check_precision(coeff_t *b, DOUBLE *R, int z, int k);
 
 extern int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int s, int z);
 extern void size_reduction(coeff_t **b, DOUBLE **mu, mpz_t musvl, DOUBLE mus, int k, int j);
+
 extern int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z);
 extern int lllfree(DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs, int s);
-extern double orthogonal_defect(coeff_t **lattice, DOUBLE *c, int s, int z);
+extern double orthogonality_defect(coeff_t **lattice, DOUBLE **R, int s, int z);
+extern double log_potential(DOUBLE **R, int s, int z);
+
 extern void lll(coeff_t **b, int s, int z, DOUBLE quality, int deepinsert_blocksize);
 extern DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality, int deepinsert_blocksize);
 extern DOUBLE bkz(coeff_t **b, int s, int z, DOUBLE delta, int beta, int p);
