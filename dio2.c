@@ -9,7 +9,12 @@
 #include <gmp.h>
 #include "dio2.h"
 
-#define BLAS 0
+#if defined(USEBLAS)
+    #define BLAS 1
+#else
+    #define BLAS 0
+#endif
+
 #if BLAS
     #include "OpenBLAS/common.h"
     #include "OpenBLAS/cblas.h"
