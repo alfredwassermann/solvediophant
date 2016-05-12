@@ -24,8 +24,8 @@ ASSEMBLERLIB=./OpenBLAS/libopenblas.a
 
 #GMPLIB=-L../gmp-4.2.1/bin/lib
 #GMPINC=-I../gmp-4.2.1/bin/include
-#GMPLIB=
-#GMPINC=
+GMPLIB=
+GMPINC=
 
 #all: solvediophant.dvi diophant.pdf solvediophant
 all: sd2

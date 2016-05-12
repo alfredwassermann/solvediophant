@@ -11,7 +11,7 @@
 #include "OpenBLAS/common.h"
 #include "OpenBLAS/cblas.h"
 
-#define BLAS 1
+#define BLAS 0
 #define DEEPINSERT 1
 #define DEEPINSERT_CONST 50
 #define VERBOSE 1
@@ -994,6 +994,9 @@ int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k,
     DOUBLE w, w_beta;
     DOUBLE norm;
     DOUBLE eps = 0.0000000001;
+    #if !BLAS
+        DOUBLE x;
+    #endif
 
     DOUBLE min_val = 0.0;
     DOUBLE min_idx = -1;
