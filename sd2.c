@@ -80,19 +80,12 @@ int main(int argc, char *argv[]) {
     /*
         Variables
      */
-    mpz_t factor_input;
-    mpz_t norm_input;
-
 	gls_t GLS;
     lll_params_t LLL_params;
+    lattice_t lattice;
 
-    int silent;
     int maxruntime = 0;
 
-    long stop_after_solutions;
-    long stop_after_loops;
-    int cut_after;
-    int free_RHS;
     FILE *txt;
     char *inputfile_name;
 
@@ -102,22 +95,21 @@ int main(int argc, char *argv[]) {
     FILE* solfile;
     char solfilename[1024];
 
-    mpz_init(factor_input);
-    mpz_init(norm_input);
-
     strcpy(solfilename,"solutions");
 
     LLL_params.iterate = LLL_params.bkz.beta = LLL_params.bkz.p = -1;
     mpz_init(LLL_params.scalelastlinefactor);
-    mpz_set_si(LLL_params.scalelastlinefactor, -1);
+    mpz_init(lattice.matrix_factor);
+    mpz_init(lattice.max_norm);
 
-    mpz_set_si(factor_input,-1);
-    mpz_set_si(norm_input,-1);
-    silent = 0;
+    mpz_set_si(LLL_params.scalelastlinefactor, -1);
+    mpz_set_si(lattice.matrix_factor, -1);
+    mpz_set_si(lattice.max_norm, -1);
+    LLL_params.silent = 0;
 
     for (i = 1; i < argc; i++) {
         if (strcmp(argv[i],"-silent") == 0) {
-            silent = 1;
+            LLL_params.silent = 1;
             fprintf(stderr,"No output of solutions, just counting.\n");
 
         } else if (strncmp(argv[i],"-iterate",8) == 0) {
@@ -143,13 +135,13 @@ int main(int argc, char *argv[]) {
         } else if (strncmp(argv[i],"-c",2) == 0) {
             strcpy(suffix,argv[i]+2);
     #if 1
-            mpz_set_str(factor_input, suffix, 10);  /* Regular version */
+            mpz_set_str(lattice.matrix_factor, suffix, 10);  /* Regular version */
     #else
-            mpz_ui_pow_ui(factor_input, 10, atoi(suffix)); /* Version for the NTL output */
+            mpz_ui_pow_ui(lattice.matrix_factor, 10, atoi(suffix)); /* Version for the NTL output */
     #endif
         } else if (strncmp(argv[i],"-maxnorm",8) == 0) {
             strcpy(suffix,argv[i]+8);
-            mpz_set_str(norm_input,suffix,10);
+            mpz_set_str(lattice.max_norm,suffix,10);
 
         } else if (strncmp(argv[i],"-scalelastline",14) == 0) {
             strcpy(suffix,argv[i]+14);
@@ -187,15 +179,15 @@ int main(int argc, char *argv[]) {
         fprintf(stderr," -beta* -p*\n");
         exit(1);
     }
-    if (mpz_cmp_si(factor_input, 0) <= 0) {
+    if (mpz_cmp_si(lattice.matrix_factor, 0) <= 0) {
         fprintf(stderr,"You did not supply the options -c*. ");
         fprintf(stderr,"It is set to 10000000000000.\n");
-        mpz_set_str(factor_input,"10000000000000", 10);
+        mpz_set_str(lattice.matrix_factor, "10000000000000", 10);
     }
     if (mpz_cmp_si(norm_input, 0) <= 0) {
         fprintf(stderr,"You did not supply the options -maxnorm*. ");
         fprintf(stderr,"It is set to 1.\n");
-        mpz_set_si(norm_input,1);
+        mpz_set_si(LLL_params.max_norm, 1);
     }
     if (mpz_cmp_si(LLL_params.scalelastlinefactor, 0) <= 0) {
         fprintf(stderr,"You did not supply the options -scalelastline*. ");
@@ -212,7 +204,10 @@ int main(int argc, char *argv[]) {
         signal(SIGALRM, stop_program);
         alarm(maxruntime);
     }
-    signal(SIGUSR1, show_lattice); 
+    /**
+     * Allow debug output by kill -10 PID
+     */
+    signal(SIGUSR1, show_lattice);
 
     /**
      * Read options and system size in input file
@@ -224,23 +219,24 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
     flag = 0;
-    free_RHS = 0;
-    stop_after_loops = 0;
-    stop_after_solutions = 0;
-    cut_after = -1;
+
+    LLL_params.free_RHS = 0;
+    LLL_params.stop_after_loops = 0;
+    LLL_params.stop_after_solutions = 0;
+    LLL_params.cut_after = -1;
     do {
         fgets(zeile, ZLENGTH, txt);
         if (strstr(zeile,"% stopafter")!=NULL) {
-            sscanf(zeile,"%% stopafter %ld",&stop_after_solutions);
+            sscanf(zeile,"%% stopafter %ld",&(LLL_params.stop_after_solutions));
         }
         if (strstr(zeile,"% stoploops")!=NULL) {
-            sscanf(zeile,"%% stoploops %ld",&stop_after_loops);
+            sscanf(zeile,"%% stoploops %ld",&(LLL_params.stop_after_loops));
         }
         if (strstr(zeile,"% cutafter")!=NULL) {
-            sscanf(zeile,"%% cutafter %d",&cut_after);
+            sscanf(zeile,"%% cutafter %d",&(LLL_params.cut_after));
         }
         if (strstr(zeile,"% FREERHS")!=NULL) {
-            free_RHS = 1;
+            LLL_params.free_RHS = 1;
         }
     }
     while (zeile[0]=='%');
@@ -256,10 +252,7 @@ int main(int argc, char *argv[]) {
     solfile = fopen(solfilename, "w");
     time_0 = os_ticks();
 
-    diophant(&GLS, &LLL_params,
-        factor_input, norm_input, silent,
-        stop_after_solutions, stop_after_loops,
-        free_RHS, cut_after, solfile);
+    diophant(&GLS, &LLL_params, solfile);
 
     time_1 = os_ticks();
     fclose(solfile);

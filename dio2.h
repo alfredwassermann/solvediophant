@@ -19,6 +19,11 @@ typedef struct {
     int num_cols;
     coeff_t **basis;
     coeff_t *swap;
+
+    mpz_t matrix_factor;
+    mpz_t max_norm;
+    int cut_after;
+    int free_RHS;    
 } lattice_t;
 
 typedef struct {
@@ -29,16 +34,16 @@ typedef struct {
         int beta;
         int p;
     } bkz;
+
+    int silent;
+    long stop_after_solutions;
+    long stop_after_loops;
+
 } lll_params_t;
 
 /* -------------------------------------------------------------------- */
 
-extern long diophant(gls_t *GLS, lll_params_t *LLL_params,
-    mpz_t factor_input, mpz_t norm_input,
-    int silent,
-    long stop_after_sol_input, long stop_after_loops_input,
-    int free_RHS_input,
-    int cut_after, FILE* solfile);
+extern long diophant(gls_t *GLS, lll_params_t *LLL_params, FILE* solfile);
 
 extern long nosolutions;
 

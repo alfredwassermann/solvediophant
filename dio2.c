@@ -24,8 +24,6 @@
 /**
  * global variables
  */
-mpz_t matrix_factor;
-mpz_t max_norm;
 mpz_t max_norm_initial;
 mpz_t max_up;
 mpz_t dummy;
@@ -35,7 +33,7 @@ mpz_t lastlines_factor;
 
 int system_rows, system_columns;
 int lattice_rows, lattice_columns;
-coeff_t **lattice;
+
 int free_RHS;
 int iszeroone;
 mpz_t *upperbounds;
@@ -44,11 +42,7 @@ mpz_t upfac;
 
 int *original_columns;
 int no_original_columns;
-int cut_after_coeff;
-long stop_after_solutions;
-long stop_after_loops;
 long nosolutions;
-int SILENT;
 int nboundvars;
 
 mpz_t soltest_u;
@@ -65,13 +59,7 @@ static FILE* fp;
 #define smult_lattice(i,j,factor) mpz_mul(lattice[i][j+1].c,lattice[i][j+1].c,factor)
 #define get_entry(i,j) lattice[i][j+1].c
 
-long diophant(gls_t *GLS, lll_params_t *LLL_params,
-    mpz_t factor_input, mpz_t norm_input,
-    int silent,
-    long stop_after_sol_input,
-    long stop_after_loops_input,
-    int free_RHS_input,
-    int cut_after, FILE* solfile) {
+long diophant(gls_t *GLS, lll_params_t *LLL_params, FILE* solfile) {
 
     int i,j;
     DOUBLE lD, lDnew;
@@ -80,8 +68,6 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params,
     /**
      * Initialize some globals
      */
-    mpz_init_set(matrix_factor,factor_input);
-    mpz_init_set(max_norm,norm_input);
     mpz_init(lastlines_factor);
     mpz_init(upfac);
 
@@ -89,10 +75,6 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params,
     mpz_init(soltest_s);
     mpz_init_set_ui(soltest_upfac, 1);
 
-    SILENT = silent;
-    stop_after_solutions = stop_after_sol_input;
-    stop_after_loops = stop_after_loops_input;
-    free_RHS = free_RHS_input;
     nom = 1;
     denom = 2;
 
@@ -529,7 +511,7 @@ int solutiontest(int position) {
     int end;
 
     /* test the last two rows */
-    if (mpz_cmpabs(get_entry(position,lattice_rows-1),max_norm)!=0) return 0;
+    if (mpz_cmpabs(get_entry(position, lattice_rows-1), max_norm)!=0) return 0;
     if (mpz_sgn(get_entry(position,lattice_rows-1-free_RHS))==0) return 0;
 
     /* test, if column is a solution */
