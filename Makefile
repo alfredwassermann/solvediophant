@@ -52,6 +52,6 @@ gls.pdf: gls.c
 	ps2pdf gls.ps
 	rm gls.ps
 
-
+.PHONY: clean
 clean:
 	rm *.o

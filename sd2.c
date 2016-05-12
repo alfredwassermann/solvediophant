@@ -209,9 +209,10 @@ int main(int argc, char *argv[]) {
      * Start alarm
      */
     if (maxruntime > 0) {
-        signal(SIGALRM, stopProgram); // stopProgram in diophant.c
+        signal(SIGALRM, stop_program);
         alarm(maxruntime);
     }
+    signal(SIGUSR1, show_lattice); 
 
     /**
      * Read options and system size in input file

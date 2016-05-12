@@ -8,10 +8,13 @@
 #include <math.h>
 #include <gmp.h>
 #include "dio2.h"
-#include "OpenBLAS/common.h"
-#include "OpenBLAS/cblas.h"
 
 #define BLAS 0
+#if BLAS
+    #include "OpenBLAS/common.h"
+    #include "OpenBLAS/cblas.h"
+#endif
+
 #define DEEPINSERT 1
 #define DEEPINSERT_CONST 50
 #define VERBOSE 1
@@ -2382,7 +2385,7 @@ int print_solution(DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns) {
     return 1;
 }
 
-void stopProgram(int sig) {
+void stop_program(int sig) {
     if (sig != SIGALRM)
        return;
 
@@ -2390,6 +2393,13 @@ void stopProgram(int sig) {
     print_num_solutions(nosolutions);
 
     exit(11);
+}
+
+void show_lattice(int sig) {
+    if (sig != SIGUSR1)
+       return;
+
+    print_lattice();
 }
 
 void shufflelattice() {

@@ -42,7 +42,9 @@ extern long diophant(gls_t *GLS, lll_params_t *LLL_params,
 
 extern long nosolutions;
 
-extern void stopProgram(int sig);
+extern void stop_program(int sig);
+extern void show_lattice(int sig);
+
 /* Basic subroutines */
 extern void print_num_solutions(long num_solutions);
 extern void debug_print(char *m, int l);
