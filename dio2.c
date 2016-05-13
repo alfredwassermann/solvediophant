@@ -873,7 +873,8 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
 
 //fprintf(stderr, "\nk %d\n", k);
 
-        /* Recompute column k of R */
+        #if 0
+        // Look ahead
         i = householder_column(b, R, H, beta, k, s, z);
         if (i > k) {
             swapvl = b[i];
@@ -884,8 +885,10 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
 
             //fprintf(stderr, "GET %d from %d\n", k, i);
         }
+        #endif
 
 start_tricol:
+        /* Recompute column k of R */
         i = householder_column(b, R, H, beta, k, k + 1, z);
 
         /* third step: size reduction of $b_k$ */
