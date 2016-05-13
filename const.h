@@ -2,7 +2,7 @@
 #define _LLLCONST_H
 
 #define DEEPINSERT 1
-#define DEEPINSERT_CONST 50
+#define DEEPINSERT_CONST 20
 #define VERBOSE 1
 
 #define GIVENS 1
