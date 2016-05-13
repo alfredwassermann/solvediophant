@@ -59,7 +59,7 @@ static FILE* fp;
 #define smult_lattice(i,j,factor) mpz_mul(lattice[i][j+1].c,lattice[i][j+1].c,factor)
 #define get_entry(i,j) lattice[i][j+1].c
 
-long diophant(gls_t *GLS, lll_params_t *LLL_params, FILE* solfile) {
+long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile) {
 
     int i,j;
     DOUBLE lD, lDnew;
@@ -78,9 +78,9 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params, FILE* solfile) {
     nom = 1;
     denom = 2;
 
-    system_rows = GLS->num_rows;
-    system_columns = GLS->num_cols;
-    nboundvars = GLS->num_boundedvars;
+    system_rows = LGS->num_rows;
+    system_columns = LGS->num_cols;
+    nboundvars = LGS->num_boundedvars;
 
 #if BLAS
     //openblas_set_num_threads(8);
@@ -121,9 +121,9 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params, FILE* solfile) {
      */
     for (j = 0; j < system_rows; j++) {
         for (i = 0; i < system_columns; i++) {
-            mpz_mul(lattice[i][j+1].c, GLS->matrix[j][i], matrix_factor);
+            mpz_mul(lattice[i][j+1].c, LGS->matrix[j][i], matrix_factor);
         }
-        mpz_mul(lattice[system_columns][j+1].c, GLS->rhs[j], matrix_factor);
+        mpz_mul(lattice[system_columns][j+1].c, LGS->rhs[j], matrix_factor);
     }
 
     /**
@@ -131,14 +131,14 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params, FILE* solfile) {
      */
     mpz_init_set_si(upperbounds_max,1);
     iszeroone = 1;
-    if (GLS->upperbounds == NULL) {
+    if (LGS->upperbounds == NULL) {
         fprintf(stderr, "No upper bounds: 0/1 variables are assumed \n"); fflush(stderr);
     } else {
         upperbounds = (mpz_t*)calloc(system_columns, sizeof(mpz_t));
         for (i = 0; i < system_columns; i++)
             mpz_init_set_si(upperbounds[i], 1);
         for (i = 0; i < nboundvars/*|system_columns|*/; i++) {
-            mpz_set(upperbounds[i], GLS->upperbounds[i]);
+            mpz_set(upperbounds[i], LGS->upperbounds[i]);
             if (mpz_sgn(upperbounds[i]) != 0) {
                 mpz_lcm(upperbounds_max, upperbounds_max, upperbounds[i]);
             }
@@ -157,16 +157,16 @@ long diophant(gls_t *GLS, lll_params_t *LLL_params, FILE* solfile) {
     /**
      * handle preselected columns
      */
-    if (GLS->original_cols != NULL)
-        no_original_columns = GLS->num_original_cols;
+    if (LGS->original_cols != NULL)
+        no_original_columns = LGS->num_original_cols;
     else
-        no_original_columns = GLS->num_cols;
+        no_original_columns = LGS->num_cols;
 
-    original_columns = (int*)calloc(GLS->num_original_cols, sizeof(int));
+    original_columns = (int*)calloc(LGS->num_original_cols, sizeof(int));
 
-    if (GLS->original_cols != NULL)
+    if (LGS->original_cols != NULL)
         for (i = 0; i < no_original_columns; i++)
-            original_columns[i] = GLS->original_cols[i];
+            original_columns[i] = LGS->original_cols[i];
     else {
         for (i = 0; i < no_original_columns; i++)
             original_columns[i] = 1;

@@ -1,7 +1,7 @@
 #ifndef _DIOPHANT_H
 #define _DIOPHANT_H
 #include <gmp.h>
-#include "gls.h"
+#include "lgs.h"
 
 #define SQRT sqrt
 #define DOUBLE double
@@ -23,7 +23,7 @@ typedef struct {
     mpz_t matrix_factor;
     mpz_t max_norm;
     int cut_after;
-    int free_RHS;    
+    int free_RHS;
 } lattice_t;
 
 typedef struct {
@@ -43,7 +43,7 @@ typedef struct {
 
 /* -------------------------------------------------------------------- */
 
-extern long diophant(gls_t *GLS, lll_params_t *LLL_params, FILE* solfile);
+extern long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile);
 
 extern long nosolutions;
 

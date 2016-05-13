@@ -5,7 +5,7 @@
 #include <string.h>
 #include <sys/times.h>  /* For run time measurements */
 #include <unistd.h>
-#include "gls.h"
+#include "lgs.h"
 #include "dio2.h"
 
 /*
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
     /*
         Variables
      */
-	gls_t GLS;
+	gls_t LGS;
     lll_params_t LLL_params;
     lattice_t lattice;
 
@@ -97,6 +97,9 @@ int main(int argc, char *argv[]) {
 
     strcpy(solfilename,"solutions");
 
+    /**
+     * Init structs lattice and LLL_params
+     */
     LLL_params.iterate = LLL_params.bkz.beta = LLL_params.bkz.p = -1;
     mpz_init(LLL_params.scalelastlinefactor);
     mpz_init(lattice.matrix_factor);
@@ -107,6 +110,9 @@ int main(int argc, char *argv[]) {
     mpz_set_si(lattice.max_norm, -1);
     LLL_params.silent = 0;
 
+    /**
+     * Read CLI parameters
+     */
     for (i = 1; i < argc; i++) {
         if (strcmp(argv[i],"-silent") == 0) {
             LLL_params.silent = 1;
@@ -162,6 +168,10 @@ int main(int argc, char *argv[]) {
             exit(3);
         }
     }
+
+    /**
+     * Set default values
+     */
     if (argc < 2 || strncmp(argv[argc-1], "-",1) == 0) {
         fprintf(stderr,"The last parameter on the command line\n");
         fprintf(stderr,"has to be the input file name.\n");
@@ -184,10 +194,10 @@ int main(int argc, char *argv[]) {
         fprintf(stderr,"It is set to 10000000000000.\n");
         mpz_set_str(lattice.matrix_factor, "10000000000000", 10);
     }
-    if (mpz_cmp_si(norm_input, 0) <= 0) {
+    if (mpz_cmp_si(lattice.max_norm, 0) <= 0) {
         fprintf(stderr,"You did not supply the options -maxnorm*. ");
         fprintf(stderr,"It is set to 1.\n");
-        mpz_set_si(LLL_params.max_norm, 1);
+        mpz_set_si(lattice.max_norm, 1);
     }
     if (mpz_cmp_si(LLL_params.scalelastlinefactor, 0) <= 0) {
         fprintf(stderr,"You did not supply the options -scalelastline*. ");
@@ -198,7 +208,7 @@ int main(int argc, char *argv[]) {
     inputfile_name = argv[argc-1];
 
     /**
-     * Start alarm
+     * Start alarm for max run time
      */
     if (maxruntime > 0) {
         signal(SIGALRM, stop_program);
@@ -220,10 +230,10 @@ int main(int argc, char *argv[]) {
     }
     flag = 0;
 
-    LLL_params.free_RHS = 0;
+    lattice.free_RHS = 0;
+    lattice.cut_after = -1;
     LLL_params.stop_after_loops = 0;
     LLL_params.stop_after_solutions = 0;
-    LLL_params.cut_after = -1;
     do {
         fgets(zeile, ZLENGTH, txt);
         if (strstr(zeile,"% stopafter")!=NULL) {
@@ -233,26 +243,32 @@ int main(int argc, char *argv[]) {
             sscanf(zeile,"%% stoploops %ld",&(LLL_params.stop_after_loops));
         }
         if (strstr(zeile,"% cutafter")!=NULL) {
-            sscanf(zeile,"%% cutafter %d",&(LLL_params.cut_after));
+            sscanf(zeile,"%% cutafter %d",&(lattice.cut_after));
         }
         if (strstr(zeile,"% FREERHS")!=NULL) {
-            LLL_params.free_RHS = 1;
+            lattice.free_RHS = 1;
         }
     }
     while (zeile[0]=='%');
 
-    sscanf(zeile,"%d%d%d", &(GLS.num_rows), &(GLS.num_cols), &flag);
+    /**
+     * Read problem size
+     */
+    sscanf(zeile,"%d%d%d", &(LGS.num_rows), &(LGS.num_cols), &flag);
 
-	gls_allocate_mem(&GLS);
-    read_linear_system(txt, &GLS);
+    /**
+     * Allocate memory and read LGS
+     */
+	gls_allocate_mem(&LGS);
+    read_linear_system(txt, &LGS);
     fclose(txt);
-    read_upper_bounds(inputfile_name, &GLS);
-    read_selected_cols(inputfile_name, &GLS);
+    read_upper_bounds(inputfile_name, &LGS);
+    read_selected_cols(inputfile_name, &LGS);
 
     solfile = fopen(solfilename, "w");
     time_0 = os_ticks();
 
-    diophant(&GLS, &LLL_params, solfile);
+    diophant(&LGS, &LLL_params, solfile);
 
     time_1 = os_ticks();
     fclose(solfile);
@@ -266,11 +282,11 @@ int main(int argc, char *argv[]) {
     /**
      * Free memory
      */
-    mpz_clear(factor_input);
-    mpz_clear(norm_input);
+    mpz_clear(lattice.matrix_factor);
+    mpz_clear(lattice.max_norm);
     mpz_clear(LLL_params.scalelastlinefactor);
 
-	gls_free_mem(&GLS);
+	gls_free_mem(&LGS);
 
     return 0;
 }
