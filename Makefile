@@ -35,8 +35,8 @@ all: sd2
 	$(CC) $(CFLAGS) -D$(BLAS) -c $< $(GMPINC)
 
 # With BLAS
-sd2: sd2.o dio2.o gls.o
-	$(CC) $(CFLAGS) -o sd2 sd2.o dio2.o gls.o $(ASSEMBLERLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
+sd2: sd2.o dio2.o lgs.o
+	$(CC) $(CFLAGS) -o sd2 sd2.o dio2.o lgs.o $(ASSEMBLERLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
 
 dio2.pdf: dio2.c
 	#vim -c 'set printfont=DejaVu\ Sans\ Mono:h9' -c 'set printoptions=number:y' -c 'hardcopy > dio2.ps' -c quit dio2.c
@@ -49,10 +49,10 @@ sd2.pdf: sd2.c
 	ps2pdf sd2.ps
 	rm sd2.ps
 
-gls.pdf: gls.c
-	vim $(VIMFLAGS) -c 'hardcopy > gls.ps' -c quit gls.c
-	ps2pdf gls.ps
-	rm gls.ps
+gls.pdf: lgs.c
+	vim $(VIMFLAGS) -c 'hardcopy > gls.ps' -c quit lgs.c
+	ps2pdf lgs.ps
+	rm lgs.ps
 
 .PHONY: clean
 clean:

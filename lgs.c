@@ -5,7 +5,7 @@
 /**
  * Allocate memnory for input matrix
  */
-void gls_allocate_mem(gls_t *LGS) {
+void lgs_allocate_mem(lgs_t *LGS) {
     int i, j;
 
     LGS->matrix = (mpz_t**)calloc(LGS->num_rows, sizeof(mpz_t*));
@@ -21,7 +21,7 @@ void gls_allocate_mem(gls_t *LGS) {
        mpz_init(LGS->rhs[i]);
 }
 
-void gls_free_mem(gls_t *LGS) {
+void lgs_free_mem(lgs_t *LGS) {
     int i, j;
 
     for (j = 0; j < LGS->num_rows; j++) {
@@ -49,7 +49,7 @@ void gls_free_mem(gls_t *LGS) {
  * @param txt [description]
  * @param LGS [description]
  */
-void read_linear_system(FILE *txt, gls_t *LGS) {
+void read_linear_system(FILE *txt, lgs_t *LGS) {
     int i, j, res;
     for (j = 0; j < LGS->num_rows; j++) {
         for (i = 0; i < LGS->num_cols; i++) {
@@ -70,7 +70,7 @@ void read_linear_system(FILE *txt, gls_t *LGS) {
  * @param file_name [description]
  * @param LGS       [description]
  */
-void read_upper_bounds(char *file_name, gls_t *LGS) {
+void read_upper_bounds(char *file_name, lgs_t *LGS) {
     int i;
     FILE *txt;
     char zeile[ZLENGTH];
@@ -118,7 +118,7 @@ void read_upper_bounds(char *file_name, gls_t *LGS) {
  * @param file_name [description]
  * @param LGS       [description]
  */
-void read_selected_cols(char *file_name, gls_t *LGS) {
+void read_selected_cols(char *file_name, lgs_t *LGS) {
     FILE *txt;
     char zeile[ZLENGTH];
     char *rowp;

@@ -15,18 +15,6 @@ typedef struct {
 } coeff_t;
 
 typedef struct {
-    int num_rows;
-    int num_cols;
-    coeff_t **basis;
-    coeff_t *swap;
-
-    mpz_t matrix_factor;
-    mpz_t max_norm;
-    int cut_after;
-    int free_RHS;
-} lattice_t;
-
-typedef struct {
     mpz_t scalelastlinefactor;
     int iterate;
     int iterate_no;
@@ -41,9 +29,27 @@ typedef struct {
 
 } lll_params_t;
 
+typedef struct {
+    int num_rows;
+    int num_cols;
+    coeff_t **basis;
+    coeff_t *swap;
+
+    mpz_t matrix_factor;
+    mpz_t max_norm;
+    int cut_after;
+    int free_RHS;
+
+    lll_params_t LLL_params;
+} lattice_t;
+
+/* Global variable used in stop_program */
+int SILENT;
+lattice_t *LATTICE;
+
 /* -------------------------------------------------------------------- */
 
-extern long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile);
+extern long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile);
 
 extern long nosolutions;
 
@@ -53,11 +59,11 @@ extern void show_lattice(int sig);
 /* Basic subroutines */
 extern void print_num_solutions(long num_solutions);
 extern void debug_print(char *m, int l);
-extern void print_lattice();
+extern void print_lattice(lattice_t *lattice);
 extern long gcd(long n1, long n2);
 extern void coeffinit(coeff_t *v, int z);
-extern int cutlattice();
-extern int solutiontest(int position);
+extern int cutlattice(lattice_t *lattice);
+extern int solutiontest(lattice_t *lattice, int position);
 
 extern DOUBLE scalarproductlfp (coeff_t *v, coeff_t *w);
 extern DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n);
@@ -69,20 +75,20 @@ extern void size_reduction(coeff_t **b, DOUBLE **mu, mpz_t musvl, DOUBLE mus, in
 
 extern int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z);
 extern int lllfree(DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs, int s);
-extern double orthogonality_defect(coeff_t **lattice, DOUBLE **R, int s, int z);
+extern double orthogonality_defect(lattice_t *lattice, DOUBLE **R, int s, int z);
 extern double log_potential(DOUBLE **R, int s, int z);
 
-extern void lll(coeff_t **b, int s, int z, DOUBLE quality, int deepinsert_blocksize);
-extern DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality, int deepinsert_blocksize);
-extern DOUBLE bkz(coeff_t **b, int s, int z, DOUBLE delta, int beta, int p);
+extern void lll(lattice_t *lattice, int s, int z, DOUBLE quality, int deepinsert_blocksize);
+extern DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE quality, int deepinsert_blocksize);
+extern DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p);
 extern DOUBLE enumerate(DOUBLE **mu, DOUBLE *c, long *u, int s, int start_block, int end_block, int p);
-extern DOUBLE explicit_enumeration(coeff_t **lattice, int columns, int rows);
+extern DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows);
 
 extern DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max);
 extern void compute_w2(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows);
 extern void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows);
-extern void gramschmidt(coeff_t **lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq);
-extern void givens(coeff_t **lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq);
+extern void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq);
+extern void givens(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq);
 extern void inverse(DOUBLE **mu, DOUBLE **muinv, int columns);
 extern int exacttest(DOUBLE *v, int rows, DOUBLE Fq);
 extern int prune0(DOUBLE li, DOUBLE re);
@@ -90,6 +96,6 @@ extern int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps);
 extern int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
                      int *first_nonzero_in_column, int *firstp,
                      DOUBLE **bd, DOUBLE *y, DOUBLE *us, int columns);
-extern int print_solution(DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns);
-extern void shufflelattice();
+extern int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns);
+extern void shufflelattice(lattice_t *lattice);
 #endif

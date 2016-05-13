@@ -32,7 +32,7 @@ long nom, denom;
 mpz_t lastlines_factor;
 
 int system_rows, system_columns;
-int lattice_rows, lattice_columns;
+//int lattice->num_rows, lattice->num_cols;
 
 int free_RHS;
 int iszeroone;
@@ -55,15 +55,17 @@ static FILE* fp;
  * Inline functions
  */
 #define ROUND(r) ceil(r-0.5)
-#define put_to(i,j,val) mpz_set(lattice[i][j+1].c,val)
-#define smult_lattice(i,j,factor) mpz_mul(lattice[i][j+1].c,lattice[i][j+1].c,factor)
-#define get_entry(i,j) lattice[i][j+1].c
+#define put_to(mat, i, j, val) mpz_set(mat[i][j+1].c, val)
+#define smult_lattice(mat, i, j, factor) mpz_mul(mat[i][j+1].c, mat[i][j+1].c, factor)
+#define get_entry(mat, i, j) mat[i][j+1].c
 
-long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile) {
+
+long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile) {
 
     int i,j;
     DOUBLE lD, lDnew;
     coeff_t *swap_vec;
+
 
     /**
      * Initialize some globals
@@ -83,37 +85,32 @@ long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile) {
     nboundvars = LGS->num_boundedvars;
 
 #if BLAS
+    fprintf(stderr, "Use OpenBLAS\n");
     //openblas_set_num_threads(8);
 #endif
-
-    /* In case, a time limit as been set by -time
-       the execution is stopped and
-       the number of solutions is printed
-    */
 
     /**
      * set the lattice dimension;
      */
-    lattice_rows = system_rows + system_columns + 1;
-    lattice_columns = system_columns + 2;
+    lattice->num_rows = system_rows + system_columns + 1;
+    lattice->num_cols = system_columns + 2;
 
     if (free_RHS) {
-        lattice_rows++;
-        lattice_columns++;
+        lattice->num_rows++;
+        lattice->num_cols++;
     } else {
         fprintf(stderr,"The RHS is fixed !\n");
         fflush(stderr);
     }
-    cut_after_coeff = cut_after;
 
     /**
      * allocate memory
      */
-    lattice = (coeff_t**)calloc(lattice_columns,sizeof(coeff_t*));
-    for (j = 0; j < lattice_columns; j++) {
-        lattice[j] = (coeff_t*)calloc(lattice_rows + 1, sizeof(coeff_t));
-        for (i = 0; i <= lattice_rows; i++)
-            mpz_init(lattice[j][i].c);
+    lattice->basis = (coeff_t**)calloc(lattice->num_cols, sizeof(coeff_t*));
+    for (j = 0; j < lattice->num_cols; j++) {
+        lattice->basis[j] = (coeff_t*)calloc(lattice->num_rows + 1, sizeof(coeff_t));
+        for (i = 0; i <= lattice->num_rows; i++)
+            mpz_init(lattice->basis[j][i].c);
     }
 
     /**
@@ -121,9 +118,9 @@ long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile) {
      */
     for (j = 0; j < system_rows; j++) {
         for (i = 0; i < system_columns; i++) {
-            mpz_mul(lattice[i][j+1].c, LGS->matrix[j][i], matrix_factor);
+            mpz_mul(lattice->basis[i][j+1].c, LGS->matrix[j][i], lattice->matrix_factor);
         }
-        mpz_mul(lattice[system_columns][j+1].c, LGS->rhs[j], matrix_factor);
+        mpz_mul(lattice->basis[system_columns][j+1].c, LGS->rhs[j], lattice->matrix_factor);
     }
 
     /**
@@ -177,24 +174,24 @@ long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile) {
     /**
      * append the other parts of lattice
      */
-    for (j=system_rows;j<lattice_rows;j++) {
-        mpz_mul_si(lattice[j-system_rows][j+1].c,max_norm, denom);
-        mpz_mul_si(lattice[lattice_columns-2][j+1].c,max_norm, nom);
+    for (j = system_rows; j < lattice->num_rows; j++) {
+        mpz_mul_si(lattice->basis[j-system_rows][j+1].c, lattice->max_norm, denom);
+        mpz_mul_si(lattice->basis[lattice->num_cols-2][j+1].c, lattice->max_norm, nom);
     }
-    mpz_set(lattice[system_columns+free_RHS][lattice_rows].c, max_norm);
+    mpz_set(lattice->basis[system_columns+free_RHS][lattice->num_rows].c, lattice->max_norm);
 
     if (free_RHS) {
-        mpz_set_si(lattice[system_columns][lattice_rows-1].c, 1);
-        mpz_set_si(lattice[system_columns+1][lattice_rows-1].c, 0);
+        mpz_set_si(lattice->basis[system_columns][lattice->num_rows-1].c, 1);
+        mpz_set_si(lattice->basis[system_columns+1][lattice->num_rows-1].c, 0);
     }
-    mpz_set(lattice[system_columns+free_RHS][lattice_rows].c, max_norm);
-    for (i=0;i<lattice_columns-1;i++) coeffinit(lattice[i], lattice_rows);
+    mpz_set(lattice->basis[system_columns+free_RHS][lattice->num_rows].c, lattice->max_norm);
+    for (i=0;i<lattice->num_cols-1;i++) coeffinit(lattice->basis[i], lattice->num_rows);
 
     /**
      * open solution file
      */
     fp = solfile;
-    if (SILENT) fprintf(fp,"SILENT\n");
+    if (lattice->LLL_params.silent) fprintf(fp,"SILENT\n");
     fflush(fp);
 
 
@@ -205,25 +202,25 @@ long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile) {
     /**
      * scale lattice
      */
-    mpz_init_set(max_norm_initial,max_norm);
-    mpz_init_set_si(max_up,1);
+    mpz_init_set(max_norm_initial, lattice->max_norm);
+    mpz_init_set_si(max_up, 1);
     if (!iszeroone){
         for (j=0;j<nboundvars/*|system_columns|*/;j++) {
             if (mpz_sgn(upperbounds[j])!=0) {
                 mpz_divexact(upfac,upperbounds_max,upperbounds[j]);
             } else {
                 mpz_mul(upfac,upperbounds_max,upperbounds_max);
-                mpz_mul_si(upfac,upfac,10000);
+                mpz_mul_si(upfac, upfac, 10000);
             }
-            smult_lattice(j,j+system_rows, upfac );
-            smult_lattice(system_columns+free_RHS,j+system_rows,upperbounds_max);
+            smult_lattice(lattice->basis, j, j + system_rows, upfac);
+            smult_lattice(lattice->basis, system_columns+free_RHS, j + system_rows, upperbounds_max);
         }
-        mpz_set(max_up,upperbounds_max);
-        mpz_mul(max_norm,max_norm,max_up);
+        mpz_set(max_up, upperbounds_max);
+        mpz_mul(lattice->max_norm, lattice->max_norm, max_up);
         if (free_RHS)
-            smult_lattice(system_columns,lattice_rows-2,max_up);
+            smult_lattice(lattice->basis, system_columns, lattice->num_rows-2, max_up);
 
-        smult_lattice(system_columns+free_RHS,lattice_rows-1,max_up);
+        smult_lattice(lattice->basis, system_columns+free_RHS, lattice->num_rows-1, max_up);
     }
 
 #if 0
@@ -240,22 +237,22 @@ long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile) {
     /**
      * permute lattice columns
      */
-    swap_vec = lattice[lattice_columns-2];
-    for (i = lattice_columns - 2; i > 0; i--)
-        lattice[i] = lattice[i-1];
-    lattice[0] = swap_vec;
+    swap_vec = lattice->basis[lattice->num_cols-2];
+    for (i = lattice->num_cols - 2; i > 0; i--)
+        lattice->basis[i] = lattice->basis[i-1];
+    lattice->basis[0] = swap_vec;
 
 #if 0
     printf("After permute\n");
     print_lattice();
 #endif
-    //shufflelattice();
+    //shufflelattice(lattice);
     /**
      * first reduction
      */
     mpz_set_ui(lastlines_factor, 1);
     fprintf(stderr, "\n"); fflush(stderr);
-    lll(lattice, lattice_columns-1, lattice_rows, LLLCONST_LOW, 5);
+    lll(lattice, lattice->num_cols-1, lattice->num_rows, LLLCONST_LOW, 5);
 
 #if 0
     printf("After first reduction\n");
@@ -264,7 +261,7 @@ long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile) {
     /**
      * cut the lattice
      */
-    if (cutlattice()) {
+    if (cutlattice(lattice)) {
         fprintf(stderr, "First reduction successful\n"); fflush(stderr);
     } else {
         fprintf(stderr, "First reduction not successful\n"); fflush(stderr);
@@ -277,12 +274,12 @@ long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile) {
 #endif
 
 #if 1
-    shufflelattice();
+    shufflelattice(lattice);
     /**
      * second reduction
      */
     mpz_set_ui(lastlines_factor, 1);
-    lll(lattice, lattice_columns-1, lattice_rows, LLLCONST_HIGH, 10);
+    lll(lattice, lattice->num_cols-1, lattice->num_rows, LLLCONST_HIGH, 10);
     fprintf(stderr, "Second reduction successful\n"); fflush(stderr);
 #endif
 
@@ -295,17 +292,17 @@ long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile) {
     /**
      * scale last rows
      */
-    mpz_set(lastlines_factor, LLL_params->scalelastlinefactor);
-    for (i=0;i<lattice_columns;i++)
-        mpz_mul(lattice[i][lattice_rows].c,lattice[i][lattice_rows].c,lastlines_factor);
+    mpz_set(lastlines_factor, lattice->LLL_params.scalelastlinefactor);
+    for (i=0;i<lattice->num_cols;i++)
+        mpz_mul(lattice->basis[i][lattice->num_rows].c,lattice->basis[i][lattice->num_rows].c, lastlines_factor);
     if (free_RHS)
-        for (i=0;i<lattice_columns;i++)
-            mpz_mul(lattice[i][lattice_rows-1].c,lattice[i][lattice_rows-1].c,lastlines_factor);
+        for (i=0;i<lattice->num_cols;i++)
+            mpz_mul(lattice->basis[i][lattice->num_rows-1].c, lattice->basis[i][lattice->num_rows-1].c, lastlines_factor);
 
 #if 0
-    for (i=0;i<lattice_columns;i++) {
+    for (i=0;i<lattice->num_cols;i++) {
         for (j=0;j<40;j++)
-            mpz_mul_ui(lattice[i][j+1].c,lattice[i][j+1].c, 9);
+            mpz_mul_ui(lattice->basis[i][j+1].c,lattice->basis[i][j+1].c, 9);
     }
 #endif
 
@@ -313,19 +310,19 @@ long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile) {
      * third reduction
      */
     fprintf(stderr, "\n"); fflush(stderr);
-    if (LLL_params->iterate) {
-        iteratedlll(lattice, lattice_columns-1, lattice_rows, LLL_params->iterate_no, LLLCONST_HIGH, DEEPINSERT_CONST);
+    if (lattice->LLL_params.iterate) {
+        iteratedlll(lattice, lattice->num_cols-1, lattice->num_rows, lattice->LLL_params.iterate_no, LLLCONST_HIGH, DEEPINSERT_CONST);
     } else {
-        shufflelattice();
-        lDnew = bkz(lattice, lattice_columns, lattice_rows, LLLCONST_HIGHER,
-                        LLL_params->bkz.beta, LLL_params->bkz.p);
+        shufflelattice(lattice);
+        lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
+                        lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p);
 
         i = 0;
         do {
             lD = lDnew;
-            shufflelattice();
-            lDnew = bkz(lattice,lattice_columns,lattice_rows,LLLCONST_HIGH,
-                        LLL_params->bkz.beta, LLL_params->bkz.p);
+            shufflelattice(lattice);
+            lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGH,
+                            lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p);
             printf("%0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
             i++;
         }
@@ -334,12 +331,12 @@ long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile) {
     fprintf(stderr, "Third reduction successful\n"); fflush(stderr);
 
     /* undo scaling of last rows */
-    for (i = 0; i < lattice_columns; i++)
-        mpz_divexact(lattice[i][lattice_rows].c, lattice[i][lattice_rows].c, lastlines_factor);
+    for (i = 0; i < lattice->num_cols; i++)
+        mpz_divexact(lattice->basis[i][lattice->num_rows].c, lattice->basis[i][lattice->num_rows].c, lastlines_factor);
     if (free_RHS)
-        for (i = 0; i < lattice_columns; i++)
-            mpz_divexact(lattice[i][lattice_rows-1].c,
-                lattice[i][lattice_rows-1].c,
+        for (i = 0; i < lattice->num_cols; i++)
+            mpz_divexact(lattice->basis[i][lattice->num_rows-1].c,
+                lattice->basis[i][lattice->num_rows-1].c,
                 lastlines_factor);
 #endif // Third reduction
 #else
@@ -356,18 +353,19 @@ long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile) {
      * explicit enumeration
      */
     fprintf(stderr, "\n"); fflush(stderr);
-    nosolutions = explicit_enumeration(lattice,lattice_columns-1,lattice_rows);
+    nosolutions = explicit_enumeration(lattice,lattice->num_cols-1,lattice->num_rows);
 
     /**
      * close solution file;
      */
-    print_num_solutions(nosolutions);
+    if (lattice->LLL_params.silent)
+        print_num_solutions(nosolutions);
 
     /**
      * free multiprecision memory
      */
-    mpz_clear(matrix_factor);
-    mpz_clear(max_norm);
+    //mpz_clear(lattice->matrix_factor);
+    //mpz_clear(lattice->max_norm);
     mpz_clear(lastlines_factor);
     mpz_clear(upfac);
     mpz_clear(max_norm_initial);
@@ -377,12 +375,8 @@ long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile) {
     mpz_clear(soltest_upfac);
     mpz_clear(upperbounds_max);
 
-    for(j=0;j<lattice_columns;j++) {
-        for (i=0;i<=lattice_rows;i++) mpz_clear(lattice[j][i].c);
-    }
-    free(lattice);
-    if (upperbounds!=NULL) {
-        for (i=0;i<system_columns;i++) mpz_clear(upperbounds[i]);
+    if (upperbounds != NULL) {
+        for (i = 0; i < system_columns; i++) mpz_clear(upperbounds[i]);
         free(upperbounds);
     }
 
@@ -393,7 +387,7 @@ long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile) {
  * Basic subroutines
  */
  void print_num_solutions(long num_solutions) {
-     if (SILENT) fprintf(fp, "%ld solutions\n", nosolutions);
+     fprintf(fp, "%ld solutions\n", nosolutions);
      fflush(fp);
  }
 
@@ -408,11 +402,11 @@ long diophant(gls_t *LGS, lll_params_t *LLL_params, FILE* solfile) {
 /**
  * Print basis vectors as row vectors
  */
-void print_lattice() {
+void print_lattice(lattice_t *lattice) {
     int i, j;
-    for (i = 0; i < lattice_columns; i++) {
-        for (j = 0; j < lattice_rows; j++) {
-            mpz_out_str(NULL,10,get_entry(i,j));
+    for (i = 0; i < lattice->num_cols; i++) {
+        for (j = 0; j < lattice->num_rows; j++) {
+            mpz_out_str(NULL,10, get_entry(lattice->basis, i, j));
             printf(" ");
         }
         printf("\n");
@@ -452,7 +446,7 @@ void coeffinit(coeff_t *v, int z) {
     return;
 }
 
-int cutlattice() {
+int cutlattice(lattice_t *lattice) {
     int j, i, flag;
 
     /**
@@ -460,24 +454,26 @@ int cutlattice() {
      */
     j=0;
     do {
-        if (lattice[j][0].p > system_rows)
+        if (lattice->basis[j][0].p > system_rows)
             j++;
         else {
-            for (i = j + 1; i < lattice_columns; i++)
-                lattice[i-1] = lattice[i];
-            lattice_columns--;
+            for (i = j + 1; i < lattice->num_cols; i++)
+                lattice->basis[i-1] = lattice->basis[i];
+            lattice->num_cols--;
         }
-    } while (j < lattice_columns - 1);
+    } while (j < lattice->num_cols - 1);
 
 
     /**
      * test for right hand side columns
      */
     flag = 0;
-    for (i = 0; i < lattice_columns; i++) if (mpz_sgn(get_entry(i,lattice_rows-1)) != 0) {
-        flag = 1;
-        break;
-    }
+    for (i = 0; i < lattice->num_cols; i++)
+        if (mpz_sgn(get_entry(lattice->basis, i, lattice->num_rows-1)) != 0) {
+            flag = 1;
+            break;
+        }
+
     if (flag == 0) {
         fprintf(stderr, "Nonhomogenous solution not possible.\n"); fflush(stderr);
         exit(2);
@@ -486,64 +482,64 @@ int cutlattice() {
     }
 
     /* Now the rows are deleted. */
-    for (j = 0; j < lattice_columns; j++)  {
+    for (j = 0; j < lattice->num_cols; j++)  {
        if (nboundvars == 0) {
-            for (i = system_rows; i < lattice_rows; i++)
-                put_to(j,i-system_rows,get_entry(j,i));
+            for (i = system_rows; i < lattice->num_rows; i++)
+                put_to(lattice->basis, j, i-system_rows,
+                    get_entry(lattice->basis, j, i));
         } else {
             for (i = system_rows; i < system_rows + nboundvars; i++)
-                put_to(j,i-system_rows,get_entry(j,i));
-            for (i = system_rows+system_columns; i < lattice_rows; i++)
-                put_to(j,i-system_rows-system_columns+nboundvars,get_entry(j,i));
+                put_to(lattice->basis, j, i-system_rows,
+                    get_entry(lattice->basis, j, i));
+            for (i = system_rows+system_columns; i < lattice->num_rows; i++)
+                put_to(lattice->basis, j, i-system_rows-system_columns+nboundvars,
+                    get_entry(lattice->basis, j, i));
         }
     }
-    lattice_rows -= system_rows;
-    lattice_rows -= (system_columns-nboundvars);
+    lattice->num_rows -= system_rows;
+    lattice->num_rows -= (system_columns-nboundvars);
 
-    for (j = 0; j < lattice_columns; j++) coeffinit(lattice[j],lattice_rows);
+    for (j = 0; j < lattice->num_cols; j++) coeffinit(lattice->basis[j],lattice->num_rows);
 
     return 1;
 }
 
-int solutiontest(int position) {
+int solutiontest(lattice_t *lattice, int position) {
     int i,j;
     int low, up;
     int end;
 
     /* test the last two rows */
-    if (mpz_cmpabs(get_entry(position, lattice_rows-1), max_norm)!=0) return 0;
-    if (mpz_sgn(get_entry(position,lattice_rows-1-free_RHS))==0) return 0;
+    if (mpz_cmpabs(get_entry(lattice->basis, position, lattice->num_rows-1), lattice->max_norm) !=0 ) return 0;
+    if (mpz_sgn(get_entry(lattice->basis, position, lattice->num_rows-1-free_RHS)) ==0 ) return 0;
 
     /* test, if column is a solution */
     low = 0;
-    up = lattice_rows-1-free_RHS;
-    if (lattice_columns == system_columns+2+free_RHS) {
+    up = lattice->num_rows-1-free_RHS;
+    if (lattice->num_cols == system_columns+2+free_RHS) {
         for (i=0;i<system_rows;i++)
-            if (mpz_sgn(get_entry(position,i))!=0) return 0;
+            if (mpz_sgn(get_entry(lattice->basis, position, i))!=0) return 0;
         low = system_rows;
     }
 
     if (iszeroone) {
         for (i=low;i<up;i++) {
-            if (mpz_cmpabs(get_entry(position,i),max_norm)!=0) return 0;
+            if (mpz_cmpabs(get_entry(lattice->basis, position,i), lattice->max_norm)!=0) return 0;
         }
     } else {
         for (i=low;i<up;i++) {
-            if (mpz_cmpabs(get_entry(position,i),max_norm)>0) return 0;
+            if (mpz_cmpabs(get_entry(lattice->basis, position,i), lattice->max_norm)>0) return 0;
         }
     }
 
 
     mpz_set_si(upfac,1);
-    mpz_divexact(soltest_s,get_entry(position,lattice_rows-1),lastlines_factor);
+    mpz_divexact(soltest_s, get_entry(lattice->basis, position, lattice->num_rows-1), lattice->LLL_params.scalelastlinefactor);
 
     /* write a solution with blanks */
     i = low;
-    if (cut_after_coeff == -1) {
-        end=no_original_columns;
-    } else {
-        end=cut_after_coeff;
-    }
+
+    end = (lattice->cut_after == -1) ? no_original_columns : lattice->cut_after;
 
     for (j = 0; j < end; j++) {
         if (original_columns[j] == 0) {
@@ -556,7 +552,7 @@ int solutiontest(int position) {
                     mpz_set(soltest_upfac,upperbounds_max);
                 }
             }
-            mpz_set(soltest_u,get_entry(position,i));
+            mpz_set(soltest_u,get_entry(lattice->basis, position, i));
             mpz_sub(soltest_u,soltest_u,soltest_s);
             mpz_divexact(soltest_u,soltest_u,max_norm_initial);
             mpz_divexact(soltest_u,soltest_u,soltest_upfac);
@@ -566,14 +562,14 @@ int solutiontest(int position) {
         }
         mpz_out_str(NULL,10,soltest_u);
         printf(" ");
-        if (stop_after_solutions==1) {
+        if (lattice->LLL_params.stop_after_solutions == 1) {
             mpz_out_str(fp,10,soltest_u);
             fprintf(fp," ");
         }
     }
     if (free_RHS) {
-        mpz_divexact(soltest_u,get_entry(position,up),max_up);
-        mpz_divexact(soltest_u,soltest_u,lastlines_factor);
+        mpz_divexact(soltest_u, get_entry(lattice->basis, position, up), max_up);
+        mpz_divexact(soltest_u, soltest_u, lattice->LLL_params.scalelastlinefactor);
         mpz_abs(soltest_u,soltest_u);
         printf(" L = ");
         mpz_out_str(NULL,10,soltest_u);
@@ -582,7 +578,7 @@ int solutiontest(int position) {
     fflush(stdout);
 
     /* test if one solution is enough */
-    if (stop_after_solutions == 1) {
+    if (lattice->LLL_params.stop_after_solutions == 1) {
         fprintf(fp,"\n");
 
         fprintf(stderr, "Stopped in phase 1 after finding a random solution\n");
@@ -598,9 +594,10 @@ int solutiontest(int position) {
 
 #define TWOTAUHALF 67108864.0 /* $2^{\tau/2}$*/
 
-int lllfp(coeff_t **b, DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs,
+int lllfp(lattice_t *lattice, DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs,
             int start, int s, int z, DOUBLE delta) {
 
+    coeff_t **b = lattice->basis;
     int i, j, k;
     DOUBLE ss;
 
@@ -709,7 +706,7 @@ if (c[k] < EPSILON) {
                     fprintf(stderr, "Problems in rounding mu, step back to k=%d; %lf %lf\n", k-1, mus, mu[k][j]);
 
                 mu[k][j] -= mus;
-                solutiontest(k);
+                solutiontest(lattice, k);
             }
         }
 
@@ -819,12 +816,13 @@ if (c[k] < EPSILON) {
 
 }
 
-int lllHfp(coeff_t **b, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
+int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
             int start, int s, int z, DOUBLE delta, int deepinsert_blocksize) {
 
+    coeff_t **b = lattice->basis;
     int i, j, k;
-    //DOUBLE eps = 0.0000000001;
     DOUBLE mu;
+    //DOUBLE eps = 0.0000000001;
     //DOUBLE zeta;
     DOUBLE beta[32768];
     //DOUBLE w_beta;
@@ -844,7 +842,7 @@ int lllHfp(coeff_t **b, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
     int counter = 0;
 #endif
 
-    fprintf(stderr, "----------------NEW LLLHfp-----------------------------\n");
+    fprintf(stderr, "----------------NEW LLLHfp\n");
     fprintf(stderr, "deepinsert: %d\n", deepinsert_blocksize);
     fflush(stderr);
 
@@ -854,7 +852,7 @@ int lllHfp(coeff_t **b, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
 
     /* Test for trivial cases. */
     if ((z <= 1) || (s <= 1)) {
-        fprintf(stderr, "Wrong dimensions in lllfp\n");
+        fprintf(stderr, "Wrong dimensions in LLLHfp\n");
         fflush(stderr);
         return(0);
     }
@@ -901,7 +899,7 @@ start_tricol:
 
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
                 size_reduction(b, R, musvl, mus, k, j);
-                solutiontest(k);
+                solutiontest(lattice, k);
             }
         }
         if (!mu_all_zero) {
@@ -1254,13 +1252,13 @@ double log_potential(DOUBLE **R, int s, int z) {
     return d;
 }
 
-double orthogonality_defect(coeff_t **lattice, DOUBLE **R, int s, int z) {
+double orthogonality_defect(lattice_t *lattice, DOUBLE **R, int s, int z) {
     double defect = 0.0;
 
 #if 1
     int i;
     for (i = 0; i < s; i++)
-        defect += log(scalarproductlfp(lattice[i], lattice[i])) - log(R[i][i]);
+        defect += log(scalarproductlfp(lattice->basis[i], lattice->basis[i])) - log(R[i][i]);
 #endif
 
     defect /= 2.0;
@@ -1270,7 +1268,7 @@ double orthogonality_defect(coeff_t **lattice, DOUBLE **R, int s, int z) {
 /**
  * LLL variants
  */
-void lll(coeff_t **b, int s, int z, DOUBLE quality, int deepinsert_blocksize) {
+void lll(lattice_t *lattice, int s, int z, DOUBLE quality, int deepinsert_blocksize) {
     DOUBLE **mu;
     DOUBLE *c;
     DOUBLE *N;
@@ -1278,13 +1276,13 @@ void lll(coeff_t **b, int s, int z, DOUBLE quality, int deepinsert_blocksize) {
     int r;
 
     lllalloc(&mu, &c, &N, &bs, s, z);
-    r = lllHfp(b, mu, c, N, bs, 0, s, z, quality, deepinsert_blocksize);
+    r = lllHfp(lattice, mu, c, N, bs, 0, s, z, quality, deepinsert_blocksize);
     lllfree(mu, c, N, bs, s);
 
     return;
 }
 
-DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality, int deepinsert_blocksize) {
+DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE quality, int deepinsert_blocksize) {
     DOUBLE **R;
     DOUBLE *c;
     DOUBLE *N;
@@ -1294,7 +1292,7 @@ DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality, i
     DOUBLE lD;
 
     lllalloc(&R, &c, &N, &bs, s, z);
-    r = lllHfp(b, R, c, N, bs, 0, s, z, quality, deepinsert_blocksize);
+    r = lllHfp(lattice, R, c, N, bs, 0, s, z, quality, deepinsert_blocksize);
 
     lD = log_potential(R, s, z);
     fprintf(stderr, "   log(D)= %f\n", lD);
@@ -1317,12 +1315,12 @@ DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality, i
         for (j = 0; j < 100; j++) {
             for (i = s - 1; i > 0; i--) {
                 r = rand() % i;
-                swapvl = b[i];
-                b[i] = b[r];
-                b[r] = swapvl;
+                swapvl = lattice->basis[i];
+                lattice->basis[i] = lattice->basis[r];
+                lattice->basis[r] = swapvl;
             }
         }
-        r = lllHfp(b, R, c, N, bs, 0, s, z, quality, deepinsert_blocksize);
+        r = lllHfp(lattice, R, c, N, bs, 0, s, z, quality, deepinsert_blocksize);
         lD = log_potential(R, s, z);
         fprintf(stderr, "%d: log(D)= %f\n", runs, lD);
         fflush(stdout);
@@ -1336,7 +1334,8 @@ DOUBLE iteratedlll(coeff_t **b, int s, int z, int no_iterates, DOUBLE quality, i
 /**
  * Blockwise Korkine Zolotareff reduction
  */
-DOUBLE bkz(coeff_t **b, int s, int z, DOUBLE delta, int beta, int p) {
+DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
+    coeff_t **b = lattice->basis;
     DOUBLE **mu, *c, *N;
     DOUBLE **bs;
     static mpz_t hv;
@@ -1367,7 +1366,7 @@ DOUBLE bkz(coeff_t **b, int s, int z, DOUBLE delta, int beta, int p) {
     for (i = 0; i < s; i++) u[i] = 0;
 
     lllalloc(&mu,&c,&N,&bs,s,z);
-    lllHfp(b, mu, c, N, bs, 0, s, z, delta, -1);
+    lllHfp(lattice, mu, c, N, bs, 0, s, z, delta, -1);
 
     start_block = zaehler = -1;
     while (zaehler < last) {
@@ -1387,9 +1386,9 @@ DOUBLE bkz(coeff_t **b, int s, int z, DOUBLE delta, int beta, int p) {
             for (i = start_block; i <= end_block; i++) {
                 if (u[i] != 0) for(j = 1; j <= z; j++) {
                     if (u[i] > 0) {
-                        mpz_addmul_ui(b[last+1][j].c,b[i][j].c,u[i]);
+                        mpz_addmul_ui(b[last+1][j].c, b[i][j].c, u[i]);
                     } else {
-                        mpz_submul_ui(b[last+1][j].c,b[i][j].c,-u[i]);
+                        mpz_submul_ui(b[last+1][j].c, b[i][j].c, -u[i]);
                     }
                 }
             }
@@ -1405,13 +1404,13 @@ DOUBLE bkz(coeff_t **b, int s, int z, DOUBLE delta, int beta, int p) {
                 u[g] = ui;
 
                 for (j = 1; j <= z; j++) {
-                    mpz_set(hv,b[g][j].c);
-                    mpz_mul_si(b[g][j].c,b[g][j].c,(long)q);
-                    mpz_add(b[g][j].c,b[g][j].c,b[i][j].c);
-                    mpz_set(b[i][j].c,hv);
+                    mpz_set(hv, b[g][j].c);
+                    mpz_mul_si(b[g][j].c, b[g][j].c, (long)q);
+                    mpz_add(b[g][j].c, b[g][j].c, b[i][j].c);
+                    mpz_set(b[i][j].c, hv);
                 }
-                coeffinit(b[g],z);
-                coeffinit(b[i],z);
+                coeffinit(b[g], z);
+                coeffinit(b[i], z);
             }
 
             swapvl = b[g];
@@ -1423,7 +1422,7 @@ DOUBLE bkz(coeff_t **b, int s, int z, DOUBLE delta, int beta, int p) {
             for (j = 1; j <= z; j++) mpz_set_si(b[last+1][j].c, 0);
             coeffinit(b[last+1],z);
 
-            lllHfp(b, mu, c, N, bs, start_block - 1, h + 1, z, delta, 10);
+            lllHfp(lattice, mu, c, N, bs, start_block - 1, h + 1, z, delta, 10);
 
             if (N[h]<-EPSILON) {
                 fprintf(stderr,"NN negativ\n");
@@ -1436,7 +1435,7 @@ DOUBLE bkz(coeff_t **b, int s, int z, DOUBLE delta, int beta, int p) {
             zaehler = -1;
         } else {
             if (h > 0) {
-                lllfp(b, mu, c, N, bs, h-2, h+1, z, delta);   /* For some unkown reason we have to
+                lllfp(lattice, mu, c, N, bs, h-2, h+1, z, delta);   /* For some unkown reason we have to
                                                         use $h-2$ as |start|. */
             }
             zaehler++;
@@ -1599,7 +1598,7 @@ long only_zeros_no, only_zeros_success, hoelder_no, hoelder_success;
 long cs_success;
 long N_success;
 
-DOUBLE explicit_enumeration(coeff_t **lattice, int columns, int rows) {
+DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     /* local variables for |explicit_enumeration() */
     /*|__attribute((aligned(16)))|*/
 
@@ -1696,14 +1695,14 @@ DOUBLE explicit_enumeration(coeff_t **lattice, int columns, int rows) {
     /* count nonzero entries in the last rows(s) */
     if (free_RHS) {
         i=0;
-        for (j = columns - 1; j >= 0; j--) if (mpz_sgn(get_entry(j,rows-2)) != 0)
+        for (j = columns - 1; j >= 0; j--) if (mpz_sgn(get_entry(lattice->basis, j, rows-2)) != 0)
             i++;
         fprintf(stderr, "Number of nonzero entries in the second last row: %d\n", i);
         fflush(stderr);
     }
 
     i = 0;
-    for (j = columns - 1; j >= 0; j--) if (mpz_sgn(get_entry(j,rows-1)) !=0 )
+    for (j = columns - 1; j >= 0; j--) if (mpz_sgn(get_entry(lattice->basis, j, rows-1)) !=0 )
         i++;
     fprintf(stderr, "Number of nonzero entries in the last row: %d\n", i);
     fflush(stderr);
@@ -1713,7 +1712,7 @@ DOUBLE explicit_enumeration(coeff_t **lattice, int columns, int rows) {
 #endif
 
     /* set the simple pruning bounds */
-    Fq = (DOUBLE)mpz_get_d(max_norm);
+    Fq = (DOUBLE)mpz_get_d(lattice->max_norm);
     Fd = (rows*Fq*Fq)*(1.0+EPSILON);
     Fqeps = (1.0 + EPSILON) * Fq;        /* Used in prune() */
 #if VERBOSE > 0
@@ -1724,9 +1723,9 @@ DOUBLE explicit_enumeration(coeff_t **lattice, int columns, int rows) {
 
     /* orthogonalize the basis */
 #if GIVENS
-    givens(lattice,columns,rows,mu,bd,c,N,Fq);
+    givens(lattice, columns, rows, mu, bd, c, N, Fq);
 #else
-    gramschmidt(lattice,columns,rows,mu,bd,c,N,Fq);
+    gramschmidt(lattice, columns, rows, mu, bd, c, N, Fq);
 #endif
 
     /* compute $mu^\top$, the transpose of $mu$. */
@@ -1806,7 +1805,7 @@ DOUBLE explicit_enumeration(coeff_t **lattice, int columns, int rows) {
 
     /* initialize first-nonzero arrays */
     for (l = 0; l < rows; l++) {
-        for (i = 0; i < columns; i++) if (mpz_sgn(get_entry(i,l)) != 0) {
+        for (i = 0; i < columns; i++) if (mpz_sgn(get_entry(lattice->basis, i, l)) != 0) {
             first_nonzero[l] = i;
             break;
         }
@@ -1846,7 +1845,7 @@ DOUBLE explicit_enumeration(coeff_t **lattice, int columns, int rows) {
     do {
         /* increase loop counter */
         loops++;
-        if ((stop_after_loops > 0) && (stop_after_loops <= loops))
+        if ((lattice->LLL_params.stop_after_loops > 0) && (lattice->LLL_params.stop_after_loops <= loops))
             goto afterloop;
 
 #if VERBOSE > -1
@@ -1914,8 +1913,9 @@ DOUBLE explicit_enumeration(coeff_t **lattice, int columns, int rows) {
             } else {
                 /* at $|level|=0$ */
                 if (exacttest(w[0],rows,Fq) == 1) {
-                    print_solution(w[level],rows,Fq,us,columns);
-                    if ((stop_after_solutions > 0) && (stop_after_solutions <= nosolutions))
+                    print_solution(lattice, w[level], rows, Fq, us, columns);
+                    if (lattice->LLL_params.stop_after_solutions > 0 &&
+                        lattice->LLL_params.stop_after_solutions <= nosolutions)
                         goto afterloop;
                 }
                 goto side_step;
@@ -1957,12 +1957,13 @@ afterloop:
 #endif
     printf("Loops: %ld\n",loops);
 
-    if ((stop_after_solutions <= nosolutions && stop_after_solutions > 0) ||
-             (stop_after_loops <= loops && stop_after_loops > 0 )) {
+    if ((lattice->LLL_params.stop_after_solutions <= nosolutions && lattice->LLL_params.stop_after_solutions > 0) ||
+            (lattice->LLL_params.stop_after_loops <= loops && lattice->LLL_params.stop_after_loops > 0 )) {
         printf("Stopped after number of solutions: %ld\n", nosolutions);
 
-        print_num_solutions(nosolutions);
-        if ((stop_after_loops <= loops && stop_after_loops > 0)) {
+        if (lattice->LLL_params.silent)
+            print_num_solutions(nosolutions);
+        if ((lattice->LLL_params.stop_after_loops <= loops && lattice->LLL_params.stop_after_loops > 0)) {
             exit(10);
         } else {
             exit(9);
@@ -2047,23 +2048,23 @@ void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     return;
 }
 
-void gramschmidt(coeff_t **lattice, int columns, int rows, DOUBLE **mu,
+void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu,
                  DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq) {
     int i, l, j;
     DOUBLE dum;
 
     for (i = 0; i < columns; i++) {
-        for (l = 0; l < rows; l++) bd[i][l] = (DOUBLE)mpz_get_d(get_entry(i,l));
+        for (l = 0; l < rows; l++) bd[i][l] = (DOUBLE)mpz_get_d(get_entry(lattice->basis, i, l));
         N[i] = 0.0;
-        for (j=0;j<i;j++) {
+        for (j = 0; j < i; j++) {
             dum = 0.0;
-            for(l=0;l<rows;l++) dum += (DOUBLE)mpz_get_d(get_entry(i,l)) * bd[j][l];
+            for (l = 0; l < rows; l++) dum += (DOUBLE)mpz_get_d(get_entry(lattice->basis, i, l)) * bd[j][l];
             mu[i][j] = dum / c[j];
             for (l = 0; l < rows; l++) bd[i][l] -= mu[i][j]*bd[j][l];
         }
 
-        c[i] = scalarproductfp(bd[i],bd[i],rows);
-        for(l = 0; l < rows; l++) N[i] += fabs(bd[i][l]);
+        c[i] = scalarproductfp(bd[i], bd[i], rows);
+        for (l = 0; l < rows; l++) N[i] += fabs(bd[i][l]);
         N[i] /= c[i];
         N[i] *= Fq;
 #if VERBOSE > 0
@@ -2078,7 +2079,7 @@ void gramschmidt(coeff_t **lattice, int columns, int rows, DOUBLE **mu,
     return;
 }
 
-void givens(coeff_t **lattice, int columns, int rows, DOUBLE **mu,
+void givens(lattice_t *lattice, int columns, int rows, DOUBLE **mu,
             DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq) {
     int i,l,j;
     int mm;
@@ -2092,7 +2093,7 @@ void givens(coeff_t **lattice, int columns, int rows, DOUBLE **mu,
     */
     for (i = 0; i < columns; i++) {
         for (l = 0; l < rows; l++) {
-            mu[i][l] = (DOUBLE)mpz_get_d(get_entry(i,l));
+            mu[i][l] = (DOUBLE)mpz_get_d(get_entry(lattice->basis, i, l));
         }
     }
 
@@ -2271,7 +2272,7 @@ int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
     return 0;
 }
 
-int print_solution(DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns) {
+int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns) {
     int i,j,k;
     int upper;
     int end;
@@ -2285,25 +2286,21 @@ int print_solution(DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns) {
         return 0;
     }
 
-    if (!SILENT) {
+    if (!lattice->LLL_params.silent) {
         mpz_set_si(soltest_upfac,1);
         mpz_set_si(soltest_s,0);
         for (k=0;k<columns;k++) {
             if (ROUND(us[k])>0) {
-                mpz_addmul_ui(soltest_s,get_entry(k,rows-1), ROUND(us[k]));
+                mpz_addmul_ui(soltest_s,get_entry(lattice->basis, k, rows-1), ROUND(us[k]));
             } else {
-            mpz_submul_ui(soltest_s,get_entry(k,rows-1),-ROUND(us[k]));
+            mpz_submul_ui(soltest_s,get_entry(lattice->basis, k,rows-1), -ROUND(us[k]));
             }
         }
 
         i = 0;
-        if (cut_after_coeff==-1) {
-            end=no_original_columns;
-        } else {
-            end=cut_after_coeff;
-        }
-        for (j=0;j<end;j++) {
-            if (original_columns[j]==0) {
+        end = (lattice->cut_after == -1) ? no_original_columns : lattice->cut_after;
+        for (j = 0; j < end; j++) {
+            if (original_columns[j] == 0) {
                 mpz_set_si(soltest_u,0);
             } else {
                 if (!iszeroone) {
@@ -2316,25 +2313,26 @@ int print_solution(DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns) {
                 mpz_set_si(soltest_u,0);
                 for (k=0;k<columns;k++) {
                     if (ROUND(us[k])>0) {
-                        mpz_addmul_ui(soltest_u,get_entry(k,i),ROUND(us[k]));
+                        mpz_addmul_ui(soltest_u,get_entry(lattice->basis, k, i), ROUND(us[k]));
                     } else {
-                        mpz_submul_ui(soltest_u,get_entry(k,i),-ROUND(us[k]));
+                        mpz_submul_ui(soltest_u,get_entry(lattice->basis, k, i), -ROUND(us[k]));
                     }
                 }
-                mpz_sub(soltest_u,soltest_u,soltest_s);
-                mpz_divexact(soltest_u,soltest_u,max_norm_initial);
-                mpz_divexact(soltest_u,soltest_u,soltest_upfac);
-                mpz_divexact_ui(soltest_u,soltest_u,denom);
-                mpz_abs(soltest_u,soltest_u);
-                if (!iszeroone && (mpz_cmp_si(soltest_u,0)<0 || mpz_cmp(soltest_u,upperbounds[i])>0) ) {  /* upperbounds not defined for $0/1$ problems */
+                mpz_sub(soltest_u, soltest_u, soltest_s);
+                mpz_divexact(soltest_u, soltest_u, max_norm_initial);
+                mpz_divexact(soltest_u, soltest_u, soltest_upfac);
+                mpz_divexact_ui(soltest_u, soltest_u, denom);
+                mpz_abs(soltest_u, soltest_u);
+                if (!iszeroone && (mpz_cmp_si(soltest_u, 0) < 0 || mpz_cmp(soltest_u, upperbounds[i]) > 0) ) {
+                    /* upperbounds not defined for $0/1$ problems */
                     fprintf(stderr," rounding error -> this is not a solutions!\n");
                     return 0;
                 }
                 i++;
             }
-            mpz_out_str(NULL,10,soltest_u);
+            mpz_out_str(NULL, 10, soltest_u);
             fflush(stdout);
-            mpz_out_str(fp,10,soltest_u);
+            mpz_out_str(fp, 10, soltest_u);
 
             /* Meanwhile, all solution vectors are written with separating blanks. */
             /*|if (!iszeroone) { }|*/
@@ -2368,7 +2366,8 @@ void stop_program(int sig) {
        return;
 
     printf("Stopped after SIGALRM, number of solutions: %ld\n", nosolutions);
-    print_num_solutions(nosolutions);
+    if (!SILENT)
+        print_num_solutions(nosolutions);
 
     exit(11);
 }
@@ -2377,10 +2376,10 @@ void show_lattice(int sig) {
     if (sig != SIGUSR1)
        return;
 
-    print_lattice();
+    print_lattice(LATTICE);
 }
 
-void shufflelattice() {
+void shufflelattice(lattice_t *lattice) {
     coeff_t *tmp;
     int i, j, r;
     unsigned int s;
@@ -2394,11 +2393,11 @@ void shufflelattice() {
     srand(s);
 
     for (j = 0; j < 100; j++) {
-        for (i = lattice_columns - 2; i > 0; i--) {
+        for (i = lattice->num_cols - 2; i > 0; i--) {
             r = rand() % i;
-            tmp = lattice[r];
-            lattice[r] = lattice[i];
-            lattice[i] = tmp;
+            tmp = lattice->basis[r];
+            lattice->basis[r] = lattice->basis[i];
+            lattice->basis[i] = tmp;
         }
     }
     return;

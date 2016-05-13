@@ -80,9 +80,9 @@ int main(int argc, char *argv[]) {
     /*
         Variables
      */
-	gls_t LGS;
-    lll_params_t LLL_params;
+	lgs_t LGS;
     lattice_t lattice;
+    LATTICE = &lattice;
 
     int maxruntime = 0;
 
@@ -100,39 +100,39 @@ int main(int argc, char *argv[]) {
     /**
      * Init structs lattice and LLL_params
      */
-    LLL_params.iterate = LLL_params.bkz.beta = LLL_params.bkz.p = -1;
-    mpz_init(LLL_params.scalelastlinefactor);
+    lattice.LLL_params.iterate = lattice.LLL_params.bkz.beta = lattice.LLL_params.bkz.p = -1;
+    mpz_init(lattice.LLL_params.scalelastlinefactor);
     mpz_init(lattice.matrix_factor);
     mpz_init(lattice.max_norm);
 
-    mpz_set_si(LLL_params.scalelastlinefactor, -1);
+    mpz_set_si(lattice.LLL_params.scalelastlinefactor, -1);
     mpz_set_si(lattice.matrix_factor, -1);
     mpz_set_si(lattice.max_norm, -1);
-    LLL_params.silent = 0;
+    lattice.LLL_params.silent = SILENT = 0;
 
     /**
      * Read CLI parameters
      */
     for (i = 1; i < argc; i++) {
         if (strcmp(argv[i],"-silent") == 0) {
-            LLL_params.silent = 1;
+            lattice.LLL_params.silent = SILENT = 1;
             fprintf(stderr,"No output of solutions, just counting.\n");
 
         } else if (strncmp(argv[i],"-iterate",8) == 0) {
             strcpy(suffix,argv[i]+8);
-            LLL_params.iterate_no  = atoi(suffix);
-            LLL_params.iterate = 1;
+            lattice.LLL_params.iterate_no  = atoi(suffix);
+            lattice.LLL_params.iterate = 1;
 
         } else if (strncmp(argv[i],"-bkz",4) == 0) {
-            LLL_params.iterate = 0;
+            lattice.LLL_params.iterate = 0;
 
         } else if (strncmp(argv[i],"-beta",5) == 0) {
             strcpy(suffix,argv[i]+5);
-            LLL_params.bkz.beta = atoi(suffix);
+            lattice.LLL_params.bkz.beta = atoi(suffix);
 
         } else if (strncmp(argv[i],"-p",2) == 0) {
             strcpy(suffix,argv[i]+2);
-            LLL_params.bkz.p = atoi(suffix);
+            lattice.LLL_params.bkz.p = atoi(suffix);
 
         } else if (strncmp(argv[i],"-time",5) == 0) {
             strcpy(suffix,argv[i]+5);
@@ -151,7 +151,7 @@ int main(int argc, char *argv[]) {
 
         } else if (strncmp(argv[i],"-scalelastline",14) == 0) {
             strcpy(suffix,argv[i]+14);
-            mpz_set_str(LLL_params.scalelastlinefactor,suffix,10);
+            mpz_set_str(lattice.LLL_params.scalelastlinefactor,suffix,10);
 
         } else if (strncmp(argv[i],"-i",2) == 0) {
             strcpy(suffix,argv[i]+2);
@@ -177,14 +177,15 @@ int main(int argc, char *argv[]) {
         fprintf(stderr,"has to be the input file name.\n");
         exit(1);
     }
-    if (LLL_params.iterate == -1) {
+    if (lattice.LLL_params.iterate == -1) {
         fprintf(stderr,"No reduction was chosen.\n");
         fprintf(stderr,"It is set to iterate=1.\n");
 
-        LLL_params.iterate = 1;
-        LLL_params.iterate_no = 1;
+        lattice.LLL_params.iterate = 1;
+        lattice.LLL_params.iterate_no = 1;
     }
-    if (LLL_params.iterate == 0 && (LLL_params.bkz.beta == -1 ||  LLL_params.bkz.p == -1)) {
+    if (lattice.LLL_params.iterate == 0 &&
+            (lattice.LLL_params.bkz.beta == -1 || lattice.LLL_params.bkz.p == -1)) {
         fprintf(stderr,"You have chosen bkz reduction. You also have to specify the parameters");
         fprintf(stderr," -beta* -p*\n");
         exit(1);
@@ -199,10 +200,10 @@ int main(int argc, char *argv[]) {
         fprintf(stderr,"It is set to 1.\n");
         mpz_set_si(lattice.max_norm, 1);
     }
-    if (mpz_cmp_si(LLL_params.scalelastlinefactor, 0) <= 0) {
+    if (mpz_cmp_si(lattice.LLL_params.scalelastlinefactor, 0) <= 0) {
         fprintf(stderr,"You did not supply the options -scalelastline*. ");
         fprintf(stderr,"It is set to 1.\n");
-        mpz_set_si(LLL_params.scalelastlinefactor, 1);
+        mpz_set_si(lattice.LLL_params.scalelastlinefactor, 1);
     }
 
     inputfile_name = argv[argc-1];
@@ -232,15 +233,15 @@ int main(int argc, char *argv[]) {
 
     lattice.free_RHS = 0;
     lattice.cut_after = -1;
-    LLL_params.stop_after_loops = 0;
-    LLL_params.stop_after_solutions = 0;
+    lattice.LLL_params.stop_after_loops = 0;
+    lattice.LLL_params.stop_after_solutions = 0;
     do {
         fgets(zeile, ZLENGTH, txt);
         if (strstr(zeile,"% stopafter")!=NULL) {
-            sscanf(zeile,"%% stopafter %ld",&(LLL_params.stop_after_solutions));
+            sscanf(zeile,"%% stopafter %ld",&(lattice.LLL_params.stop_after_solutions));
         }
         if (strstr(zeile,"% stoploops")!=NULL) {
-            sscanf(zeile,"%% stoploops %ld",&(LLL_params.stop_after_loops));
+            sscanf(zeile,"%% stoploops %ld",&(lattice.LLL_params.stop_after_loops));
         }
         if (strstr(zeile,"% cutafter")!=NULL) {
             sscanf(zeile,"%% cutafter %d",&(lattice.cut_after));
@@ -259,7 +260,7 @@ int main(int argc, char *argv[]) {
     /**
      * Allocate memory and read LGS
      */
-	gls_allocate_mem(&LGS);
+	lgs_allocate_mem(&LGS);
     read_linear_system(txt, &LGS);
     fclose(txt);
     read_upper_bounds(inputfile_name, &LGS);
@@ -268,7 +269,7 @@ int main(int argc, char *argv[]) {
     solfile = fopen(solfilename, "w");
     time_0 = os_ticks();
 
-    diophant(&LGS, &LLL_params, solfile);
+    diophant(&LGS, &lattice, solfile);
 
     time_1 = os_ticks();
     fclose(solfile);
@@ -279,14 +280,14 @@ int main(int argc, char *argv[]) {
     fprintf(stderr,"total enumeration time: %s\n", timestring);
     fflush(stdout);
 
-    /**
-     * Free memory
-     */
-    mpz_clear(lattice.matrix_factor);
-    mpz_clear(lattice.max_norm);
-    mpz_clear(LLL_params.scalelastlinefactor);
+	lgs_free_mem(&LGS);
+    /*
+    for(j=0;j<lattice->num_cols;j++) {
+        for (i=0;i<=lattice->num_rows;i++) mpz_clear(lattice->basis[j][i].c);
+    }
 
-	gls_free_mem(&LGS);
-
+    free(lattice);
+    */
+   
     return 0;
 }

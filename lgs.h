@@ -15,15 +15,15 @@ typedef struct {
 
     int num_original_cols;
     int *original_cols;
-} gls_t;
+} lgs_t;
 
 #define ZLENGTH 16000
 
-extern void gls_allocate_mem(gls_t *LGS);
-extern void gls_free_mem(gls_t *LGS);
-extern void read_upper_bounds(char *file_name, gls_t *LGS);
-extern void read_selected_cols(char *file_name, gls_t *LGS);
-extern void read_linear_system(FILE *txt, gls_t *LGS);
+extern void lgs_allocate_mem(lgs_t *LGS);
+extern void lgs_free_mem(lgs_t *LGS);
+extern void read_upper_bounds(char *file_name, lgs_t *LGS);
+extern void read_selected_cols(char *file_name, lgs_t *LGS);
+extern void read_linear_system(FILE *txt, lgs_t *LGS);
 extern void incorrect_input_file();
 
 #endif
