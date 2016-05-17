@@ -816,7 +816,7 @@ if (c[k] < EPSILON) {
 
 }
 
-int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
+int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             int start, int s, int z, DOUBLE delta, int deepinsert_blocksize) {
 
     coeff_t **b = lattice->basis;
@@ -824,7 +824,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
     DOUBLE mu;
     //DOUBLE eps = 0.0000000001;
     //DOUBLE zeta;
-    DOUBLE beta[32768];
+    //DOUBLE beta[32768];
     //DOUBLE w_beta;
     //DOUBLE w, x;
     DOUBLE norm;
@@ -1295,30 +1295,30 @@ double orthogonality_defect(lattice_t *lattice, DOUBLE **R, int s, int z) {
  * LLL variants
  */
 void lll(lattice_t *lattice, int s, int z, DOUBLE quality, int deepinsert_blocksize) {
-    DOUBLE **mu;
-    DOUBLE *c;
+    DOUBLE **R;
+    DOUBLE *beta;
     DOUBLE *N;
-    DOUBLE **bs;
+    DOUBLE **H;
     int r;
 
-    lllalloc(&mu, &c, &N, &bs, s, z);
-    r = lllHfp(lattice, mu, c, N, bs, 0, s, z, quality, deepinsert_blocksize);
-    lllfree(mu, c, N, bs, s);
+    lllalloc(&R, &beta, &N, &H, s, z);
+    r = lllHfp(lattice, R, beta, H, 0, s, z, quality, deepinsert_blocksize);
+    lllfree(R, beta, N, H, s);
 
     return;
 }
 
 DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE quality, int deepinsert_blocksize) {
     DOUBLE **R;
-    DOUBLE *c;
+    DOUBLE *beta;
     DOUBLE *N;
-    DOUBLE **bs;
+    DOUBLE **H;
     int r, l, i, j, runs;
     coeff_t *swapvl;
     DOUBLE lD;
 
-    lllalloc(&R, &c, &N, &bs, s, z);
-    r = lllHfp(lattice, R, c, N, bs, 0, s, z, quality, deepinsert_blocksize);
+    lllalloc(&R, &beta, &N, &H, s, z);
+    r = lllHfp(lattice, R, beta, H, 0, s, z, quality, deepinsert_blocksize);
 
     lD = log_potential(R, s, z);
     fprintf(stderr, "   log(D)= %f\n", lD);
@@ -1346,13 +1346,13 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
                 lattice->basis[r] = swapvl;
             }
         }
-        r = lllHfp(lattice, R, c, N, bs, 0, s, z, quality, deepinsert_blocksize);
+        r = lllHfp(lattice, R, beta, H, 0, s, z, quality, deepinsert_blocksize);
         lD = log_potential(R, s, z);
         fprintf(stderr, "%d: log(D)= %f\n", runs, lD);
         fflush(stdout);
     }
 
-    lllfree(R, c, N, bs, s);
+    lllfree(R, beta, N, H, s);
 
     return lD;
 }
@@ -1362,8 +1362,8 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
  */
 DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
     coeff_t **b = lattice->basis;
-    DOUBLE **mu, *c, *N;
-    DOUBLE **bs;
+    DOUBLE **R, *c, *N;
+    DOUBLE **H;
     static mpz_t hv;
     int zaehler;
     int h,i,last;
@@ -1389,10 +1389,11 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
     }
 
     u = (long*)calloc(s, sizeof(long));
-    for (i = 0; i < s; i++) u[i] = 0;
+    for (i = 0; i < s; i++) 
+        u[i] = 0;
 
-    lllalloc(&mu,&c,&N,&bs,s,z);
-    lllHfp(lattice, mu, c, N, bs, 0, s, z, delta, -1);
+    lllalloc(&R, &c, &N, &H, s, z);
+    lllHfp(lattice, R, c, H, 0, s, z, delta, -1);
 
     start_block = zaehler = -1;
     while (zaehler < last) {
@@ -1400,7 +1401,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
         if (start_block == last) start_block = 0;
         end_block = start_block + beta - 1;
         end_block = (end_block < last) ? end_block : last;
-        new_cj = enumerate(mu, c, u, s, start_block, end_block, p);
+        new_cj = enumerate(R, c, u, s, start_block, end_block, p);
 
         /* The exhaustive enumeration. */
         h = (end_block + 1 < last) ? end_block + 1 : last;
@@ -1448,7 +1449,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             for (j = 1; j <= z; j++) mpz_set_si(b[last+1][j].c, 0);
             coeffinit(b[last+1],z);
 
-            lllHfp(lattice, mu, c, N, bs, start_block - 1, h + 1, z, delta, 10);
+            lllHfp(lattice, R, c, H, start_block - 1, h + 1, z, delta, 10);
 
             if (N[h]<-EPSILON) {
                 fprintf(stderr,"NN negativ\n");
@@ -1461,18 +1462,18 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             zaehler = -1;
         } else {
             if (h > 0) {
-                lllfp(lattice, mu, c, N, bs, h-2, h+1, z, delta);   /* For some unkown reason we have to
+                lllfp(lattice, R, c, N, H, h-2, h+1, z, delta);   /* For some unkown reason we have to
                                                         use $h-2$ as |start|. */
             }
             zaehler++;
         }
     } /* end of |while| */
 
-    lD = log_potential(mu, s-1, z);
+    lD = log_potential(R, s-1, z);
 
     fprintf(stderr, "bkz: log(D)= %f\n", lD);
     fflush(stdout);
-    lllfree(mu,c,N,bs,s);
+    lllfree(R, c, N, H, s);
     free(u);
     mpz_clear(hv);
 
