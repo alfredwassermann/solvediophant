@@ -827,7 +827,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
     DOUBLE beta[32768];
     //DOUBLE w_beta;
     //DOUBLE w, x;
-    //DOUBLE norm;
+    DOUBLE norm;
     int mu_all_zero;
 
     DOUBLE mus;
@@ -913,15 +913,14 @@ start_tricol:
             check_precision(b[k], R[k], z, k);
         }
 
-    #if 0
         /*
             Before going to step 4 we test if $b_k$ is linear dependent.
             If we find a linear dependent vector $b_k$,
-            we shift $b_k$ to the last column of the
+            we shift b_k to the last column of the
             matrix and restart lllHfp with s = s-1.
         */
         #if BLAS
-            norm = cblas_dnrm2(k, R[k], 1);
+            norm = cblas_dnrm2(k + 1, R[k], 1);
         #else
             for (j = 0, norm = 0.0; j <= k; ++j) {
                 norm += R[k][j] * R[k][j];
@@ -939,11 +938,10 @@ start_tricol:
             fprintf(stderr, "Zero vector at %d\n", k);
             continue;
         }
-    #endif
     
         /* fourth step: swap columns */
         if (deepinsert_blocksize > 0) {
-            j = 0;
+            i = 0;
             #if BLAS
                 rhs = cblas_ddot(k + 1, R[k], 1, R[k], 1);
             #else
@@ -952,21 +950,21 @@ start_tricol:
                 }
             #endif
         } else {
-            j = (k > 0) ? k - 1 : 0;
-            rhs = R[k][k] * R[k][k] + R[k][j] * R[k][j];
+            i = (k > 0) ? k - 1 : 0;
+            rhs = R[k][k] * R[k][k] + R[k][i] * R[k][i];
         }
 
         insert_pos = k;
-        while (j < k) {
-            //if (delta * R[j][j]*R[j][j] > rhs) {
-            if (0.5 * delta * R[j][j]*R[j][j] > rhs ||
-                ((j < deepinsert_blocksize || k - j < deepinsert_blocksize) &&
-                  delta * R[j][j]*R[j][j] > rhs)) {
-                insert_pos = j;
+        while (i < k) {
+            //if (delta * R[i][i]*R[i][i] > rhs) {
+            if (0.5 * delta * R[i][i] * R[i][i] > rhs ||
+                ((i < deepinsert_blocksize || k - i < deepinsert_blocksize) &&
+                  delta * R[i][i] * R[i][i] > rhs)) {
+                insert_pos = i;
                 break;
             }
-            rhs -= R[k][j]*R[k][j];
-            j++;
+            rhs -= R[k][i]*R[k][i];
+            i++;
         }
 
         if (insert_pos < k) {
@@ -1032,9 +1030,10 @@ int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k,
         w = cblas_ddot(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
         w_beta = w * beta[k];
 
-        // R[k] -= -w * beta * H[k]
+        // R[k] -= w * beta * H[k]
         cblas_daxpy(z - k, -w_beta, &(H[k][k]), 1, &(R[k][k]), 1);
     #else
+        // Compute R[k]
         for (i = 0; i < k; ++i) {
             for (j = i, w = 0.0; j < z; ++j) {
                 w += R[k][j] * H[i][j];
@@ -1045,7 +1044,7 @@ int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k,
             }
         }
 
-        // Norm of pivot column
+        // |R[k]|
         // Use zeta for stability
         for (j = k, zeta = 0.0; j < z; ++j) {
             if (fabs(R[k][j]) > zeta) {
@@ -1056,8 +1055,9 @@ int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k,
             x = R[k][j] / zeta;
             norm += x * x;
         }
-        norm = zeta * sqrt(norm);
+        norm = zeta * SQRT(norm);
 
+        // H[k] = R[k] / |R[k]|
         for (j = k; j < z; ++j) {
             H[k][j] = R[k][j] / norm;
         }
@@ -1065,10 +1065,12 @@ int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k,
         H[k][k] += (R[k][k] >= -eps) ? 1.0 : -1.0;
         beta[k] = 1.0 / (1.0 + fabs(R[k][k]) / norm);
 
+        // w = <R[k], H[k]>
         for (j = k, w = 0.0; j < z; ++j) {
             w += R[k][j] * H[k][j];
         }
 
+        // R[k] -= w * beta * H[k]
         w_beta = w * beta[k];
         for (j = k; j < z; ++j) {
             R[k][j] -= w_beta * H[k][j];
