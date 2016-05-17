@@ -827,7 +827,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
     DOUBLE beta[32768];
     //DOUBLE w_beta;
     //DOUBLE w, x;
-    DOUBLE norm;
+    //DOUBLE norm;
     int mu_all_zero;
 
     DOUBLE mus;
@@ -914,6 +914,12 @@ start_tricol:
         }
 
     #if 0
+        /*
+            Before going to step 4 we test if $b_k$ is linear dependent.
+            If we find a linear dependent vector $b_k$,
+            we shift $b_k$ to the last column of the
+            matrix and restart lllHfp with s = s-1.
+        */
         #if BLAS
             norm = cblas_dnrm2(k, R[k], 1);
         #else
@@ -934,6 +940,7 @@ start_tricol:
             continue;
         }
     #endif
+    
         /* fourth step: swap columns */
         if (deepinsert_blocksize > 0) {
             j = 0;
