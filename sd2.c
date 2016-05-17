@@ -288,6 +288,6 @@ int main(int argc, char *argv[]) {
 
     free(lattice);
     */
-   
+
     return 0;
 }

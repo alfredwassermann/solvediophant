@@ -827,7 +827,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *c, DOUBLE *N, DOUBLE **H,
     DOUBLE beta[32768];
     //DOUBLE w_beta;
     //DOUBLE w, x;
-    //DOUBLE norm;
+    DOUBLE norm;
     int mu_all_zero;
 
     DOUBLE mus;
@@ -913,13 +913,27 @@ start_tricol:
             check_precision(b[k], R[k], z, k);
         }
 
-        /*
-            Before going to step 4 we test if $b_k$ is linear dependent.
-            This is the case if $||N_k||<{1\over 2}$.
-            If we found a linear dependent vector $b_k$,
-            we shift $b_k$ to the last column of the
-            matrix and restart |lllfp| with $s:= s-1$.
-        */
+    #if 0
+        #if BLAS
+            norm = cblas_dnrm2(k, R[k], 1);
+        #else
+            for (j = 0, norm = 0.0; j <= k; ++j) {
+                norm += R[k][j] * R[k][j];
+            }
+            norm = SQRT(norm);
+        #endif
+        if (norm < 0.5) {
+            swapvl = b[k];
+            for (i = k + 1; i < s; i++) {
+                b[i-1] = b[i];
+            }
+            b[s-1] = swapvl;
+            s = s - 1;
+            k = 0;
+            fprintf(stderr, "Zero vector at %d\n", k);
+            continue;
+        }
+    #endif
         /* fourth step: swap columns */
         if (deepinsert_blocksize > 0) {
             j = 0;

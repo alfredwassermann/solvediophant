@@ -21,7 +21,8 @@ VIMFLAGS=-c 'set printoptions=number:y' -c 'set printfont=Courier:h9'
 #ASSEMBLERLIB=/usr/lib/openblas-base/libblas.a
 ASSEMBLERLIB=./OpenBLAS/libopenblas.a
 #ASSEMBLERLIB=
-BLAS=USEBLAS
+#BLAS=USEBLAS
+BLAS=NOBLAS
 
 #GMPLIB=-L../gmp-4.2.1/bin/lib
 #GMPINC=-I../gmp-4.2.1/bin/include
