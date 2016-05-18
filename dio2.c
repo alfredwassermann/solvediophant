@@ -938,7 +938,7 @@ start_tricol:
             fprintf(stderr, "Zero vector at %d\n", k);
             continue;
         }
-    
+
         /* fourth step: swap columns */
         if (deepinsert_blocksize > 0) {
             i = 0;
@@ -1362,16 +1362,15 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
  */
 DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
     coeff_t **b = lattice->basis;
-    DOUBLE **R, *c, *N;
+    DOUBLE **R, *h_beta, *N;
     DOUBLE **H;
     static mpz_t hv;
     int zaehler;
-    int h,i,last;
+    int h, i, last;
     int start_block, end_block;
     long *u;
     DOUBLE new_cj;
     DOUBLE lD;
-
     int g, ui, q, j;
     coeff_t *swapvl;
 
@@ -1389,19 +1388,23 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
     }
 
     u = (long*)calloc(s, sizeof(long));
-    for (i = 0; i < s; i++) 
+    for (i = 0; i < s; i++) {
         u[i] = 0;
+    }
 
-    lllalloc(&R, &c, &N, &H, s, z);
-    lllHfp(lattice, R, c, H, 0, s, z, delta, -1);
+    lllalloc(&R, &h_beta, &N, &H, s, z);
+    lllHfp(lattice, R, h_beta, H, 0, s, z, delta, -1);
 
     start_block = zaehler = -1;
     while (zaehler < last) {
         start_block++;
-        if (start_block == last) start_block = 0;
+        if (start_block == last)
+            start_block = 0;
+
         end_block = start_block + beta - 1;
         end_block = (end_block < last) ? end_block : last;
-        new_cj = enumerate(R, c, u, s, start_block, end_block, p);
+
+        new_cj = enumerate(R, u, s, start_block, end_block, p);
 
         /* The exhaustive enumeration. */
         h = (end_block + 1 < last) ? end_block + 1 : last;
@@ -1462,8 +1465,10 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             zaehler = -1;
         } else {
             if (h > 0) {
-                lllfp(lattice, R, c, N, H, h-2, h+1, z, delta);   /* For some unkown reason we have to
-                                                        use $h-2$ as |start|. */
+                //lllfp(lattice, R, c, N, H, h-2, h+1, z, delta);
+                    /* For some unkown reason we have to use $h-2$ as |start|. */
+                lllHfp(lattice, R, h_beta, H, h-2, h+1, z, delta, -1);
+
             }
             zaehler++;
         }
@@ -1473,7 +1478,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
 
     fprintf(stderr, "bkz: log(D)= %f\n", lD);
     fflush(stdout);
-    lllfree(R, c, N, H, s);
+    lllfree(R, h_beta, N, H, s);
     free(u);
     mpz_clear(hv);
 
@@ -1483,17 +1488,20 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
 /**
  * Pruned Gauss-Enumeration.
  */
-DOUBLE enumerate(DOUBLE **mu, DOUBLE *c, long *u, int s, int start_block, int end_block, int p) {
+DOUBLE enumerate(DOUBLE **R, long *u, int s, int start_block, int end_block, int p) {
     DOUBLE cd, dum;
-    DOUBLE *y, *cs, *eta;
+    DOUBLE *y, *c, *eta;
+    DOUBLE c_min;
 
     DOUBLE **sigma;
     int *r;
 
+    int i, j;
+    int t, t_max;
+
     long *us, *delta, *d, *v;
-    int t,i,t_up, len;
+    int t_up, len;
     double alpha;
-    int tmax;
     static DOUBLE pi = 3.141592653589793238462643383;
     static DOUBLE e = 2.718281828459045235360287471352662497757247093;
     int SCHNITT = 40;
@@ -1504,16 +1512,16 @@ DOUBLE enumerate(DOUBLE **mu, DOUBLE *c, long *u, int s, int start_block, int en
         exit(1);
     }
 
-    us=(long*)calloc(s+1,sizeof(long));
-    cs=(DOUBLE*)calloc(s+1,sizeof(DOUBLE));
-    y=(DOUBLE*)calloc(s+1,sizeof(DOUBLE));
-    delta=(long*)calloc(s+1,sizeof(long));
-    d=(long*)calloc(s+1,sizeof(long));
-    eta=(DOUBLE*)calloc(s+1,sizeof(DOUBLE));
-    v=(long*)calloc(s+1,sizeof(long));
+    us = (long*)calloc(s+1,sizeof(long));
+    c = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    y = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    delta = (long*)calloc(s+1,sizeof(long));
+    d = (long*)calloc(s+1,sizeof(long));
+    eta = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    v = (long*)calloc(s+1,sizeof(long));
 
-    sigma =(DOUBLE**)calloc(s,sizeof(DOUBLE*));
-    r =(int*)calloc(s+1,sizeof(int));
+    sigma = (DOUBLE**)calloc(s,sizeof(DOUBLE*));
+    r = (int*)calloc(s+1,sizeof(int));
     for (i = 0; i < s; i++) {
         sigma[i] =(DOUBLE*)calloc(s,sizeof(DOUBLE));
         r[i] = i-1;
@@ -1521,19 +1529,23 @@ DOUBLE enumerate(DOUBLE **mu, DOUBLE *c, long *u, int s, int start_block, int en
 
     len = end_block + 1 - start_block;
     for (i = start_block; i <= end_block + 1; i++) {
-        cs[i] = y[i] = 0.0;
+        c[i] = y[i] = 0.0;
         u[i] = us[i] = v[i] = delta[i] = 0;
         d[i] = 1;
     }
-    us[start_block] = u[start_block] = 1;
-    cd = c[start_block];
 
-    t = tmax = start_block;      /* Now we start from $t=|start_block|$ instead of
-     $t=|end_block|$. */
+    t = t_max = start_block;
+    for (j = 0, c_min = 0.0; j <= t; j++) {
+        c_min += R[t][j] * R[t][j];
+    }
+    c[t] = c_min;
+    u[t] = 1;
+
+    /* Now we start from t = start_block instead of t = end_block. */
 
     /* precompute $\eta$ */
     eta[start_block] = 0.0;
-    if (end_block-start_block <= SCHNITT) {
+    if (end_block - start_block <= SCHNITT) {
         for (i = start_block + 1; i <= end_block; i++) eta[i] = 0.0;
     } else {
         dum = log(c[start_block]);
@@ -1550,48 +1562,48 @@ DOUBLE enumerate(DOUBLE **mu, DOUBLE *c, long *u, int s, int start_block, int en
 
     while (t <= end_block) {
         /* the block search loop */
-        dum = us[t] + y[t];
-        cs[t] = cs[t+1] + dum * dum * c[t];
+        dum = (u[t] + y[t]) * R[t][t];
+        c[t] = c[t+1] + dum * dum;
 
-        if (len <= SCHNITT) {
+        if (len <= 100000 + SCHNITT) {
             alpha = 1.0;
         } else {
             alpha = sqrt(1.20 * (end_block + 1 - t) / len);
             if (alpha >= 1.0) alpha = 1.0;
         }
-        alpha *= cd;
+        alpha *= c_min;
 
-        if (cs[t] < alpha - EPSILON) {
-           if (t > start_block) {
-               t--;
-               if (r[t+1] > r[t]) r[t] = r[t+1];
+        if (c[t] < alpha - EPSILON) {
+            if (t > start_block) {
+                t--;
+//               if (r[t+1] > r[t]) r[t] = r[t+1];
 
-               delta[t] = 0;
-               for (i = r[t+1]; i > t; i--)
+//               delta[t] = 0;
+//               for (i = r[t+1]; i > t; i--)
+//                    sigma[i][t] = sigma[i+1][t] + us[i] * mu[i][t];
 
-                sigma[i][t] = sigma[i+1][t] + us[i]*mu[i][t];
-
-               y[t] = sigma[t+1][t]; /*|dum;|*/
-               us[t] = v[t] = (long)(ROUND(-y[t]));
-               d[t] = (v[t] > -y[t]) ? -1 : 1;
-           } else {
-               cd = cs[start_block];
-               for (i = start_block; i <= end_block; i++) u[i] = us[i];
-               goto nextstep;
-           }
+//               y[t] = sigma[t+1][t]; /*|dum;|*/
+//
+                for (j = t + 1, y[t] = 0.0; j <= t_max; j++) {
+                    y[t] += u[j] * R[t][j];
+                }
+                y[t] /= R[t][t];
+                u[t] = (long)(ROUND(-y[t]));
+            } else {
+               c_min = c[t];
+            }
        } else {
            t++;
-           r[t] = t;
-nextstep:
-           if (tmax < t) tmax = t;
-           if (t < tmax) delta[t] = -delta[t];
+           // r[t] = t;
+           if (t_max < t) t_max = t;
+           //if (t < t_max) delta[t] = -delta[t];
            if (delta[t] * d[t] >= 0) delta[t] += d[t];
-           us[t] = v[t] + delta[t];
+           u[t] = v[t] + delta[t];
        }
 
     }
     free (us);
-    free (cs);
+    free (c);
     free (y);
     free (delta);
     free (d);
