@@ -716,14 +716,14 @@ start_tricol:
             continue;
         }
 
-        // If delta == 0, ony size reduction is done
+        // If delta == 0, only size reduction is done
         if (delta == 0.0) {
             k++;
             continue;
         }
 
         /* fourth step: swap columns */
-        if (0 && deepinsert_blocksize > 0) {
+        if (deepinsert_blocksize > 0) {
             i = 0;
             #if BLAS
                 rhs = cblas_ddot(k + 1, R[k], 1, R[k], 1);
@@ -1178,7 +1178,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
     }
 
     lllalloc(&R, &h_beta, &N, &H, s, z);
-    lllHfp(lattice, R, h_beta, H, 0, s, z, delta, -1);
+    lllHfp(lattice, R, h_beta, H, 0, s, z, delta, 10);
 
     start_block = zaehler = -1;
     while (zaehler < last) {
