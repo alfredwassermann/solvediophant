@@ -194,7 +194,6 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile) {
     if (lattice->LLL_params.silent) fprintf(fp,"SILENT\n");
     fflush(fp);
 
-
 #if 0
     printf("Before scaling\n");
     print_lattice();
@@ -279,6 +278,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile) {
      * second reduction
      */
     mpz_set_ui(lastlines_factor, 1);
+    lll(lattice, lattice->num_cols-1, lattice->num_rows, LLLCONST_MED, 10);
     lll(lattice, lattice->num_cols-1, lattice->num_rows, LLLCONST_HIGH, 10);
     fprintf(stderr, "Second reduction successful\n"); fflush(stderr);
 #endif
@@ -321,7 +321,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile) {
         do {
             lD = lDnew;
             shufflelattice(lattice);
-            lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGH,
+            lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
                             lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p);
             printf("%0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
             i++;
@@ -870,6 +870,10 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
         counter++;
 #endif
+        if (PRINT_REQUIRED) {
+            print_lattice(lattice);
+            PRINT_REQUIRED = 0;
+        }
 
 //fprintf(stderr, "\nk %d\n", k);
 
@@ -1406,7 +1410,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
         end_block = start_block + beta - 1;
         end_block = (end_block < last) ? end_block : last;
 
-        new_cj = enumerate(R, u, s, start_block, end_block, p);
+        new_cj = enumerate(lattice, R, u, s, start_block, end_block, p);
 
         h = (end_block + 1 < last) ? end_block + 1 : last;
 
@@ -1492,7 +1496,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
 /**
  * Pruned Gauss-Enumeration.
  */
-DOUBLE enumerate(DOUBLE **R, long *u, int s, int start_block, int end_block, int p) {
+DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block, int p) {
     DOUBLE x;
     DOUBLE *y, *c, *eta;
     DOUBLE c_min;
@@ -1556,6 +1560,11 @@ DOUBLE enumerate(DOUBLE **R, long *u, int s, int start_block, int end_block, int
     }
 
     while (t <= end_block) {
+        if (PRINT_REQUIRED) {
+            print_lattice(lattice);
+            PRINT_REQUIRED = 0;
+        }
+
         /* the block search loop */
         x = (u_loc[t] + y[t]) * R[t][t];
         c[t] = c[t + 1] + x * x;
@@ -1905,6 +1914,11 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
             fflush(stdout);
         }
 #endif
+
+        if (PRINT_REQUIRED) {
+            print_lattice(lattice);
+            PRINT_REQUIRED = 0;
+        }
 
         /* compute new |cs| */
         olddum = dum[level];
@@ -2423,7 +2437,7 @@ void show_lattice(int sig) {
     if (sig != SIGUSR1)
        return;
 
-    print_lattice(LATTICE);
+    PRINT_REQUIRED = 1;
 }
 
 void shufflelattice(lattice_t *lattice) {

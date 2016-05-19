@@ -82,7 +82,6 @@ int main(int argc, char *argv[]) {
      */
 	lgs_t LGS;
     lattice_t lattice;
-    LATTICE = &lattice;
 
     int maxruntime = 0;
 
@@ -109,6 +108,7 @@ int main(int argc, char *argv[]) {
     mpz_set_si(lattice.matrix_factor, -1);
     mpz_set_si(lattice.max_norm, -1);
     lattice.LLL_params.silent = SILENT = 0;
+    PRINT_REQUIRED = 0;
 
     /**
      * Read CLI parameters

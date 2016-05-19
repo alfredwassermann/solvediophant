@@ -45,7 +45,7 @@ typedef struct {
 
 /* Global variable used in stop_program */
 int SILENT;
-lattice_t *LATTICE;
+int PRINT_REQUIRED;
 
 /* -------------------------------------------------------------------- */
 
@@ -81,7 +81,7 @@ extern double log_potential(DOUBLE **R, int s, int z);
 extern void lll(lattice_t *lattice, int s, int z, DOUBLE quality, int deepinsert_blocksize);
 extern DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE quality, int deepinsert_blocksize);
 extern DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p);
-extern DOUBLE enumerate(DOUBLE **R, long *u, int s, int start_block, int end_block, int p);
+extern DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block, int p);
 extern DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows);
 
 extern DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max);
