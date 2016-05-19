@@ -617,9 +617,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     int counter = 0;
 #endif
 
-    fprintf(stderr, "----------------NEW LLLHfp\n");
-    fprintf(stderr, "deepinsert: %d\n", deepinsert_blocksize);
-    fflush(stderr);
+    fprintf(stderr, "Start LLLHfp with deepinsert %d\n",  deepinsert_blocksize);
 
     mpz_init(musvl);
     mpz_init(hv);
@@ -718,8 +716,14 @@ start_tricol:
             continue;
         }
 
+        // If delta == 0, ony size reduction is done
+        if (delta == 0.0) {
+            k++;
+            continue;
+        }
+
         /* fourth step: swap columns */
-        if (deepinsert_blocksize > 0) {
+        if (0 && deepinsert_blocksize > 0) {
             i = 0;
             #if BLAS
                 rhs = cblas_ddot(k + 1, R[k], 1, R[k], 1);
@@ -1193,12 +1197,6 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
         if (delta * r_tt * r_tt > new_cj) {
             fprintf(stderr, "enumerate successful %d %lf\n", start_block,  delta * r_tt * r_tt - new_cj);
 
-/*
-            for (i = 0; i < s; i++) {
-                printf("%ld ", u[i]);
-            }
-            printf("\n");
-*/
             /* successful enumeration */
             /* build new basis */
             for (j = 1; j <= z; j++)
@@ -1241,17 +1239,16 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
 
             b[last + 1] = swapvl;
             for (j = 1; j <= z; j++) mpz_set_si(b[last + 1][j].c, 0);
-            coeffinit(b[last+1], z);
+            coeffinit(b[last + 1], z);
 
             lllHfp(lattice, R, h_beta, H, start_block - 1, h + 1, z, delta, 10);
-
             zaehler = -1;
         } else {
             fprintf(stderr, "enumerate: no improvement %d\n", zaehler);
             if (h > 0) {
                 //lllfp(lattice, R, c, N, H, h-2, h+1, z, delta);
                 /* For some unkown reason we have to use $h-2$ as |start|. */
-                lllHfp(lattice, R, h_beta, H, h - 1, h + 1, z, delta, -1);
+                lllHfp(lattice, R, h_beta, H, h - 1, h + 1, z, 0.0, -1);
             }
             zaehler++;
         }
@@ -1329,7 +1326,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
         x = log(c[start_block]);
         for (i = start_block + 1; i <= end_block; i++) {
             t_up = i - start_block;
-            eta[i] = 0.5 * t_up * exp((log(pi * t_up) - 2.0 * p * log(2.0) + x) / t_up ) / (pi*e);
+            eta[i] = 0.5 * t_up * exp((log(pi * t_up) - 2.0 * p * log(2.0) + x) / t_up ) / (pi * e);
             if (i < end_block) x += log(c[i]);
         }
     }
@@ -1350,6 +1347,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
             alpha = sqrt(1.20 * (end_block + 1 - t) / len);
             if (alpha >= 1.0) alpha = 1.0;
         }
+//fprintf(stderr, "%d %d %d %lf\n", start_block, t, end_block, alpha);
         alpha *= c_min;
 
         if (c[t] < alpha - EPSILON) {
