@@ -1364,6 +1364,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
     coeff_t **b = lattice->basis;
     DOUBLE **R, *h_beta, *N;
     DOUBLE **H;
+    DOUBLE r_tt;
     static mpz_t hv;
     int zaehler;
     int h, i, last;
@@ -1387,6 +1388,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
         return 0.0;
     }
 
+    fprintf(stderr, "######### BKZ ########\n");
     u = (long*)calloc(s, sizeof(long));
     for (i = 0; i < s; i++) {
         u[i] = 0;
@@ -1406,19 +1408,29 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
 
         new_cj = enumerate(R, u, s, start_block, end_block, p);
 
-        /* The exhaustive enumeration. */
         h = (end_block + 1 < last) ? end_block + 1 : last;
 
-        if (delta * c[start_block] > new_cj) {
+        r_tt = R[start_block][start_block];
+        if (delta * r_tt * r_tt > new_cj) {
+            fprintf(stderr, "enumerate successful %d %lf\n", start_block,  delta * r_tt * r_tt - new_cj);
+
+/*
+            for (i = 0; i < s; i++) {
+                printf("%ld ", u[i]);
+            }
+            printf("\n");
+*/
             /* successful enumeration */
             /* build new basis */
-            for (j = 1; j <= z; j++) mpz_set_si(b[last+1][j].c, 0);
+            for (j = 1; j <= z; j++)
+                mpz_set_si(b[last + 1][j].c, 0);
+
             for (i = start_block; i <= end_block; i++) {
                 if (u[i] != 0) for(j = 1; j <= z; j++) {
                     if (u[i] > 0) {
-                        mpz_addmul_ui(b[last+1][j].c, b[i][j].c, u[i]);
+                        mpz_addmul_ui(b[last + 1][j].c, b[i][j].c, u[i]);
                     } else {
-                        mpz_submul_ui(b[last+1][j].c, b[i][j].c, -u[i]);
+                        mpz_submul_ui(b[last + 1][j].c, b[i][j].c, -u[i]);
                     }
                 }
             }
@@ -1444,31 +1456,23 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             }
 
             swapvl = b[g];
-            for (i = g; i > start_block; i--) b[i] = b[i-1];
-            b[start_block] = b[last+1];
+            for (i = g; i > start_block; i--) b[i] = b[i - 1];
+            b[start_block] = b[last + 1];
             coeffinit(b[start_block],z);
 
-            b[last+1] = swapvl;
-            for (j = 1; j <= z; j++) mpz_set_si(b[last+1][j].c, 0);
-            coeffinit(b[last+1],z);
+            b[last + 1] = swapvl;
+            for (j = 1; j <= z; j++) mpz_set_si(b[last + 1][j].c, 0);
+            coeffinit(b[last+1], z);
 
-            lllHfp(lattice, R, c, H, start_block - 1, h + 1, z, delta, 10);
-
-            if (N[h]<-EPSILON) {
-                fprintf(stderr,"NN negativ\n");
-                fflush(stderr);
-                printf("NN negativ\n");
-                fflush(stdout);
-                exit(1);
-            }
+            lllHfp(lattice, R, h_beta, H, start_block - 1, h + 1, z, delta, 10);
 
             zaehler = -1;
         } else {
+            fprintf(stderr, "enumerate: no improvement %d\n", zaehler);
             if (h > 0) {
                 //lllfp(lattice, R, c, N, H, h-2, h+1, z, delta);
-                    /* For some unkown reason we have to use $h-2$ as |start|. */
-                lllHfp(lattice, R, h_beta, H, h-2, h+1, z, delta, -1);
-
+                /* For some unkown reason we have to use $h-2$ as |start|. */
+                lllHfp(lattice, R, h_beta, H, h - 1, h + 1, z, delta, -1);
             }
             zaehler++;
         }
@@ -1489,83 +1493,74 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
  * Pruned Gauss-Enumeration.
  */
 DOUBLE enumerate(DOUBLE **R, long *u, int s, int start_block, int end_block, int p) {
-    DOUBLE cd, dum;
+    DOUBLE x;
     DOUBLE *y, *c, *eta;
     DOUBLE c_min;
 
-    DOUBLE **sigma;
-    int *r;
+    //DOUBLE **sigma;
+    //int *r;
 
     int i, j;
     int t, t_max;
 
-    long *us, *delta, *d, *v;
+    long *delta, *d, *v;
+    long *u_loc;
     int t_up, len;
     double alpha;
     static DOUBLE pi = 3.141592653589793238462643383;
     static DOUBLE e = 2.718281828459045235360287471352662497757247093;
-    int SCHNITT = 40;
+    int SCHNITT = 10;
 
-    if (c[start_block] <= EPSILON) {
-        fprintf(stderr, "Hier ist was faul! start_block=%d %f\n", start_block, (double)c[start_block]);
+    x = R[start_block][start_block];
+    if (x * x <= EPSILON) {
+        fprintf(stderr, "Hier ist was faul! start_block=%d %f\n", start_block, (double)x);
         fflush(stderr);
         exit(1);
     }
 
-    us = (long*)calloc(s+1,sizeof(long));
+    //us = (long*)calloc(s+1,sizeof(long));
     c = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
     y = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
     delta = (long*)calloc(s+1,sizeof(long));
     d = (long*)calloc(s+1,sizeof(long));
     eta = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
     v = (long*)calloc(s+1,sizeof(long));
-
-    sigma = (DOUBLE**)calloc(s,sizeof(DOUBLE*));
-    r = (int*)calloc(s+1,sizeof(int));
-    for (i = 0; i < s; i++) {
-        sigma[i] =(DOUBLE*)calloc(s,sizeof(DOUBLE));
-        r[i] = i-1;
-    }
+    u_loc = (long*)calloc(s+1,sizeof(long));
 
     len = end_block + 1 - start_block;
-    for (i = start_block; i <= end_block + 1; i++) {
+    for (i = start_block; i <= end_block; i++) {
         c[i] = y[i] = 0.0;
-        u[i] = us[i] = v[i] = delta[i] = 0;
+        u_loc[i] = v[i] = delta[i] = 0;
         d[i] = 1;
     }
 
     t = t_max = start_block;
-    for (j = 0, c_min = 0.0; j <= t; j++) {
-        c_min += R[t][j] * R[t][j];
-    }
-    c[t] = c_min;
-    u[t] = 1;
-
-    /* Now we start from t = start_block instead of t = end_block. */
+    c[t] = c_min = R[t][t] * R[t][t];
+    u_loc[t] = 1;
 
     /* precompute $\eta$ */
     eta[start_block] = 0.0;
     if (end_block - start_block <= SCHNITT) {
         for (i = start_block + 1; i <= end_block; i++) eta[i] = 0.0;
     } else {
-        dum = log(c[start_block]);
+        x = log(c[start_block]);
         /*
             Hoerners version of the Gaussian volume heuristics.
         */
-        dum = log(c[start_block]);
+        x = log(c[start_block]);
         for (i = start_block + 1; i <= end_block; i++) {
             t_up = i - start_block;
-            eta[i] = 0.5*t_up*exp( (log(pi*t_up)-2.0*p*log(2.0)+dum)/t_up )/(pi*e);
-            if (i < end_block) dum += log(c[i]);
+            eta[i] = 0.5 * t_up * exp((log(pi * t_up) - 2.0 * p * log(2.0) + x) / t_up ) / (pi*e);
+            if (i < end_block) x += log(c[i]);
         }
     }
 
     while (t <= end_block) {
         /* the block search loop */
-        dum = (u[t] + y[t]) * R[t][t];
-        c[t] = c[t+1] + dum * dum;
+        x = (u_loc[t] + y[t]) * R[t][t];
+        c[t] = c[t + 1] + x * x;
 
-        if (len <= 100000 + SCHNITT) {
+        if (len <= SCHNITT) {
             alpha = 1.0;
         } else {
             alpha = sqrt(1.20 * (end_block + 1 - t) / len);
@@ -1575,6 +1570,7 @@ DOUBLE enumerate(DOUBLE **R, long *u, int s, int start_block, int end_block, int
 
         if (c[t] < alpha - EPSILON) {
             if (t > start_block) {
+                // forward
                 t--;
 //               if (r[t+1] > r[t]) r[t] = r[t+1];
 
@@ -1585,36 +1581,48 @@ DOUBLE enumerate(DOUBLE **R, long *u, int s, int start_block, int end_block, int
 //               y[t] = sigma[t+1][t]; /*|dum;|*/
 //
                 for (j = t + 1, y[t] = 0.0; j <= t_max; j++) {
-                    y[t] += u[j] * R[t][j];
+                    y[t] += u_loc[j] * R[j][t];
                 }
                 y[t] /= R[t][t];
-                u[t] = (long)(ROUND(-y[t]));
+
+                u_loc[t] = v[t] = (long)(ROUND(-y[t]));
+                delta[t] = 0;
+                d[t] = (v[t] > -y[t]) ? -1 : 1;
+
+                continue;
             } else {
                c_min = c[t];
+               for (i = start_block; i <= end_block; i++) {
+                   u[i] = u_loc[i];
+               }
             }
        } else {
+           // back
            t++;
-           // r[t] = t;
            if (t_max < t) t_max = t;
-           //if (t < t_max) delta[t] = -delta[t];
-           if (delta[t] * d[t] >= 0) delta[t] += d[t];
-           u[t] = v[t] + delta[t];
        }
-
+       // next
+       if (t < t_max) delta[t] = -delta[t];
+       if (delta[t] * d[t] >= 0) delta[t] += d[t];
+       u_loc[t] = v[t] + delta[t];
     }
-    free (us);
+
+    //free (us);
     free (c);
     free (y);
     free (delta);
     free (d);
     free (eta);
     free (v);
+    free (u_loc);
+    /*
     for (i = s - 1; i >= 0; i--) {
        free(sigma[i]);
     }
     free(sigma);
     free(r);
-    return (cd);
+    */
+    return (c_min);
 }
 
 /**
