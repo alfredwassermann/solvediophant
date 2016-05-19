@@ -1581,14 +1581,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
             if (t > start_block) {
                 // forward
                 t--;
-//               if (r[t+1] > r[t]) r[t] = r[t+1];
 
-//               delta[t] = 0;
-//               for (i = r[t+1]; i > t; i--)
-//                    sigma[i][t] = sigma[i+1][t] + us[i] * mu[i][t];
-
-//               y[t] = sigma[t+1][t]; /*|dum;|*/
-//
                 for (j = t + 1, y[t] = 0.0; j <= t_max; j++) {
                     y[t] += u_loc[j] * R[j][t];
                 }
