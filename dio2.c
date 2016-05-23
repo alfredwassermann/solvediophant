@@ -264,7 +264,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile) {
     block_reduce(lattice, lattice->num_cols, lattice->num_rows, 400, LLLCONST_HIGHER, DEEPINSERT_CONST);
     #endif
 
-    lll(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_LOW, -1);
+    lll(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_LOW, 5);
 
 #if 0
     printf("After first reduction\n");
@@ -327,12 +327,25 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile) {
     block_reduce(lattice, lattice->num_cols, lattice->num_rows, 64, LLLCONST_HIGHER, DEEPINSERT_CONST);
     block_reduce(lattice, lattice->num_cols, lattice->num_rows, 96, LLLCONST_HIGHER, DEEPINSERT_CONST);
     block_reduce(lattice, lattice->num_cols, lattice->num_rows, 144, LLLCONST_HIGHER, DEEPINSERT_CONST);
-    block_reduce(lattice, lattice->num_cols, lattice->num_rows, 216, LLLCONST_HIGHER, DEEPINSERT_CONST);
+    //block_reduce(lattice, lattice->num_cols, lattice->num_rows, 216, LLLCONST_HIGHER, DEEPINSERT_CONST);
 
     if (lattice->LLL_params.iterate) {
         iteratedlll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.iterate_no, LLLCONST_HIGH, DEEPINSERT_CONST);
     } else {
         shufflelattice(lattice);
+
+        fprintf(stderr, "BKZ 4\n");
+        lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
+                        4, lattice->LLL_params.bkz.p);
+        fprintf(stderr, "BKZ 8\n");
+        lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
+                        8, lattice->LLL_params.bkz.p);
+
+        fprintf(stderr, "BKZ 16\n");
+        lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
+                        16, lattice->LLL_params.bkz.p);
+
+        fprintf(stderr, "BKZ %d\n", lattice->LLL_params.bkz.beta);
         lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
                         lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p);
 
