@@ -8,7 +8,7 @@
 #define GIVENS 1
 #define LASTLINESFACTOR "1000000" /* "100000000" */
 #define EPSILON 0.000001      /* 0.0001  */
-#define LLLCONST_LOW  0.70 /* 0.75*/
+#define LLLCONST_LOW  0.60 /* 0.75*/
 #define LLLCONST_MED 0.82
 #define LLLCONST_HIGH 0.99    /* 0.99 */
 #define LLLCONST_HIGHER 0.999
