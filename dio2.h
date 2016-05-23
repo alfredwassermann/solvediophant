@@ -46,6 +46,7 @@ typedef struct {
 /* Global variable used in stop_program */
 int SILENT;
 int PRINT_REQUIRED;
+int DUMP_REQUIRED;
 
 /* -------------------------------------------------------------------- */
 
@@ -53,13 +54,15 @@ extern long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile);
 
 extern long nosolutions;
 
-extern void stop_program(int sig);
-extern void show_lattice(int sig);
+extern void stop_program_sig(int sig);
+extern void print_lattice_sig(int sig);
+extern void dump_lattice_sig(int sig);
 
 /* Basic subroutines */
 extern void print_num_solutions(long num_solutions);
 extern void debug_print(char *m, int l);
 extern void print_lattice(lattice_t *lattice);
+extern void dump_lattice(lattice_t *lattice);
 extern long gcd(long n1, long n2);
 extern void coeffinit(coeff_t *v, int z);
 extern int cutlattice(lattice_t *lattice);

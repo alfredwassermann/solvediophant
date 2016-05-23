@@ -109,6 +109,7 @@ int main(int argc, char *argv[]) {
     mpz_set_si(lattice.max_norm, -1);
     lattice.LLL_params.silent = SILENT = 0;
     PRINT_REQUIRED = 0;
+    DUMP_REQUIRED = 0;
 
     /**
      * Read CLI parameters
@@ -212,13 +213,14 @@ int main(int argc, char *argv[]) {
      * Start alarm for max run time
      */
     if (maxruntime > 0) {
-        signal(SIGALRM, stop_program);
+        signal(SIGALRM, stop_program_sig);
         alarm(maxruntime);
     }
     /**
      * Allow debug output by kill -10 PID
      */
-    signal(SIGUSR1, show_lattice);
+    signal(SIGUSR1, print_lattice_sig);
+    signal(SIGUSR2, dump_lattice_sig);
 
     /**
      * Read options and system size in input file

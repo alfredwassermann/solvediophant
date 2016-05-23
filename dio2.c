@@ -448,6 +448,14 @@ void print_lattice(lattice_t *lattice) {
     return;
 }
 
+void dump_lattice(lattice_t *lattice) {
+    FILE* f = fopen("dump_lattice.b", "w");
+    fwrite(lattice, sizeof(lattice_t), 1, f);
+
+    return;
+}
+
+
 long gcd(long n1, long n2) {
     long a, b, c;
 
@@ -672,6 +680,10 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         if (PRINT_REQUIRED) {
             print_lattice(lattice);
             PRINT_REQUIRED = 0;
+        }
+        if (DUMP_REQUIRED) {
+            dump_lattice(lattice);
+            DUMP_REQUIRED = 0;
         }
 
 //fprintf(stderr, "\nk %d\n", k);
@@ -1407,6 +1419,10 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
             print_lattice(lattice);
             PRINT_REQUIRED = 0;
         }
+        if (DUMP_REQUIRED) {
+            dump_lattice(lattice);
+            DUMP_REQUIRED = 0;
+        }
 
         /* the block search loop */
         x = (u_loc[t] + y[t]) * R[t][t];
@@ -1755,6 +1771,10 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         if (PRINT_REQUIRED) {
             print_lattice(lattice);
             PRINT_REQUIRED = 0;
+        }
+        if (DUMP_REQUIRED) {
+            dump_lattice(lattice);
+            DUMP_REQUIRED = 0;
         }
 
         /* compute new |cs| */
@@ -2259,7 +2279,7 @@ int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *u
     return 1;
 }
 
-void stop_program(int sig) {
+void stop_program_sig(int sig) {
     if (sig != SIGALRM)
        return;
 
@@ -2270,11 +2290,18 @@ void stop_program(int sig) {
     exit(11);
 }
 
-void show_lattice(int sig) {
+void print_lattice_sig(int sig) {
     if (sig != SIGUSR1)
        return;
 
     PRINT_REQUIRED = 1;
+}
+
+void dump_lattice_sig(int sig) {
+    if (sig != SIGUSR2)
+       return;
+
+    DUMP_REQUIRED = 1;
 }
 
 void shufflelattice(lattice_t *lattice) {
