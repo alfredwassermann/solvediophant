@@ -50,7 +50,7 @@ int DUMP_REQUIRED;
 
 /* -------------------------------------------------------------------- */
 
-extern long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile);
+extern long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *restart_filename);
 
 extern long nosolutions;
 
@@ -63,6 +63,8 @@ extern void print_num_solutions(long num_solutions);
 extern void debug_print(char *m, int l);
 extern void print_lattice(lattice_t *lattice);
 extern void dump_lattice(lattice_t *lattice);
+extern void load_lattice(lattice_t *lattice, char *fname);
+
 extern long gcd(long n1, long n2);
 extern void coeffinit(coeff_t *v, int z);
 extern int cutlattice(lattice_t *lattice);

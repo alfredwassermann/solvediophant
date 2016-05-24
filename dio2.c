@@ -60,7 +60,7 @@ static FILE* fp;
 #define get_entry(mat, i, j) mat[i][j+1].c
 
 
-long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile) {
+long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *restart_filename) {
 
     int i,j;
     DOUBLE lD, lDnew;
@@ -257,33 +257,37 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile) {
     mpz_set_ui(lastlines_factor, 1);
     fprintf(stderr, "\n"); fflush(stderr);
 
-    #if 0
-    block_reduce(lattice, lattice->num_cols, lattice->num_rows, 50, LLLCONST_HIGHER, DEEPINSERT_CONST);
-    block_reduce(lattice, lattice->num_cols, lattice->num_rows, 100, LLLCONST_HIGHER, DEEPINSERT_CONST);
-    block_reduce(lattice, lattice->num_cols, lattice->num_rows, 200, LLLCONST_HIGHER, DEEPINSERT_CONST);
-    block_reduce(lattice, lattice->num_cols, lattice->num_rows, 400, LLLCONST_HIGHER, DEEPINSERT_CONST);
-    #endif
+    if (!restart) {
+        #if 0
+            block_reduce(lattice, lattice->num_cols, lattice->num_rows, 50, LLLCONST_HIGHER, DEEPINSERT_CONST);
+            block_reduce(lattice, lattice->num_cols, lattice->num_rows, 100, LLLCONST_HIGHER, DEEPINSERT_CONST);
+            block_reduce(lattice, lattice->num_cols, lattice->num_rows, 200, LLLCONST_HIGHER, DEEPINSERT_CONST);
+            block_reduce(lattice, lattice->num_cols, lattice->num_rows, 400, LLLCONST_HIGHER, DEEPINSERT_CONST);
+        #endif
 
-    lll(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_LOW, 5);
+        lll(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_LOW, 5);
 
-#if 0
-    printf("After first reduction\n");
-    print_lattice();
-#endif
-    /**
-     * cut the lattice
-     */
-    if (cutlattice(lattice)) {
-        fprintf(stderr, "First reduction successful\n"); fflush(stderr);
+        #if 0
+            printf("After first reduction\n");
+            print_lattice();
+        #endif
+        /**
+         * cut the lattice
+         */
+        if (cutlattice(lattice)) {
+            fprintf(stderr, "First reduction successful\n"); fflush(stderr);
+        } else {
+            fprintf(stderr, "First reduction not successful\n"); fflush(stderr);
+            return 0;
+        }
+        #if 0
+            printf("After cutting\n");
+            print_lattice();
+        #endif
     } else {
-        fprintf(stderr, "First reduction not successful\n"); fflush(stderr);
-        return 0;
+        load_lattice(lattice, restart_filename);
+        print_lattice(lattice);
     }
-
-#if 0
-    printf("After cutting\n");
-    print_lattice();
-#endif
 
 #if 1
     shufflelattice(lattice);
@@ -327,7 +331,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile) {
     block_reduce(lattice, lattice->num_cols, lattice->num_rows, 64, LLLCONST_HIGHER, DEEPINSERT_CONST);
     block_reduce(lattice, lattice->num_cols, lattice->num_rows, 96, LLLCONST_HIGHER, DEEPINSERT_CONST);
     block_reduce(lattice, lattice->num_cols, lattice->num_rows, 144, LLLCONST_HIGHER, DEEPINSERT_CONST);
-    //block_reduce(lattice, lattice->num_cols, lattice->num_rows, 216, LLLCONST_HIGHER, DEEPINSERT_CONST);
+    block_reduce(lattice, lattice->num_cols, lattice->num_rows, 180, LLLCONST_HIGHER, DEEPINSERT_CONST);
 
     if (lattice->LLL_params.iterate) {
         iteratedlll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.iterate_no, LLLCONST_HIGH, DEEPINSERT_CONST);
@@ -344,6 +348,10 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile) {
         fprintf(stderr, "BKZ 16\n");
         lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
                         16, lattice->LLL_params.bkz.p);
+
+        fprintf(stderr, "BKZ 32\n");
+        lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
+                        32, lattice->LLL_params.bkz.p);
 
         fprintf(stderr, "BKZ %d\n", lattice->LLL_params.bkz.beta);
         lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
@@ -449,9 +457,54 @@ void print_lattice(lattice_t *lattice) {
 }
 
 void dump_lattice(lattice_t *lattice) {
-    FILE* f = fopen("dump_lattice.b", "w");
-    fwrite(lattice, sizeof(lattice_t), 1, f);
+    int i, j;
+    char fname[] = "dump_lattice.b";
+    FILE* f = fopen(fname, "w");
+    fprintf(f, "%d %d\n", lattice->num_rows, lattice->num_cols);
+    fprintf(f, "%d\n", lattice->cut_after);
+    fprintf(f, "%d\n", lattice->free_RHS);
+    mpz_out_str(f, 10, lattice->matrix_factor); fprintf(f, "\n");
+    mpz_out_str(f, 10, lattice->max_norm); fprintf(f, "\n");
 
+    for (i = 0; i < lattice->num_cols; i++) {
+        for (j = 0; j < lattice->num_rows; j++) {
+            mpz_out_str(f, 10, get_entry(lattice->basis, i, j));
+            fprintf(f, " ");
+        }
+        fprintf(f, "\n");
+    }
+
+    fclose(f);
+    fprintf(stderr, "Lattice dumped to '%s'\n", fname);
+    return;
+}
+
+void load_lattice(lattice_t *lattice, char *fname) {
+    int i, j, res;
+
+    fprintf(stderr, "LOAD lattice from file %s\n", fname);
+    FILE* f = fopen(fname, "r");
+    fscanf(f, "%d%d\n", &(lattice->num_rows), &(lattice->num_cols));
+    fscanf(f, "%d\n", &(lattice->cut_after));
+    fscanf(f, "%d\n", &(lattice->free_RHS));
+
+    fprintf(stderr, "LOAD:  %d %d\n", lattice->num_rows, lattice->num_cols);
+
+    res = mpz_inp_str(lattice->matrix_factor, f, 10);
+    if (res == 0) { incorrect_input_file(); }
+    res = mpz_inp_str(lattice->max_norm, f, 10);
+    if (res == 0) { incorrect_input_file(); }
+
+    for (i = 0; i < lattice->num_cols; i++) {
+        for (j = 0; j < lattice->num_rows; j++) {
+            res = mpz_inp_str(lattice->basis[i][j + 1].c, f, 10);
+            if (res == 0) {
+                incorrect_input_file();
+            }
+        }
+        coeffinit(lattice->basis[i], lattice->num_rows);
+    }
+    fclose(f);
     return;
 }
 

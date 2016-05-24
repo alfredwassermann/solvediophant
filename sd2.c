@@ -92,9 +92,11 @@ int main(int argc, char *argv[]) {
     char suffix[1024];
 
     FILE* solfile;
-    char solfilename[1024];
+    char sol_filename[1024];
+    char restart_filename[1024];
+    int restart = 0;
 
-    strcpy(solfilename,"solutions");
+    strcpy(sol_filename, "solutions");
 
     /**
      * Init structs lattice and LLL_params
@@ -119,46 +121,50 @@ int main(int argc, char *argv[]) {
             lattice.LLL_params.silent = SILENT = 1;
             fprintf(stderr,"No output of solutions, just counting.\n");
 
-        } else if (strncmp(argv[i],"-iterate",8) == 0) {
-            strcpy(suffix,argv[i]+8);
+        } else if (strncmp(argv[i],"-iterate", 8) == 0) {
+            strcpy(suffix, argv[i] + 8);
             lattice.LLL_params.iterate_no  = atoi(suffix);
             lattice.LLL_params.iterate = 1;
 
-        } else if (strncmp(argv[i],"-bkz",4) == 0) {
+        } else if (strncmp(argv[i],"-bkz", 4) == 0) {
             lattice.LLL_params.iterate = 0;
 
-        } else if (strncmp(argv[i],"-beta",5) == 0) {
-            strcpy(suffix,argv[i]+5);
+        } else if (strncmp(argv[i],"-beta", 5) == 0) {
+            strcpy(suffix, argv[i] + 5);
             lattice.LLL_params.bkz.beta = atoi(suffix);
 
-        } else if (strncmp(argv[i],"-p",2) == 0) {
-            strcpy(suffix,argv[i]+2);
+        } else if (strncmp(argv[i],"-p", 2) == 0) {
+            strcpy(suffix, argv[i] + 2);
             lattice.LLL_params.bkz.p = atoi(suffix);
 
-        } else if (strncmp(argv[i],"-time",5) == 0) {
-            strcpy(suffix,argv[i]+5);
+        } else if (strncmp(argv[i],"-time", 5) == 0) {
+            strcpy(suffix, argv[i] + 5);
             maxruntime = atoi(suffix);
 
-        } else if (strncmp(argv[i],"-c",2) == 0) {
-            strcpy(suffix,argv[i]+2);
+        } else if (strncmp(argv[i],"-c", 2) == 0) {
+            strcpy(suffix, argv[i] + 2);
     #if 1
             mpz_set_str(lattice.matrix_factor, suffix, 10);  /* Regular version */
     #else
             mpz_ui_pow_ui(lattice.matrix_factor, 10, atoi(suffix)); /* Version for the NTL output */
     #endif
-        } else if (strncmp(argv[i],"-maxnorm",8) == 0) {
-            strcpy(suffix,argv[i]+8);
+        } else if (strncmp(argv[i],"-maxnorm", 8) == 0) {
+            strcpy(suffix, argv[i] + 8);
             mpz_set_str(lattice.max_norm,suffix,10);
 
-        } else if (strncmp(argv[i],"-scalelastline",14) == 0) {
-            strcpy(suffix,argv[i]+14);
+        } else if (strncmp(argv[i],"-scalelastline", 14) == 0) {
+            strcpy(suffix, argv[i] + 14);
             mpz_set_str(lattice.LLL_params.scalelastlinefactor,suffix,10);
 
-        } else if (strncmp(argv[i],"-i",2) == 0) {
-            strcpy(suffix,argv[i]+2);
+        } else if (strncmp(argv[i],"-i", 2) == 0) {
+            strcpy(suffix, argv[i] + 2);
 
-        } else if (strncmp(argv[i],"-o",2) == 0) {
-            strcpy(solfilename,argv[i]+2);
+        } else if (strncmp(argv[i],"-o", 2) == 0) {
+            strcpy(sol_filename, argv[i] + 2);
+
+        } else if (strncmp(argv[i],"-restart", 8) == 0) {
+            strcpy(restart_filename, argv[i] + 8);
+            restart = 1;
 
         } else if (strcmp(argv[i],"-?") == 0 || strcmp(argv[i],"-h") == 0) {
             fprintf(stderr,"\nsd2 --- multiple precision version --- \n");
@@ -257,7 +263,7 @@ int main(int argc, char *argv[]) {
     /**
      * Read problem size
      */
-    sscanf(zeile,"%d%d%d", &(LGS.num_rows), &(LGS.num_cols), &flag);
+    sscanf(zeile, "%d%d%d", &(LGS.num_rows), &(LGS.num_cols), &flag);
 
     /**
      * Allocate memory and read LGS
@@ -268,10 +274,10 @@ int main(int argc, char *argv[]) {
     read_upper_bounds(inputfile_name, &LGS);
     read_selected_cols(inputfile_name, &LGS);
 
-    solfile = fopen(solfilename, "w");
+    solfile = fopen(sol_filename, "w");
     time_0 = os_ticks();
 
-    diophant(&LGS, &lattice, solfile);
+    diophant(&LGS, &lattice, solfile, restart, restart_filename);
 
     time_1 = os_ticks();
     fclose(solfile);
