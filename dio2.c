@@ -1413,15 +1413,12 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     DOUBLE *y, *c;
     DOUBLE c_min;
 
-    //DOUBLE **sigma;
-    //int *r;
-
     int i, j;
     int t, t_max;
 
     long *delta, *d, *v;
     long *u_loc;
-    int t_up, len;
+    int t_up, len, k;
     double alpha, radius;
     static DOUBLE pi = 3.141592653589793238462643383;
     static DOUBLE e = 2.718281828459045235360287471352662497757247093;
@@ -1478,7 +1475,14 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
         if (len <= SCHNITT) {
             alpha = 1.0;
         } else {
-            alpha = sqrt(1.20 * (end_block + 1 - t) / len);
+            //alpha = sqrt(1.1 * (end_block + 1 - t) / len);
+            p = 0.25;
+            k = (end_block + 1 - t);
+            if (k > len / 2) {
+                alpha = p * 2 * k / len;
+            } else {
+                alpha = 2 * p - 1 + 2 * k * (1 - p) / len;
+            }           
             if (alpha >= 1.0) alpha = 1.0;
         }
         //fprintf(stderr, "%d %d %d %lf\n", start_block, t, end_block, alpha);
