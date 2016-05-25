@@ -362,7 +362,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         i = 0;
         do {
             lD = lDnew;
-            shufflelattice(lattice);
+            //shufflelattice(lattice);
             lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
                             lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p);
             printf("%0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
