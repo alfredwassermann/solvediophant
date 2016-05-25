@@ -1410,7 +1410,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
  */
 DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block, int p) {
     DOUBLE x;
-    DOUBLE *y, *c, *eta;
+    DOUBLE *y, *c;
     DOUBLE c_min;
 
     //DOUBLE **sigma;
@@ -1439,7 +1439,6 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     y = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
     delta = (long*)calloc(s+1,sizeof(long));
     d = (long*)calloc(s+1,sizeof(long));
-    eta = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
     v = (long*)calloc(s+1,sizeof(long));
     u_loc = (long*)calloc(s+1,sizeof(long));
 
@@ -1454,29 +1453,12 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     c[t] = c_min = R[t][t] * R[t][t];
     u_loc[t] = 1;
 
-    /* precompute $\eta$ */
-    eta[start_block] = 0.0;
     if (end_block - start_block <= SCHNITT) {
-        alpha = set_prune_const(R, start_block + 1, end_block + 1, PRUNE_NO);
-        //for (i = start_block + 1; i <= end_block; i++) eta[i] = 0.0;
+        alpha = set_prune_const(R, start_block, end_block + 1, PRUNE_NO);
     } else {
-
         //Hoerners version of the Gaussian volume heuristics.
-        hoerner(R, start_block, end_block + 1, p, eta);
-        /*
-        x = log(c[start_block]);
-        for (i = start_block + 1; i <= end_block; i++) {
-            t_up = i - start_block;
-            DOUBLE dum  = 0.5 * t_up * exp((logf(pi * t_up) - 2.0 * p * logf(2.0) + x) / t_up ) / (pi * e);
-            fprintf(stderr, "!!!!!!!!!!!!!!! %d:  %lf %lf\n", i, eta[i], dum);
-            if (eta[i] != dum) {
-                // fprintf(stderr, "!!!!!!!!!!!!!!! %d:  %lf %lf\n", i, eta[i], dum);
-            }
-
-            if (i < end_block) x += logf(c[i]);
-        }
-        */
-        alpha = set_prune_const(R, start_block + 1, end_block + 1, PRUNE_HOERNER);
+        //hoerner(R, start_block, end_block + 1, p, eta);
+        alpha = set_prune_const(R, start_block, end_block + 1, PRUNE_HOERNER);
     }
 
     while (t <= end_block) {
@@ -1536,21 +1518,13 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
        u_loc[t] = v[t] + delta[t];
     }
 
-    //free (us);
     free (c);
     free (y);
     free (delta);
     free (d);
-    free (eta);
     free (v);
     free (u_loc);
-    /*
-    for (i = s - 1; i >= 0; i--) {
-       free(sigma[i]);
-    }
-    free(sigma);
-    free(r);
-    */
+
     return (c_min);
 }
 
@@ -2411,12 +2385,12 @@ DOUBLE GH(DOUBLE **R, int low, int up) {
     for (i = low, log_det = 0.0; i < up; ++i) {
         //x = R[i][i] * R[i][i];
         //fprintf(stderr, "%0.10lf %0.10lf %f\n", x, gh, logf(x));
-        log_det += logf(R[i][i] * R[i][i]);
+        log_det += log(R[i][i] * R[i][i]);
     }
     log_det *= 0.5;
     n = up - low;
 
-    return exp(log_det / n) * sqrt(exp(logf(pi * n) / n) * n / (2.0 * pi * e));
+    return exp(log_det / n) * sqrt(exp(log(pi * n) / n) * n / (2.0 * pi * e));
 
 }
 
@@ -2435,7 +2409,7 @@ void hoerner(DOUBLE **R, int low, int up, double p, DOUBLE *eta) {
     for (i = low + 1; i < up; i++) {
         t_up = i - low;
         eta[i] = 0.5 * t_up * exp((log(pi * t_up) - 2.0 * p * log(2.0) + x) / t_up ) / (pi * e);
-        fprintf(stderr, "::: %lf \n", eta[i]);
+        //fprintf(stderr, "::: %lf \n", eta[i]);
         if (i < up - 1) {
             c = R[i][i];
             x += log(c * c);
@@ -2453,9 +2427,10 @@ DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type) {
         gh = R[low][low];
         gh *= gh;
     } else if (prune_type == PRUNE_HOERNER) {
-        gh = 1.05 * GH(R, low, up);
+        gh = GH(R, low, up);
+        gh *= 1.05;
     }
-    fprintf(stderr, ">>>> %lf %lf\n", gh1, gh);
+    fprintf(stderr, ">>>> %d %lf %lf\n", up - low, gh1, gh);
     
     return gh;
 }
