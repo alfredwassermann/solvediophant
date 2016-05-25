@@ -105,4 +105,8 @@ extern int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
                      DOUBLE **bd, DOUBLE *y, DOUBLE *us, int columns);
 extern int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns);
 extern void shufflelattice(lattice_t *lattice);
+extern DOUBLE GH(DOUBLE **R, int low, int up);
+extern void hoerner(DOUBLE **R, int low, int up, double p, DOUBLE *eta);
+extern void set_prune_const(DOUBLE **R, int low, int up, int prune_type, DOUBLE *eta);
+
 #endif

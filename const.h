@@ -16,4 +16,8 @@
 
 #define TWOTAUHALF 67108864.0 /* $2^{\tau/2}$*/
 
+#define PRUNE_NO 0
+#define PRUNE_HOERNER 1
+#define PRUNE_BKZ2 2
+
 #endif
