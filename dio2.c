@@ -1457,14 +1457,14 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     /* precompute $\eta$ */
     eta[start_block] = 0.0;
     if (end_block - start_block <= SCHNITT) {
-        set_prune_const(R, start_block + 1, end_block + 1, PRUNE_NO, eta);
+        alpha = set_prune_const(R, start_block + 1, end_block + 1, PRUNE_NO);
         //for (i = start_block + 1; i <= end_block; i++) eta[i] = 0.0;
     } else {
 
         //Hoerners version of the Gaussian volume heuristics.
-        //hoerner(R, start_block, end_block + 1, p, eta);
+        hoerner(R, start_block, end_block + 1, p, eta);
         /*
-        x = logf(c[start_block]);
+        x = log(c[start_block]);
         for (i = start_block + 1; i <= end_block; i++) {
             t_up = i - start_block;
             DOUBLE dum  = 0.5 * t_up * exp((logf(pi * t_up) - 2.0 * p * logf(2.0) + x) / t_up ) / (pi * e);
@@ -1476,7 +1476,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
             if (i < end_block) x += logf(c[i]);
         }
         */
-        set_prune_const(R, start_block + 1, end_block + 1, PRUNE_HOERNER, eta);
+        alpha = set_prune_const(R, start_block + 1, end_block + 1, PRUNE_HOERNER);
     }
 
     while (t <= end_block) {
@@ -1493,15 +1493,17 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
         x = (u_loc[t] + y[t]) * R[t][t];
         c[t] = c[t + 1] + x * x;
 
+        /*
         if (len <= SCHNITT) {
             alpha = 1.0;
         } else {
             alpha = sqrt(1.20 * (end_block + 1 - t) / len);
             if (alpha >= 1.0) alpha = 1.0;
         }
-//fprintf(stderr, "%d %d %d %lf\n", start_block, t, end_block, alpha);
+        //fprintf(stderr, "%d %d %d %lf\n", start_block, t, end_block, alpha);
         alpha *= c_min;
-
+        */
+        
         if (c[t] < alpha - EPSILON) {
             if (t > start_block) {
                 // forward
@@ -2429,28 +2431,31 @@ void hoerner(DOUBLE **R, int low, int up, double p, DOUBLE *eta) {
     int t_up;
 
     c = R[low][low];
-    x = logf(c * c);
+    x = log(c * c);
     for (i = low + 1; i < up; i++) {
         t_up = i - low;
-        eta[i] = 0.5 * t_up * exp((logf(pi * t_up) - 2.0 * p * logf(2.0) + x) / t_up ) / (pi * e);
+        eta[i] = 0.5 * t_up * exp((log(pi * t_up) - 2.0 * p * log(2.0) + x) / t_up ) / (pi * e);
+        fprintf(stderr, "::: %lf \n", eta[i]);
         if (i < up - 1) {
             c = R[i][i];
-            x += logf(c * c);
+            x += log(c * c);
         }
     }
 
 }
 
-void set_prune_const(DOUBLE **R, int low, int up, int prune_type, DOUBLE *eta) {
-    int i;
+DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type) {
+    DOUBLE gh, gh1;
 
+    gh1 = R[low][low];
+    gh1 *= gh1;
     if (prune_type == PRUNE_NO) {
-        for (i = low; i < up; i++) {
-            eta[i] = 0.0;
-        }
+        gh = R[low][low];
+        gh *= gh;
     } else if (prune_type == PRUNE_HOERNER) {
-        for (i = low; i < up; i++) {
-            eta[i] = 1.05 * GH(R, i, up);
-        }
+        gh = 1.05 * GH(R, low, up);
     }
+    fprintf(stderr, ">>>> %lf %lf\n", gh1, gh);
+    
+    return gh;
 }

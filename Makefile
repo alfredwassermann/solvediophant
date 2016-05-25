@@ -1,6 +1,6 @@
 CC=gcc
 
-CFLAGS= -O3 -Wall -ffast-math \
+CFLAGS= -O3 -Wall \
         -funroll-all-loops    \
         -march=native -mtune=native -msse -msse2 -msse3 -mssse3 -m64 \
         -pipe  \
