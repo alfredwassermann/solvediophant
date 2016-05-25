@@ -18,6 +18,7 @@
 
 #define PRUNE_NO 0
 #define PRUNE_HOERNER 1
-#define PRUNE_BKZ2 2
+#define PRUNE_BKZ 2
+#define PRUNE_BKZ2 3
 
 #endif

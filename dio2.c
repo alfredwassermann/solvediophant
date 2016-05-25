@@ -289,7 +289,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         print_lattice(lattice);
     }
 
-#if 1
+#if 0
     shufflelattice(lattice);
     /**
      * second reduction
@@ -337,7 +337,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     if (lattice->LLL_params.iterate) {
         iteratedlll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.iterate_no, LLLCONST_HIGH, DEEPINSERT_CONST);
     } else {
-        shufflelattice(lattice);
+        //shufflelattice(lattice);
 
         /*
         fprintf(stderr, "BKZ 4\n");
@@ -1422,7 +1422,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     long *delta, *d, *v;
     long *u_loc;
     int t_up, len;
-    double alpha;
+    double alpha, radius;
     static DOUBLE pi = 3.141592653589793238462643383;
     static DOUBLE e = 2.718281828459045235360287471352662497757247093;
     int SCHNITT = 10;
@@ -1454,11 +1454,11 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     u_loc[t] = 1;
 
     if (end_block - start_block <= SCHNITT) {
-        alpha = set_prune_const(R, start_block, end_block + 1, PRUNE_NO);
+        radius = set_prune_const(R, start_block, end_block + 1, PRUNE_NO);
     } else {
         //Hoerners version of the Gaussian volume heuristics.
         //hoerner(R, start_block, end_block + 1, p, eta);
-        alpha = set_prune_const(R, start_block, end_block + 1, PRUNE_HOERNER);
+        radius = set_prune_const(R, start_block, end_block + 1, PRUNE_BKZ);
     }
 
     while (t <= end_block) {
@@ -1475,7 +1475,6 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
         x = (u_loc[t] + y[t]) * R[t][t];
         c[t] = c[t + 1] + x * x;
 
-        /*
         if (len <= SCHNITT) {
             alpha = 1.0;
         } else {
@@ -1483,8 +1482,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
             if (alpha >= 1.0) alpha = 1.0;
         }
         //fprintf(stderr, "%d %d %d %lf\n", start_block, t, end_block, alpha);
-        alpha *= c_min;
-        */
+        alpha *= radius;
         
         if (c[t] < alpha - EPSILON) {
             if (t > start_block) {
@@ -2377,8 +2375,8 @@ void shufflelattice(lattice_t *lattice) {
     Gamma(n/2 + 1) = sqrt(pi n) (n/2)^(n/2)*e^(-n/2)
  */
 DOUBLE GH(DOUBLE **R, int low, int up) {
-    int i, n;
-    DOUBLE log_det;
+    int i, n, k;
+    DOUBLE log_det, V1;
     static DOUBLE pi = 3.141592653589793238462643383;
     static DOUBLE e = 2.718281828459045235360287471352662497757247093;
 
@@ -2389,9 +2387,22 @@ DOUBLE GH(DOUBLE **R, int low, int up) {
     }
     log_det *= 0.5;
     n = up - low;
+    
+    // Exact formulae for unit ball volume
+    if (n % 2 == 0) {
+        k = n / 2;
+        for (i = 1, V1 = 1.0; i <= k; i++) {
+            V1 *= pi / i;
+        }
+    } else {
+        k = (n - 1)/ 2;
+        for (i = 0, V1 = 1.0 / pi; i <= k; i++) {
+            V1 *= 2.0 * pi / (2*i + 1);
+        }
+    }
+    V1 = exp(log(V1) / n);
 
-    return exp(log_det / n) * sqrt(exp(log(pi * n) / n) * n / (2.0 * pi * e));
-
+    return exp(log_det / n) / V1;
 }
 
 /*
@@ -2415,7 +2426,6 @@ void hoerner(DOUBLE **R, int low, int up, double p, DOUBLE *eta) {
             x += log(c * c);
         }
     }
-
 }
 
 DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type) {
@@ -2426,11 +2436,12 @@ DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type) {
     if (prune_type == PRUNE_NO) {
         gh = R[low][low];
         gh *= gh;
-    } else if (prune_type == PRUNE_HOERNER) {
+    } else if (prune_type == PRUNE_BKZ) {
         gh = GH(R, low, up);
+        gh *= gh;
         gh *= 1.05;
     }
     fprintf(stderr, ">>>> %d %lf %lf\n", up - low, gh1, gh);
-    
-    return gh;
+
+    return (gh <= gh1) ? gh : gh1;
 }
