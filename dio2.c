@@ -1491,7 +1491,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
             if (k > 2 * len / 4) {
                 alpha = 1.0;
             } else {
-                alpha = 0.25;
+                alpha = 0.5;
             }
 #else
             p = 0.25;
@@ -1526,9 +1526,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
                c_min = c[t];
                for (i = start_block; i <= end_block; i++) {
                    u[i] = u_loc[i];
-fprintf(stderr, "%d ", u[i]);
                }
-fprintf(stderr, "\n");
                found_improvement = 1;
             }
        } else {
