@@ -286,7 +286,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         #endif
     } else {
         load_lattice(lattice, restart_filename);
-        print_lattice(lattice);
+        //print_lattice(lattice);
     }
 
 #if 0
@@ -371,6 +371,8 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         while (i < 1 && fabs(lDnew - lD) > 0.01);
     }
     fprintf(stderr, "Third reduction successful\n"); fflush(stderr);
+
+    dump_lattice(lattice);
 
     /* undo scaling of last rows */
     for (i = 0; i < lattice->num_cols; i++)
@@ -1339,7 +1341,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             /* successful enumeration */
             /* build new basis */
             for (j = 1; j <= z; j++)
-                mpz_set_si(b[last + 1][j].c, 0);
+                mpz_set_si(lattice->swap[j].c, 0);
 
             // Store new linear combination in lattice->swap
             for (i = start_block; i <= end_block; i++) {
@@ -1353,6 +1355,11 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             }
             g = end_block;
             while (u[g] == 0) g--;
+
+for (i = start_block; i <= end_block; i++) {
+    fprintf (stderr, "%d ", u[i]);
+}
+fprintf(stderr, "; g=%d \n", g);
 
             i = g - 1;
             while (labs(u[g]) > 1) {
@@ -1415,6 +1422,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
 
     int i, j;
     int t, t_max;
+    int found_improvement = 0;
 
     long *delta, *d, *v;
     long *u_loc;
@@ -1446,8 +1454,8 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
         d[i] = 1;
     }
 
-    t = t_max = start_block;
-    c[t] = c_min = R[t][t] * R[t][t];
+    t = t_max = end_block;
+    c[t] = R[t][t] * R[t][t];
     u_loc[t] = 1;
 
     if (end_block - start_block <= SCHNITT) {
@@ -1457,6 +1465,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
         //hoerner(R, start_block, end_block + 1, p, eta);
         radius = set_prune_const(R, start_block, end_block + 1, PRUNE_BKZ);
     }
+    c_min = radius;
 
     while (t <= end_block) {
         if (PRINT_REQUIRED) {
@@ -1475,7 +1484,16 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
         if (len <= SCHNITT) {
             alpha = 1.0;
         } else {
-            //alpha = sqrt(1.1 * (end_block + 1 - t) / len);
+#if 0
+            alpha = 1.05 * (end_block + 1 - t) / len;
+#elif 1
+            k = (end_block + 1 - t);
+            if (k > 2 * len / 4) {
+                alpha = 1.0;
+            } else {
+                alpha = 0.25;
+            }
+#else
             p = 0.25;
             k = (end_block + 1 - t);
             if (k > len / 2) {
@@ -1483,10 +1501,11 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
             } else {
                 alpha = 2 * p - 1 + 2 * k * (1 - p) / len;
             }           
+#endif
             if (alpha >= 1.0) alpha = 1.0;
         }
         //fprintf(stderr, "%d %d %d %lf\n", start_block, t, end_block, alpha);
-        alpha *= radius;
+        alpha *= c_min;
         
         if (c[t] < alpha - EPSILON) {
             if (t > start_block) {
@@ -1507,7 +1526,10 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
                c_min = c[t];
                for (i = start_block; i <= end_block; i++) {
                    u[i] = u_loc[i];
+fprintf(stderr, "%d ", u[i]);
                }
+fprintf(stderr, "\n");
+               found_improvement = 1;
             }
        } else {
            // back
@@ -1527,6 +1549,10 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     free (v);
     free (u_loc);
 
+    if (!found_improvement) {
+        c_min = R[start_block][start_block];
+        c_min *= c_min;
+    }
     return (c_min);
 }
 
