@@ -1444,14 +1444,14 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     u_loc = (long*)calloc(s+1,sizeof(long));
 
     len = end_block + 1 - start_block;
-    for (i = start_block; i <= end_block; i++) {
+    for (i = start_block; i <= end_block + 1; i++) {
         c[i] = y[i] = 0.0;
         u_loc[i] = v[i] = delta[i] = 0;
         d[i] = 1;
     }
 
     t = t_max = end_block;
-    c[t] = R[t][t] * R[t][t];
+    //c[t] = R[t][t] * R[t][t];
     u_loc[t] = 1;
 
     if (end_block - start_block <= SCHNITT) {
