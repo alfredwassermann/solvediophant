@@ -1335,8 +1335,9 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
         h = (end_block + 1 < last) ? end_block + 1 : last;
 
         r_tt = R[start_block][start_block];
-        if (delta * r_tt * r_tt > new_cj) {
-            fprintf(stderr, "enumerate successful %d %lf\n", start_block,  delta * r_tt * r_tt - new_cj);
+        r_tt *= r_tt;
+        if (delta * r_tt > new_cj) {
+            fprintf(stderr, "enumerate successful %d %lf improvement: %lf\n", start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
 
             /* successful enumeration */
             /* build new basis */
@@ -1355,11 +1356,6 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             }
             g = end_block;
             while (u[g] == 0) g--;
-
-for (i = start_block; i <= end_block; i++) {
-    fprintf (stderr, "%d ", u[i]);
-}
-fprintf(stderr, "; g=%d \n", g);
 
             i = g - 1;
             while (labs(u[g]) > 1) {
@@ -1500,13 +1496,13 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
                 alpha = p * 2 * k / len;
             } else {
                 alpha = 2 * p - 1 + 2 * k * (1 - p) / len;
-            }           
+            }
 #endif
             if (alpha >= 1.0) alpha = 1.0;
         }
         //fprintf(stderr, "%d %d %d %lf\n", start_block, t, end_block, alpha);
         alpha *= c_min;
-        
+
         if (c[t] < alpha - EPSILON) {
             if (t > start_block) {
                 // forward
@@ -1526,7 +1522,9 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
                c_min = c[t];
                for (i = start_block; i <= end_block; i++) {
                    u[i] = u_loc[i];
+fprintf(stderr, "%ld ", u[i]);
                }
+fprintf(stderr, "\n");
                found_improvement = 1;
             }
        } else {
@@ -2415,7 +2413,7 @@ DOUBLE GH(DOUBLE **R, int low, int up) {
     }
     log_det *= 0.5;
     n = up - low;
-    
+
     // Exact formulae for unit ball volume
     if (n % 2 == 0) {
         k = n / 2;
