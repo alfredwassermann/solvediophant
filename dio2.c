@@ -1451,6 +1451,8 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     }
 
     t = t_max = end_block;
+for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
+    t = t_max;
     //c[t] = R[t][t] * R[t][t];
     u_loc[t] = 1;
 
@@ -1537,7 +1539,7 @@ fprintf(stderr, "\n");
        if (delta[t] * d[t] >= 0) delta[t] += d[t];
        u_loc[t] = v[t] + delta[t];
     }
-
+}
     free (c);
     free (y);
     free (delta);
