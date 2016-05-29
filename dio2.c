@@ -735,15 +735,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
         counter++;
 #endif
-        if (PRINT_REQUIRED) {
-            print_lattice(lattice);
-            PRINT_REQUIRED = 0;
-        }
-        if (DUMP_REQUIRED) {
-            dump_lattice(lattice);
-            DUMP_REQUIRED = 0;
-        }
-
+        handle_signals(lattice);
 //fprintf(stderr, "\nk %d\n", k);
 
         #if 0
@@ -1421,11 +1413,9 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     int found_improvement = 0;
 
     long *delta, *d, *v;
-    long *u_loc;
-    int t_up, len, k;
+    DOUBLE *u_loc;
+    int len, k;
     double alpha, radius;
-    static DOUBLE pi = 3.141592653589793238462643383;
-    static DOUBLE e = 2.718281828459045235360287471352662497757247093;
     int SCHNITT = 10;
 
     x = R[start_block][start_block];
@@ -1441,106 +1431,102 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     delta = (long*)calloc(s+1,sizeof(long));
     d = (long*)calloc(s+1,sizeof(long));
     v = (long*)calloc(s+1,sizeof(long));
-    u_loc = (long*)calloc(s+1,sizeof(long));
+    u_loc = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
 
     len = end_block + 1 - start_block;
     for (i = start_block; i <= end_block + 1; i++) {
         c[i] = y[i] = 0.0;
-        u_loc[i] = v[i] = delta[i] = 0;
+        u_loc[i] = 0.0;
+        v[i] = delta[i] = 0;
         d[i] = 1;
     }
 
-    t = t_max = end_block;
-
+    p = 0.25;
     if (end_block - start_block <= SCHNITT) {
-        radius = set_prune_const(R, start_block, end_block + 1, PRUNE_NO);
+        radius = set_prune_const(R, start_block, end_block + 1, PRUNE_NO, 1.0);
     } else {
         //Hoerners version of the Gaussian volume heuristics.
         //hoerner(R, start_block, end_block + 1, p, eta);
-        radius = set_prune_const(R, start_block, end_block + 1, PRUNE_BKZ);
+        radius = set_prune_const(R, start_block, end_block + 1, PRUNE_BKZ, p);
     }
     c_min = radius;
 
-for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
-    t = t_max;
-    //c[t] = R[t][t] * R[t][t];
-    u_loc[t] = 1;
+    //t = t_max = end_block;
+    for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
+        t = t_max;
+        u_loc[t] = 1.0;
 
-    while (t <= end_block) {
-        if (PRINT_REQUIRED) {
-            print_lattice(lattice);
-            PRINT_REQUIRED = 0;
-        }
-        if (DUMP_REQUIRED) {
-            dump_lattice(lattice);
-            DUMP_REQUIRED = 0;
-        }
+        while (t <= end_block) {
+            handle_signals(lattice);
 
-        /* the block search loop */
-        x = (u_loc[t] + y[t]) * R[t][t];
-        c[t] = c[t + 1] + x * x;
+            x = (u_loc[t] + y[t]) * R[t][t];
+            c[t] = c[t + 1] + x * x;
 
-        if (len <= SCHNITT) {
-            alpha = 1.0;
-        } else {
-#if 0
-            alpha = 1.05 * (end_block + 1 - t) / len;
-#elif 1
-            k = (end_block + 1 - t);
-            if (k > 2 * len / 4) {
+            if (len <= SCHNITT) {
                 alpha = 1.0;
             } else {
-                alpha = 0.5;
+                #if 0
+                    alpha = 1.05 * (end_block + 1 - t) / len;
+                #elif 1
+                    k = (end_block + 1 - t);
+                    if (k > 2 * len / 4) {
+                        alpha = 1.0;
+                    } else {
+                        alpha = 0.5;
+                    }
+                #else
+                    k = (end_block + 1 - t);
+                    if (k > len / 2) {
+                        alpha = p * 2 * k / len;
+                    } else {
+                        alpha = 2 * p - 1 + 2 * k * (1 - p) / len;
+                    }
+                #endif
+                alpha = (alpha < 1.0) ? alpha : 1.0;
             }
-#else
-            p = 0.25;
-            k = (end_block + 1 - t);
-            if (k > len / 2) {
-                alpha = p * 2 * k / len;
-            } else {
-                alpha = 2 * p - 1 + 2 * k * (1 - p) / len;
-            }
-#endif
-            if (alpha >= 1.0) alpha = 1.0;
-        }
-        //fprintf(stderr, "%d %d %d %lf\n", start_block, t, end_block, alpha);
-        alpha *= c_min;
+            //fprintf(stderr, "%d %d %d %lf\n", start_block, t, end_block, alpha);
+            alpha *= c_min;
 
-        if (c[t] < alpha - EPSILON) {
-            if (t > start_block) {
-                // forward
-                t--;
+            if (c[t] < alpha - EPSILON) {
+                if (t > start_block) {
+                    // forward
+                    t--;
 
-                for (j = t + 1, y[t] = 0.0; j <= t_max; j++) {
-                    y[t] += u_loc[j] * R[j][t];
+                    #if 0 //BLAS
+                        y[t] = cblas_ddot(t_max - t, &(u_loc[t+1]), 1, &(R[t+1][t]), lattice->num_rows);
+                    #else
+                        for (j = t + 1, y[t] = 0.0; j <= t_max; j++) {
+                            y[t] += u_loc[j] * R[j][t];
+                        }
+                    #endif
+                    y[t] /= R[t][t];
+
+                    u_loc[t] = v[t] = (long)(ROUND(-y[t]));
+                    delta[t] = 0;
+                    d[t] = (v[t] > -y[t]) ? -1 : 1;
+
+                    continue;
+                } else {
+                    c_min = c[t];
+                    for (i = start_block; i <= end_block; i++) {
+                        u[i] = (long)round(u_loc[i]);
+                        fprintf(stderr, "%ld ", u[i]);
+                    }
+                    fprintf(stderr, "\n");
+                    found_improvement = 1;
                 }
-                y[t] /= R[t][t];
-
-                u_loc[t] = v[t] = (long)(ROUND(-y[t]));
-                delta[t] = 0;
-                d[t] = (v[t] > -y[t]) ? -1 : 1;
-
-                continue;
             } else {
-               c_min = c[t];
-               for (i = start_block; i <= end_block; i++) {
-                   u[i] = u_loc[i];
-fprintf(stderr, "%ld ", u[i]);
-               }
-fprintf(stderr, "\n");
-               found_improvement = 1;
+                // back
+                t++;
+                if (t_max < t) t_max = t;
             }
-       } else {
-           // back
-           t++;
-           if (t_max < t) t_max = t;
-       }
-       // next
-       if (t < t_max) delta[t] = -delta[t];
-       if (delta[t] * d[t] >= 0) delta[t] += d[t];
-       u_loc[t] = v[t] + delta[t];
+            // next
+            if (t < t_max) delta[t] *= -1.0;
+            if (delta[t] * d[t] >= 0) delta[t] += d[t];
+            u_loc[t] = v[t] + delta[t];
+        }
     }
-}
+
     free (c);
     free (y);
     free (delta);
@@ -1835,15 +1821,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
             fflush(stdout);
         }
 #endif
-
-        if (PRINT_REQUIRED) {
-            print_lattice(lattice);
-            PRINT_REQUIRED = 0;
-        }
-        if (DUMP_REQUIRED) {
-            dump_lattice(lattice);
-            DUMP_REQUIRED = 0;
-        }
+        handle_signals(lattice);
 
         /* compute new |cs| */
         olddum = dum[level];
@@ -2372,6 +2350,17 @@ void dump_lattice_sig(int sig) {
     DUMP_REQUIRED = 1;
 }
 
+void handle_signals(lattice_t *lattice) {
+    if (PRINT_REQUIRED) {
+        print_lattice(lattice);
+        PRINT_REQUIRED = 0;
+    }
+    if (DUMP_REQUIRED) {
+        dump_lattice(lattice);
+        DUMP_REQUIRED = 0;
+    }
+}
+
 void shufflelattice(lattice_t *lattice) {
     coeff_t *tmp;
     int i, j, r;
@@ -2457,18 +2446,25 @@ void hoerner(DOUBLE **R, int low, int up, double p, DOUBLE *eta) {
     }
 }
 
-DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type) {
+DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type, DOUBLE p) {
     DOUBLE gh, gh1;
+    DOUBLE alpha, len;
+
+    len = up - low;
+    // p = 2 / a^b
+    // a^b = 2 / p
+    // a = (2/p)^(1/b)
+    // a =
+    alpha = 1.05;
 
     gh1 = R[low][low];
     gh1 *= gh1;
     if (prune_type == PRUNE_NO) {
-        gh = R[low][low];
-        gh *= gh;
+        gh = gh1;
     } else if (prune_type == PRUNE_BKZ) {
         gh = GH(R, low, up);
         gh *= gh;
-        gh *= 1.05;
+        gh *= alpha;
     }
     fprintf(stderr, ">>>> %d %lf %lf\n", up - low, gh1, gh);
 
