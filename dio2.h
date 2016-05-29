@@ -54,6 +54,7 @@ extern long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart,
 
 extern long nosolutions;
 
+extern void handle_signals(lattice_t *lattice);
 extern void stop_program_sig(int sig);
 extern void print_lattice_sig(int sig);
 extern void dump_lattice_sig(int sig);

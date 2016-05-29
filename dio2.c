@@ -735,15 +735,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
         counter++;
 #endif
-        if (PRINT_REQUIRED) {
-            print_lattice(lattice);
-            PRINT_REQUIRED = 0;
-        }
-        if (DUMP_REQUIRED) {
-            dump_lattice(lattice);
-            DUMP_REQUIRED = 0;
-        }
-
+        handle_signals(lattice);
 //fprintf(stderr, "\nk %d\n", k);
 
         #if 0
@@ -1466,14 +1458,7 @@ for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
     c_min = radius;
 
     while (t <= end_block) {
-        if (PRINT_REQUIRED) {
-            print_lattice(lattice);
-            PRINT_REQUIRED = 0;
-        }
-        if (DUMP_REQUIRED) {
-            dump_lattice(lattice);
-            DUMP_REQUIRED = 0;
-        }
+        handle_signals(lattice);
 
         /* the block search loop */
         x = (u_loc[t] + y[t]) * R[t][t];
@@ -1834,15 +1819,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
             fflush(stdout);
         }
 #endif
-
-        if (PRINT_REQUIRED) {
-            print_lattice(lattice);
-            PRINT_REQUIRED = 0;
-        }
-        if (DUMP_REQUIRED) {
-            dump_lattice(lattice);
-            DUMP_REQUIRED = 0;
-        }
+        handle_signals(lattice);
 
         /* compute new |cs| */
         olddum = dum[level];
@@ -2369,6 +2346,17 @@ void dump_lattice_sig(int sig) {
        return;
 
     DUMP_REQUIRED = 1;
+}
+
+void handle_signals(lattice_t *lattice) {
+    if (PRINT_REQUIRED) {
+        print_lattice(lattice);
+        PRINT_REQUIRED = 0;
+    }
+    if (DUMP_REQUIRED) {
+        dump_lattice(lattice);
+        DUMP_REQUIRED = 0;
+    }
 }
 
 void shufflelattice(lattice_t *lattice) {
