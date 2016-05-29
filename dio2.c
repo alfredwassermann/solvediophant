@@ -1441,13 +1441,6 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     }
 
     p = 0.25;
-
-    t = t_max = end_block;
-for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
-    t = t_max;
-    //c[t] = R[t][t] * R[t][t];
-    u_loc[t] = 1;
-
     if (end_block - start_block <= SCHNITT) {
         radius = set_prune_const(R, start_block, end_block + 1, PRUNE_NO, 1.0);
     } else {
@@ -1457,73 +1450,78 @@ for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
     }
     c_min = radius;
 
-    while (t <= end_block) {
-        handle_signals(lattice);
+    //t = t_max = end_block;
+    for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
+        t = t_max;
+        u_loc[t] = 1;
 
-        /* the block search loop */
-        x = (u_loc[t] + y[t]) * R[t][t];
-        c[t] = c[t + 1] + x * x;
+        while (t <= end_block) {
+            handle_signals(lattice);
 
-        if (len <= SCHNITT) {
-            alpha = 1.0;
-        } else {
-#if 0
-            alpha = 1.05 * (end_block + 1 - t) / len;
-#elif 1
-            k = (end_block + 1 - t);
-            if (k > 2 * len / 4) {
+            x = (u_loc[t] + y[t]) * R[t][t];
+            c[t] = c[t + 1] + x * x;
+
+            if (len <= SCHNITT) {
                 alpha = 1.0;
             } else {
-                alpha = 0.5;
+                #if 0
+                    alpha = 1.05 * (end_block + 1 - t) / len;
+                #elif 1
+                    k = (end_block + 1 - t);
+                    if (k > 2 * len / 4) {
+                        alpha = 1.0;
+                    } else {
+                        alpha = 0.5;
+                    }
+                #else
+                    k = (end_block + 1 - t);
+                    if (k > len / 2) {
+                        alpha = p * 2 * k / len;
+                    } else {
+                        alpha = 2 * p - 1 + 2 * k * (1 - p) / len;
+                    }
+                #endif
+                alpha = (alpha < 1.0) ? alpha : 1.0;
             }
-#else
-            k = (end_block + 1 - t);
-            if (k > len / 2) {
-                alpha = p * 2 * k / len;
-            } else {
-                alpha = 2 * p - 1 + 2 * k * (1 - p) / len;
-            }
-#endif
-            if (alpha >= 1.0) alpha = 1.0;
-        }
-        //fprintf(stderr, "%d %d %d %lf\n", start_block, t, end_block, alpha);
-        alpha *= c_min;
+            //fprintf(stderr, "%d %d %d %lf\n", start_block, t, end_block, alpha);
+            alpha *= c_min;
 
-        if (c[t] < alpha - EPSILON) {
-            if (t > start_block) {
-                // forward
-                t--;
+            if (c[t] < alpha - EPSILON) {
+                if (t > start_block) {
+                    // forward
+                    t--;
 
-                for (j = t + 1, y[t] = 0.0; j <= t_max; j++) {
-                    y[t] += u_loc[j] * R[j][t];
+                    for (j = t + 1, y[t] = 0.0; j <= t_max; j++) {
+                        y[t] += u_loc[j] * R[j][t];
+                    }
+                    y[t] /= R[t][t];
+
+                    u_loc[t] = v[t] = (long)(ROUND(-y[t]));
+                    delta[t] = 0;
+                    d[t] = (v[t] > -y[t]) ? -1 : 1;
+
+                    continue;
+                } else {
+                    c_min = c[t];
+                    for (i = start_block; i <= end_block; i++) {
+                        u[i] = u_loc[i];
+                        fprintf(stderr, "%ld ", u[i]);
+                    }
+                    fprintf(stderr, "\n");
+                    found_improvement = 1;
                 }
-                y[t] /= R[t][t];
-
-                u_loc[t] = v[t] = (long)(ROUND(-y[t]));
-                delta[t] = 0;
-                d[t] = (v[t] > -y[t]) ? -1 : 1;
-
-                continue;
             } else {
-               c_min = c[t];
-               for (i = start_block; i <= end_block; i++) {
-                   u[i] = u_loc[i];
-fprintf(stderr, "%ld ", u[i]);
-               }
-fprintf(stderr, "\n");
-               found_improvement = 1;
+                // back
+                t++;
+                if (t_max < t) t_max = t;
             }
-       } else {
-           // back
-           t++;
-           if (t_max < t) t_max = t;
-       }
-       // next
-       if (t < t_max) delta[t] = -delta[t];
-       if (delta[t] * d[t] >= 0) delta[t] += d[t];
-       u_loc[t] = v[t] + delta[t];
+            // next
+            if (t < t_max) delta[t] *= -1.0;
+            if (delta[t] * d[t] >= 0) delta[t] += d[t];
+            u_loc[t] = v[t] + delta[t];
+        }
     }
-}
+
     free (c);
     free (y);
     free (delta);
