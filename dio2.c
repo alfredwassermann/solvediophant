@@ -1413,7 +1413,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     int found_improvement = 0;
 
     long *delta, *d, *v;
-    long *u_loc;
+    DOUBLE *u_loc;
     int len, k;
     double alpha, radius;
     int SCHNITT = 10;
@@ -1431,12 +1431,13 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     delta = (long*)calloc(s+1,sizeof(long));
     d = (long*)calloc(s+1,sizeof(long));
     v = (long*)calloc(s+1,sizeof(long));
-    u_loc = (long*)calloc(s+1,sizeof(long));
+    u_loc = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
 
     len = end_block + 1 - start_block;
     for (i = start_block; i <= end_block + 1; i++) {
         c[i] = y[i] = 0.0;
-        u_loc[i] = v[i] = delta[i] = 0;
+        u_loc[i] = 0.0;
+        v[i] = delta[i] = 0;
         d[i] = 1;
     }
 
@@ -1453,7 +1454,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     //t = t_max = end_block;
     for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
         t = t_max;
-        u_loc[t] = 1;
+        u_loc[t] = 1.0;
 
         while (t <= end_block) {
             handle_signals(lattice);
@@ -1504,7 +1505,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
                 } else {
                     c_min = c[t];
                     for (i = start_block; i <= end_block; i++) {
-                        u[i] = u_loc[i];
+                        u[i] = (long)round(u_loc[i]);
                         fprintf(stderr, "%ld ", u[i]);
                     }
                     fprintf(stderr, "\n");
