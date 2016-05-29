@@ -1451,10 +1451,6 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     }
 
     t = t_max = end_block;
-for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
-    t = t_max;
-    //c[t] = R[t][t] * R[t][t];
-    u_loc[t] = 1;
 
     if (end_block - start_block <= SCHNITT) {
         radius = set_prune_const(R, start_block, end_block + 1, PRUNE_NO);
@@ -1464,6 +1460,11 @@ for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
         radius = set_prune_const(R, start_block, end_block + 1, PRUNE_BKZ);
     }
     c_min = radius;
+
+for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
+    t = t_max;
+    //c[t] = R[t][t] * R[t][t];
+    u_loc[t] = 1;
 
     while (t <= end_block) {
         if (PRINT_REQUIRED) {
