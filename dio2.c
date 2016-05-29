@@ -1414,10 +1414,8 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
 
     long *delta, *d, *v;
     long *u_loc;
-    int t_up, len, k;
+    int len, k;
     double alpha, radius;
-    static DOUBLE pi = 3.141592653589793238462643383;
-    static DOUBLE e = 2.718281828459045235360287471352662497757247093;
     int SCHNITT = 10;
 
     x = R[start_block][start_block];
@@ -1442,6 +1440,8 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
         d[i] = 1;
     }
 
+    p = 0.25;
+
     t = t_max = end_block;
 for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
     t = t_max;
@@ -1449,11 +1449,11 @@ for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
     u_loc[t] = 1;
 
     if (end_block - start_block <= SCHNITT) {
-        radius = set_prune_const(R, start_block, end_block + 1, PRUNE_NO);
+        radius = set_prune_const(R, start_block, end_block + 1, PRUNE_NO, 1.0);
     } else {
         //Hoerners version of the Gaussian volume heuristics.
         //hoerner(R, start_block, end_block + 1, p, eta);
-        radius = set_prune_const(R, start_block, end_block + 1, PRUNE_BKZ);
+        radius = set_prune_const(R, start_block, end_block + 1, PRUNE_BKZ, p);
     }
     c_min = radius;
 
@@ -1477,7 +1477,6 @@ for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
                 alpha = 0.5;
             }
 #else
-            p = 0.25;
             k = (end_block + 1 - t);
             if (k > len / 2) {
                 alpha = p * 2 * k / len;
@@ -2444,18 +2443,25 @@ void hoerner(DOUBLE **R, int low, int up, double p, DOUBLE *eta) {
     }
 }
 
-DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type) {
+DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type, DOUBLE p) {
     DOUBLE gh, gh1;
+    DOUBLE alpha, len;
+
+    len = up - low;
+    // p = 2 / a^b
+    // a^b = 2 / p
+    // a = (2/p)^(1/b)
+    // a =
+    alpha = 1.05;
 
     gh1 = R[low][low];
     gh1 *= gh1;
     if (prune_type == PRUNE_NO) {
-        gh = R[low][low];
-        gh *= gh;
+        gh = gh1;
     } else if (prune_type == PRUNE_BKZ) {
         gh = GH(R, low, up);
         gh *= gh;
-        gh *= 1.05;
+        gh *= alpha;
     }
     fprintf(stderr, ">>>> %d %lf %lf\n", up - low, gh1, gh);
 

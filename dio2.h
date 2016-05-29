@@ -108,6 +108,6 @@ extern int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DO
 extern void shufflelattice(lattice_t *lattice);
 extern DOUBLE GH(DOUBLE **R, int low, int up);
 extern void hoerner(DOUBLE **R, int low, int up, double p, DOUBLE *eta);
-extern DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type);
+extern DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type, DOUBLE p);
 
 #endif
