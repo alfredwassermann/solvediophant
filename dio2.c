@@ -1425,7 +1425,6 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
         exit(1);
     }
 
-    //us = (long*)calloc(s+1,sizeof(long));
     c = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
     y = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
     delta = (long*)calloc(s+1,sizeof(long));
@@ -1456,7 +1455,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
         t = t_max;
         u_loc[t] = 1.0;
 
-        while (t <= end_block) {
+        while (t <= t_max) {
             handle_signals(lattice);
 
             x = (u_loc[t] + y[t]) * R[t][t];
@@ -1518,11 +1517,112 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
             } else {
                 // back
                 t++;
-                if (t_max < t) t_max = t;
             }
             // next
             if (t < t_max) delta[t] *= -1.0;
             if (delta[t] * d[t] >= 0) delta[t] += d[t];
+            u_loc[t] = v[t] + delta[t];
+        }
+    }
+
+    free (c);
+    free (y);
+    free (delta);
+    free (d);
+    free (v);
+    free (u_loc);
+
+    if (!found_improvement) {
+        c_min = R[start_block][start_block];
+        c_min *= c_min;
+    }
+    return (c_min);
+}
+
+DOUBLE sample(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block) {
+    DOUBLE x;
+    DOUBLE *y, *c;
+    DOUBLE c_min;
+
+    int i, j;
+    int t, t_max;
+    int found_improvement = 0;
+
+    long *delta, *d, *v;
+    DOUBLE *u_loc;
+    double alpha, radius;
+
+    c = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    y = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    delta = (long*)calloc(s+1,sizeof(long));
+    d = (long*)calloc(s+1,sizeof(long));
+    v = (long*)calloc(s+1,sizeof(long));
+    u_loc = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+
+    for (i = start_block; i <= end_block + 1; i++) {
+        c[i] = y[i] = 0.0;
+        u_loc[i] = 0.0;
+        v[i] = delta[i] = 0;
+        d[i] = 1;
+    }
+
+    radius = set_prune_const(R, start_block, end_block + 1, PRUNE_NO, 1.0);
+    c_min = radius;
+
+    //t = t_max = end_block;
+    for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
+        t = t_max;
+        u_loc[t] = 1.0;
+
+        while (t <= t_max) {
+            handle_signals(lattice);
+
+            x = (u_loc[t] + y[t]) * R[t][t];
+            c[t] = c[t + 1] + x * x;
+            alpha = c_min;
+
+            if (c[t] < alpha - EPSILON) {
+                if (t > start_block) {
+                    // forward
+                    t--;
+
+                    #if 0 //BLAS
+                        y[t] = cblas_ddot(t_max - t, &(u_loc[t+1]), 1, &(R[t+1][t]), lattice->num_rows);
+                    #else
+                        for (j = t + 1, y[t] = 0.0; j <= t_max; j++) {
+                            y[t] += u_loc[j] * R[j][t];
+                        }
+                    #endif
+                    y[t] /= R[t][t];
+
+                    u_loc[t] = v[t] = (long)(ROUND(-y[t]));
+                    delta[t] = 0;
+                    d[t] = (v[t] > -y[t]) ? -1 : 1;
+
+                    continue;
+                } else {
+                    c_min = c[t];
+                    for (i = start_block; i <= end_block; i++) {
+                        u[i] = (long)round(u_loc[i]);
+                        fprintf(stderr, "%ld ", u[i]);
+                    }
+                    fprintf(stderr, "\n");
+                    found_improvement = 1;
+                }
+            } else {
+                // back
+                t++;
+            }
+            if (t < t_max - 17) {
+                t++;
+            }
+
+            // next
+            if (t < t_max) delta[t] *= -1.0;
+            if (delta[t] * d[t] >= 0) delta[t] += d[t];
+            if (abs(delta[t]) > 1) {
+                t++;
+            }
             u_loc[t] = v[t] + delta[t];
         }
     }

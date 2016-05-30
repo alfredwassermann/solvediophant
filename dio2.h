@@ -90,6 +90,7 @@ extern DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOU
 
 extern DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p);
 extern DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block, int p);
+extern DOUBLE sample(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block);
 extern DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows);
 
 extern DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max);
