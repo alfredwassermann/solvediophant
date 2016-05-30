@@ -1323,7 +1323,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
         end_block = (end_block < last) ? end_block : last;
 
         //new_cj = enumerate(lattice, R, u, s, start_block, end_block, p);
-        new_cj = sample(lattice, R, u, s, start_block, end_block);
+        new_cj = sample(lattice, R, u, s, start_block, last);
 
         h = (end_block + 1 < last) ? end_block + 1 : last;
 
@@ -1567,7 +1567,7 @@ DOUBLE sample(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, i
         d[i] = 1;
     }
 
-    radius = set_prune_const(R, start_block, end_block + 1, PRUNE_NO, 1.0);
+    radius = set_prune_const(R, start_block, end_block + 1, PRUNE_BKZ, 0.25);
     c_min = radius;
 
     //t = t_max = end_block;
@@ -1614,18 +1614,16 @@ DOUBLE sample(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, i
                 // back
                 t++;
             }
-            /*
-            if (t < t_max - 17) {
+
+            if (t < t_max - 10) {
+                t++;
+            } else if (delta[t] < 0) {
                 t++;
             }
-            */
+
             // next
             if (t < t_max) delta[t] *= -1.0;
             if (delta[t] * d[t] >= 0) delta[t] += d[t];
-
-            //if (abs(delta[t]) > 1) {
-            //    t++;
-            //}
             u_loc[t] = v[t] + delta[t];
         }
     }
