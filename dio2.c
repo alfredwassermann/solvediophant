@@ -703,7 +703,8 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     mpz_t hv;
 
     DOUBLE r_new, r_act;
-    DOUBLE pot;
+    DOUBLE pot, pot_max;
+    int pot_idx;
     int insert_pos;
     coeff_t *swapvl;
 
@@ -811,9 +812,9 @@ start_tricol:
         }
 
         /* fourth step: swap columns */
+        #if 0
         if (deepinsert_blocksize > 0) {
             i = low;
-        #if 1
             #if BLAS
                 r_new = cblas_ddot(k + 1, R[k], 1, R[k], 1);
             #else
@@ -821,10 +822,6 @@ start_tricol:
                     r_new += R[k][j] * R[k][j];
                 }
             #endif
-        #else
-            pot = 1.0;
-
-        #endif
         } else {
             i = (k > low) ? k - 1 : low;
             r_new = R[k][k] * R[k][k] + R[k][i] * R[k][i];
@@ -843,6 +840,25 @@ start_tricol:
             r_new -= R[k][i]*R[k][i];
             i++;
         }
+        #else
+        pot = pot_max = 1.0;
+        pot_idx = k;
+        for (i = k - 1; i >= low; --i){
+            for (j = k, r_new = 0.0; j >= i; --j) {
+                r_new += R[k][j] * R[k][j];
+            }
+            //fprintf(stderr, "%lf %lf %lf\n", pot, r_new, (R[i][i] * R[i][i]));
+            pot *= r_new / (R[i][i] * R[i][i]);
+            if (pot < delta && pot < pot_max) {
+                pot_max = pot;
+                pot_idx = i;
+            }
+        }
+        if (pot_idx < k) {
+            fprintf(stderr, "swap %d to %d: gain=%lf\n", k, pot_idx, pot);
+        }
+        insert_pos = pot_idx;
+        #endif
 
         if (insert_pos < k) {
             swapvl = b[k];
