@@ -12,7 +12,7 @@
 #define LLLCONST_MED 0.82
 #define LLLCONST_HIGH 0.99    /* 0.99 */
 #define LLLCONST_HIGHER 0.999
-#define ETACONST 0.51
+#define ETACONST 0.501
 
 #define TWOTAUHALF 67108864.0 /* $2^{\tau/2}$*/
 
