@@ -812,7 +812,7 @@ start_tricol:
         }
 
         /* fourth step: swap columns */
-        #if 0
+        #if 1
         if (deepinsert_blocksize > 0) {
             i = low;
             #if BLAS
@@ -839,6 +839,9 @@ start_tricol:
             }
             r_new -= R[k][i]*R[k][i];
             i++;
+        }
+        if (insert_pos < k) {
+            fprintf(stderr, "swap %d to %d\n", k, insert_pos);
         }
         #else
         pot = pot_max = 1.0;
