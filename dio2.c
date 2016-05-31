@@ -840,9 +840,11 @@ start_tricol:
             r_new -= R[k][i]*R[k][i];
             i++;
         }
+        /*
         if (insert_pos < k) {
             fprintf(stderr, "swap %d to %d\n", k, insert_pos);
         }
+        */
         #else
         pot = pot_max = 1.0;
         pot_idx = k;
@@ -1346,8 +1348,8 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
         end_block = start_block + beta - 1;
         end_block = (end_block < last) ? end_block : last;
 
-        //new_cj = enumerate(lattice, R, u, s, start_block, end_block, p);
-        new_cj = sample(lattice, R, u, s, start_block, last);
+        new_cj = enumerate(lattice, R, u, s, start_block, end_block, p);
+        //new_cj = sample(lattice, R, u, s, start_block, last);
 
         h = (end_block + 1 < last) ? end_block + 1 : last;
 
@@ -1491,7 +1493,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
             } else {
                 #if 0
                     alpha = 1.05 * (end_block + 1 - t) / len;
-                #elif 1
+                #elif 0
                     k = (end_block + 1 - t);
                     if (k > 2 * len / 4) {
                         alpha = 1.0;
@@ -1499,9 +1501,11 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
                         alpha = 0.5;
                     }
                 #else
+                    p = 0.25;
                     k = (end_block + 1 - t);
                     if (k > len / 2) {
                         alpha = p * 2 * k / len;
+                        alpha = 1.0;
                     } else {
                         alpha = 2 * p - 1 + 2 * k * (1 - p) / len;
                     }
