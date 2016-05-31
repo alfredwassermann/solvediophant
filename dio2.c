@@ -702,8 +702,8 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     mpz_t musvl;
     mpz_t hv;
 
-    DOUBLE rhs;
-    DOUBLE r_act;
+    DOUBLE r_new, r_act;
+    DOUBLE pot;
     int insert_pos;
     coeff_t *swapvl;
 
@@ -813,29 +813,34 @@ start_tricol:
         /* fourth step: swap columns */
         if (deepinsert_blocksize > 0) {
             i = low;
+        #if 1
             #if BLAS
-                rhs = cblas_ddot(k + 1, R[k], 1, R[k], 1);
+                r_new = cblas_ddot(k + 1, R[k], 1, R[k], 1);
             #else
-                for (j = 0, rhs = 0.0; j <= k; ++j) {
-                    rhs += R[k][j] * R[k][j];
+                for (j = 0, r_new = 0.0; j <= k; ++j) {
+                    r_new += R[k][j] * R[k][j];
                 }
             #endif
+        #else
+            pot = 1.0;
+
+        #endif
         } else {
             i = (k > low) ? k - 1 : low;
-            rhs = R[k][k] * R[k][k] + R[k][i] * R[k][i];
+            r_new = R[k][k] * R[k][k] + R[k][i] * R[k][i];
         }
 
         insert_pos = k;
         while (i < k) {
             r_act = delta * R[i][i] * R[i][i];
             //if (delta * R[i][i]*R[i][i] > rhs) {
-            if (0.8 * r_act > rhs ||
+            if (0.8 * r_act > r_new ||
                 ((i < deepinsert_blocksize || k - i < deepinsert_blocksize) &&
-                  r_act > rhs)) {
+                  r_act > r_new)) {
                 insert_pos = i;
                 break;
             }
-            rhs -= R[k][i]*R[k][i];
+            r_new -= R[k][i]*R[k][i];
             i++;
         }
 
@@ -1322,8 +1327,8 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
         end_block = start_block + beta - 1;
         end_block = (end_block < last) ? end_block : last;
 
-        new_cj = enumerate(lattice, R, u, s, start_block, end_block, p);
-        //new_cj = sample(lattice, R, u, s, start_block, end_block);
+        //new_cj = enumerate(lattice, R, u, s, start_block, end_block, p);
+        new_cj = sample(lattice, R, u, s, start_block, last);
 
         h = (end_block + 1 < last) ? end_block + 1 : last;
 
@@ -1615,7 +1620,7 @@ DOUBLE sample(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, i
                 t++;
             }
 
-            if (t < t_max - 12) {
+            if (t < t_max - 10) {
                 t++;
             } else if (delta[t] < 0) {
                 t++;
