@@ -1493,12 +1493,12 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
             } else {
                 #if 0
                     alpha = 1.05 * (end_block + 1 - t) / len;
-                #elif 0
+                #elif 1
                     k = (end_block + 1 - t);
                     if (k > 2 * len / 4) {
                         alpha = 1.0;
                     } else {
-                        alpha = 0.5;
+                        alpha = 0.6;
                     }
                 #else
                     p = 0.25;
