@@ -1443,6 +1443,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     DOUBLE *u_loc;
     int len, k;
     double alpha, radius;
+    DOUBLE *lambda_min;
     int SCHNITT = 10;
 
     x = R[start_block][start_block];
@@ -1458,6 +1459,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     d = (long*)calloc(s+1,sizeof(long));
     v = (long*)calloc(s+1,sizeof(long));
     u_loc = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    lambda_min = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
 
     len = end_block + 1 - start_block;
     for (i = start_block; i <= end_block + 1; i++) {
@@ -1469,13 +1471,19 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
 
     p = 0.25;
     if (end_block - start_block <= SCHNITT) {
-        radius = set_prune_const(R, start_block, end_block + 1, PRUNE_NO, 1.0);
+        c_min = set_prune_const(R, start_block, end_block + 1, PRUNE_NO, 1.0);
     } else {
         //Hoerners version of the Gaussian volume heuristics.
         //hoerner(R, start_block, end_block + 1, p, eta);
-        radius = set_prune_const(R, start_block, end_block + 1, PRUNE_BKZ, p);
+        c_min = set_prune_const(R, start_block, end_block + 1, PRUNE_BKZ, p);
     }
-    c_min = radius;
+
+    i = start_block;
+    lambda_min[i] = R[i][i] * R[i][i];
+    for (i = start_block + 1; i <= end_block; ++i) {
+        x = R[i][i] * R[i][i];
+        lambda_min[i] = (x < lambda_min[i-1]) ? x : lambda_min[i-1];
+    }
 
     //t = t_max = end_block;
     for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
@@ -1500,8 +1508,10 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
                     } else {
                         alpha = 0.6;
                     }
+                #elif 0
+                    alpha = 1.0;
                 #else
-                    p = 0.25;
+                    p = 0.5;
                     k = (end_block + 1 - t);
                     if (k > len / 2) {
                         alpha = p * 2 * k / len;
@@ -1513,9 +1523,17 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
                 alpha = (alpha < 1.0) ? alpha : 1.0;
             }
             //fprintf(stderr, "%d %d %d %lf\n", start_block, t, end_block, alpha);
-            alpha *= c_min;
+            radius = alpha * c_min;
 
-            if (c[t] < alpha - EPSILON) {
+            #if 0
+            if (t - start_block + 1 > 5) {
+                x = lambda_min[t] * (t - start_block + 1) / 32;
+                //fprintf(stderr, "> %lf\n", x);
+                radius -= x;
+            }
+            #endif
+
+            if (c[t] < radius - EPSILON) {
                 if (t > start_block) {
                     // forward
                     t--;
@@ -1554,12 +1572,13 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
         }
     }
 
-    free (c);
-    free (y);
-    free (delta);
-    free (d);
-    free (v);
-    free (u_loc);
+    free(c);
+    free(y);
+    free(delta);
+    free(d);
+    free(v);
+    free(u_loc);
+    free(lambda_min);
 
     if (!found_improvement) {
         c_min = R[start_block][start_block];
