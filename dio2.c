@@ -1507,6 +1507,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
                         alpha = 1.0;
                     } else {
                         alpha = 0.6;
+                        //alpha = k / len;
                     }
                 #elif 0
                     alpha = 1.0;
