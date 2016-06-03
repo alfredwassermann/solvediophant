@@ -365,7 +365,8 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             //shufflelattice(lattice);
             lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
                             lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p);
-            printf("%0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
+            fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
+            fflush(stderr);
             i++;
         }
         while (i < 1 && fabs(lDnew - lD) > 0.01);
@@ -1348,7 +1349,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
         end_block = start_block + beta - 1;
         end_block = (end_block < last) ? end_block : last;
 
-        new_cj = enumerate(lattice, R, u, s, start_block, end_block, p);
+        new_cj = enumerate(lattice, R, u, s, start_block, end_block, delta, p);
         //new_cj = sample(lattice, R, u, s, start_block, last);
 
         h = (end_block + 1 < last) ? end_block + 1 : last;
@@ -1430,7 +1431,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
 /**
  * Pruned Gauss-Enumeration.
  */
-DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block, int p) {
+DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block, DOUBLE improve_by, int p) {
     DOUBLE x;
     DOUBLE *y, *c;
     DOUBLE c_min;
@@ -1477,6 +1478,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
         //hoerner(R, start_block, end_block + 1, p, eta);
         c_min = set_prune_const(R, start_block, end_block + 1, PRUNE_BKZ, p);
     }
+    c_min *= improve_by;
 
     i = start_block;
     lambda_min[i] = R[i][i] * R[i][i];
@@ -1554,6 +1556,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
 
                     continue;
                 } else {
+                    // Found shorter vector
                     c_min = c[t];
                     for (i = start_block; i <= end_block; i++) {
                         u[i] = (long)round(u_loc[i]);
