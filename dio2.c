@@ -2600,10 +2600,6 @@ DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type, DOUBLE p) {
     DOUBLE alpha, len;
 
     len = up - low;
-    // p = 2 / a^b
-    // a^b = 2 / p
-    // a = (2/p)^(1/b)
-    // a =
     alpha = 1.05;
 
     gh1 = R[low][low];
@@ -2615,7 +2611,15 @@ DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type, DOUBLE p) {
         gh *= gh;
         gh *= alpha;
     }
+    /*
+    double x = R[low][low];
+    x *= x;
+    x /= R[low + 1][low + 1];
+    x /= R[low + 1][low + 1];
+    fprintf(stderr, ">>>> %d %lf %lf frac=%lf\n", up - low, gh1, gh, x);
+    */
     fprintf(stderr, ">>>> %d %lf %lf\n", up - low, gh1, gh);
+    fflush(stderr);
 
     return (gh <= gh1) ? gh : gh1;
 }
