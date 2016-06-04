@@ -862,9 +862,10 @@ start_tricol:
                 pot_idx = i;
             }
         }
-        if (pot_idx < k) {
-            fprintf(stderr, "swap %d to %d: gain=%lf\n", k, pot_idx, pot_max);
-        }
+
+        //if (pot_idx < k) {
+        //    fprintf(stderr, "swap %d to %d: gain=%lf\n", k, pot_idx, pot_max);
+        //}
         insert_pos = pot_idx;
         #endif
 
