@@ -1189,7 +1189,7 @@ double orthogonality_defect(lattice_t *lattice, DOUBLE **R, int s, int z) {
         defect += log(scalarproductlfp(lattice->basis[i], lattice->basis[i])) - log(R[i][i]);
 #endif
 
-    defect /= 2.0;
+    defect *= 0.5;
     return defect;
 }
 
