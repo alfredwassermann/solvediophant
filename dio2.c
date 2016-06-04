@@ -858,7 +858,7 @@ start_tricol:
             pot += log(r_new) - log(R[i][i] * R[i][i]);
 
             if (pot < log(delta)/* && pot < pot_max*/) {
-                pot_max = pot;
+                //pot_max = pot;
                 pot_idx = i;
             }
         }
