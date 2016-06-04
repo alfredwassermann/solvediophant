@@ -813,7 +813,8 @@ start_tricol:
         }
 
         /* fourth step: swap columns */
-        #if 1
+        #if 0
+        // Standard LLL or deepinsert
         if (deepinsert_blocksize > 0) {
             i = low;
             #if BLAS
@@ -847,21 +848,22 @@ start_tricol:
         }
         */
         #else
-        pot = pot_max = 1.0;
+        // Pot-LLL
+        pot = pot_max = 0.0;
         pot_idx = k;
         for (i = k - 1; i >= low; --i){
             for (j = k, r_new = 0.0; j >= i; --j) {
                 r_new += R[k][j] * R[k][j];
             }
-            //fprintf(stderr, "%lf %lf %lf\n", pot, r_new, (R[i][i] * R[i][i]));
-            pot *= r_new / (R[i][i] * R[i][i]);
-            if (pot < delta && pot < pot_max) {
+            pot += log(r_new) - log(R[i][i] * R[i][i]);
+
+            if (pot < log(delta)/* && pot < pot_max*/) {
                 pot_max = pot;
                 pot_idx = i;
             }
         }
         if (pot_idx < k) {
-            fprintf(stderr, "swap %d to %d: gain=%lf\n", k, pot_idx, pot);
+            fprintf(stderr, "swap %d to %d: gain=%lf\n", k, pot_idx, pot_max);
         }
         insert_pos = pot_idx;
         #endif
