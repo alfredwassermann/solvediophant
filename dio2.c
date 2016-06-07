@@ -513,7 +513,6 @@ void load_lattice(lattice_t *lattice, char *fname) {
     return;
 }
 
-
 long gcd(long n1, long n2) {
     long a, b, c;
 
@@ -858,14 +857,14 @@ start_tricol:
             pot += log(r_new) - log(R[i][i] * R[i][i]);
 
             if (pot < log(delta)/* && pot < pot_max*/) {
-                //pot_max = pot;
+                pot_max = pot;
                 pot_idx = i;
             }
         }
 
-        //if (pot_idx < k) {
-        //    fprintf(stderr, "swap %d to %d: gain=%lf\n", k, pot_idx, pot_max);
-        //}
+        // if (pot_idx < k) {
+        //     fprintf(stderr, "swap %d to %d: gain=%lf\n", k, pot_idx, pot_max);
+        // }
         insert_pos = pot_idx;
         #endif
 
@@ -912,7 +911,7 @@ int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k,
         for (i = 0; i < k; ++i) {
             w = cblas_ddot(z - i, &(R[k][i]), 1, &(H[i][i]), 1);
             w_beta = w * beta[i];
-            cblas_daxpy(z, -w_beta, &(H[i][0]), 1, &(R[k][0]), 1);
+            cblas_daxpy(z - i, -w_beta, &(H[i][i]), 1, &(R[k][i]), 1);
         }
         // |R[k]|
         j = cblas_idamax(z - k, &(R[k][k]), 1);
@@ -941,7 +940,7 @@ int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k,
                 w += R[k][j] * H[i][j];
             }
             w_beta = w * beta[i];
-            for (j = 0; j < z; ++j) {
+            for (j = i; j < z; ++j) {
                 R[k][j] -= w_beta * H[i][j];
             }
         }
