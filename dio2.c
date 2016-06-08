@@ -1368,7 +1368,9 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
         r_tt = R[start_block][start_block];
         r_tt *= r_tt;
         if (delta * r_tt > new_cj) {
-            fprintf(stderr, "enumerate successful %d %lf improvement: %lf\n", start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
+            fprintf(stderr, "enumerate successful %d %lf improvement: %lf\n",
+                start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
+            fflush(stderr);
 
             /* successful enumeration */
             /* build new basis */
@@ -1419,6 +1421,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             zaehler = -1;
         } else {
             fprintf(stderr, "enumerate: no improvement %d\n", zaehler);
+            fflush(stderr);
             if (h > 0) {
                 //lllfp(lattice, R, c, N, H, h-2, h+1, z, delta);
                 /* For some unkown reason we have to use $h-2$ as |start|. */
@@ -1431,7 +1434,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
     lD = log_potential(R, s-1, z);
 
     fprintf(stderr, "bkz: log(D)= %f\n", lD);
-    fflush(stdout);
+    fflush(stderr);
     lllfree(R, h_beta, N, H, s);
     free(u);
     mpz_clear(hv);
