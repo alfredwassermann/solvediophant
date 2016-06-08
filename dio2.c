@@ -1141,26 +1141,31 @@ int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z) 
 
     if ((z < 1) || (s < 1)) return 0;
 
-    (*c) = (DOUBLE*)calloc(s,sizeof(DOUBLE));
-    (*N) = (DOUBLE*)calloc(s,sizeof(DOUBLE));
-    (*mu) = (DOUBLE**)calloc(s,sizeof(DOUBLE*));
-    for (i = 0; i < s; i++)
-        (*mu)[i] = (DOUBLE*)calloc(z, sizeof(DOUBLE));
+    (*c) = (DOUBLE*)calloc(s, sizeof(DOUBLE));
+    (*N) = (DOUBLE*)calloc(s, sizeof(DOUBLE));
+
+    // Use contiguous memory for BLAS
+    (*mu) = (DOUBLE**)calloc(s, sizeof(DOUBLE*));
+    (*mu)[0] = (DOUBLE*)malloc(s * z * sizeof(DOUBLE));
+    for (i = 1; i < s; i++) {
+        (*mu)[i] = (DOUBLE*)((*mu)[0] + i * z); //
+    }
 
     m = (z > s) ? z : s;
     (*bs) = (DOUBLE**)calloc(m,sizeof(DOUBLE*));
-
-    for (i = 0; i < m; i++) (*bs)[i] = (DOUBLE*)calloc(z, sizeof(DOUBLE));
+    (*bs)[0] = (DOUBLE*)calloc(z * m, sizeof(DOUBLE));
+    for (i = 1; i < m; i++) {
+        (*bs)[i] = (DOUBLE*)((*bs)[0] + i * z);
+    }
 
     return 1;
 }
 
 int lllfree(DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs, int s) {
-    int i;
-
-    for (i = 0; i < s; ++i) free(bs[i]);
+    free(bs[0]);
     free(bs);
-    for (i = 0; i < s; ++i) free(mu[i]);
+
+    free(mu[0]);
     free(mu);
     free(N);
     free(c);
