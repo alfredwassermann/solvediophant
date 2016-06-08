@@ -705,7 +705,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     DOUBLE r_new, r_act;
     DOUBLE pot, pot_max;
     int pot_idx;
-    int insert_pos;
+    int insert_pos, lowest_pos;
     coeff_t *swapvl;
 
 #if VERBOSE > 0
@@ -726,9 +726,13 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     }
 
     k = (start >= low) ? start : low;
+    lowest_pos = k;
 
     /* The main loop */
     while (k < up) {
+        if (k < lowest_pos) {
+            lowest_pos = k;
+        }
 #if VERBOSE > 0
         if ((counter % 10000) == 0) {
             fprintf(stderr, "LLL_H: %d k:%d\n", counter, k);
@@ -737,7 +741,6 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         counter++;
 #endif
         handle_signals(lattice);
-//fprintf(stderr, "\nk %d\n", k);
 
         #if 0
         // Look ahead
@@ -883,7 +886,8 @@ start_tricol:
     }
     mpz_clear(hv);
     mpz_clear(musvl);
-    return(1);
+
+    return lowest_pos;
 
 }
 
