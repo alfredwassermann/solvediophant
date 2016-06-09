@@ -42,6 +42,7 @@ typedef struct {
 
     lll_params_t LLL_params;
 } lattice_t;
+#define ADDITIONAL_COLS 20
 
 /* Global variable used in stop_program */
 int SILENT;

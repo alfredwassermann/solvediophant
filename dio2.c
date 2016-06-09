@@ -106,8 +106,8 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     /**
      * allocate memory
      */
-    lattice->basis = (coeff_t**)calloc(lattice->num_cols, sizeof(coeff_t*));
-    for (j = 0; j < lattice->num_cols; j++) {
+    lattice->basis = (coeff_t**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(coeff_t*));
+    for (j = 0; j < lattice->num_cols + ADDITIONAL_COLS; j++) {
         lattice->basis[j] = (coeff_t*)calloc(lattice->num_rows + 1, sizeof(coeff_t));
         for (i = 0; i <= lattice->num_rows; i++)
             mpz_init(lattice->basis[j][i].c);
@@ -1352,6 +1352,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
     lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, 10); // delta
 
     start_block = zaehler = -1;
+    //start_block = 0;
     while (zaehler < last) {
         start_block++;
         if (start_block == last)
@@ -1418,15 +1419,17 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             coeffinit(lattice->swap, z);
 
             lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, 10);
+            //start_block = lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, 10);
+            //fprintf(stderr, "%d\n", start_block);
+
             zaehler = -1;
         } else {
             fprintf(stderr, "enumerate: no improvement %d\n", zaehler);
             fflush(stderr);
             if (h > 0) {
-                //lllfp(lattice, R, c, N, H, h-2, h+1, z, delta);
-                /* For some unkown reason we have to use $h-2$ as |start|. */
                 lllHfp(lattice, R, h_beta, H, h - 1, h - 1, h + 1, z, 0.0, -1);
             }
+            //start_block++;
             zaehler++;
         }
     } /* end of |while| */
