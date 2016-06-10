@@ -112,6 +112,13 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         for (i = 0; i <= lattice->num_rows; i++)
             mpz_init(lattice->basis[j][i].c);
     }
+    // lattice->basis_s = (coeff_t**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(coeff_t*));
+    // for (j = 0; j < lattice->num_cols + ADDITIONAL_COLS; j++) {
+    //     lattice->basis_s[j] = (coeff_t*)calloc(lattice->num_rows + 1, sizeof(coeff_t));
+    //     for (i = 0; i <= lattice->num_rows; i++)
+    //         mpz_init(lattice->basis_s[j][i].c);
+    // }
+
     lattice->swap = (coeff_t*)calloc(lattice->num_rows + 1, sizeof(coeff_t));
     for (i = 0; i <= lattice->num_rows; i++)
         mpz_init(lattice->swap[i].c);
@@ -201,7 +208,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 
 #if 0
     printf("Before scaling\n");
-    print_lattice();
+    print_lattice(lattice);
 #endif
     /**
      * scale lattice
@@ -248,7 +255,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 
 #if 0
     printf("After permute\n");
-    print_lattice();
+    print_lattice(lattice);
 #endif
     //shufflelattice(lattice);
     /**
@@ -451,7 +458,7 @@ void print_lattice(lattice_t *lattice) {
     int i, j;
     for (i = 0; i < lattice->num_cols; i++) {
         for (j = 0; j < lattice->num_rows; j++) {
-            mpz_out_str(NULL,10, get_entry(lattice->basis, i, j));
+            mpz_out_str(NULL, 10, get_entry(lattice->basis, i, j));
             printf(" ");
         }
         printf("\n");
@@ -685,6 +692,21 @@ int solutiontest(lattice_t *lattice, int position) {
     return 1;
 }
 
+int log2mpz(mpz_t number) {
+    int i = 1;
+    mpz_t test;
+    mpz_t n;
+    mpz_init_set_ui(test, 2);
+    mpz_init(n);
+    mpz_abs(n, number);
+
+    while (mpz_cmp(test, n) < 0) {
+        i++;
+        mpz_mul_ui(test, test, 2);
+    }
+    return i;
+}
+
 /**
  *  Lattice basis reduction algorithms
  */
@@ -693,11 +715,12 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             DOUBLE delta, int deepinsert_blocksize) {
 
     coeff_t **b = lattice->basis;
-    int i, j, k;
+    int i, j, k, k_max;
     DOUBLE mu;
     DOUBLE norm;
     int mu_all_zero;
 
+    int log2_max = 0, log2_b;
     DOUBLE mus;
     mpz_t musvl;
     mpz_t hv;
@@ -711,6 +734,22 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 #if VERBOSE > 0
     int counter = 0;
 #endif
+    for (i = 0; i < lattice->num_cols; i++) {
+        for (j = 0; j < lattice->num_rows; j++) {
+            log2_b = log2mpz(get_entry(lattice->basis, i, j));
+            //mpz_out_str(stderr, 10, b[i][j+1].c);
+            //fprintf(stderr, ", ");
+
+            if (log2_max < log2_b) {
+                log2_max = log2_b;
+            }
+        }
+
+    }
+    fprintf(stderr, "%d\n", log2_max);
+    //print_lattice(lattice);
+    exit(1);
+    //67176262052426717626205242
 
     fprintf(stderr, "Start LLLHfp with deepinsert %d\n",  deepinsert_blocksize);
 
@@ -726,6 +765,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     }
 
     k = (start >= low) ? start : low;
+    k_max = k;
     lowest_pos = k;
 
     /* The main loop */
@@ -756,28 +796,35 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
         #endif
 
+
 start_tricol:
         /* Recompute column k of R */
         i = householder_column(b, R, H, beta, k, k + 1, z);
 
-        /* third step: size reduction of $b_k$ */
+        /* size reduction of $b_k$ */
         mu_all_zero = 1;
         for (j = k - 1; j >= low; j--) {
             mu = R[k][j] / R[j][j];
             if (fabs(mu) > ETACONST) {
                 mus = ROUND(mu);
                 mpz_set_d(musvl, mus);
+                //fprintf(stderr, "mu k=%d j=%d %lf %lf\n", k, j, mus, mu);
                 mu_all_zero = 0;
 
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
                 size_reduction(b, R, musvl, mus, k, j);
                 solutiontest(lattice, k);
+            } else {
+                //fprintf(stderr, "MU k=%d j=%d %lf\n", k, j, mu);
             }
         }
         if (!mu_all_zero) {
-            //fprintf(stderr, "REDO tricol\n");
+            //print_lattice(lattice);
             goto start_tricol;
+        } else {
+            fprintf(stderr, "GOOD %d\n", k);
         }
+
         if (0) {
             check_precision(b[k], R[k], z, k);
         }

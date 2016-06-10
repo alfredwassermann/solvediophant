@@ -33,6 +33,7 @@ typedef struct {
     int num_rows;
     int num_cols;
     coeff_t **basis;
+    //coeff_t **basis_s;
     coeff_t *swap;
 
     mpz_t matrix_factor;
