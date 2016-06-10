@@ -21,7 +21,7 @@ $$x= (1,0,0,1,0,1,0,1,1,0,0,1,0)^\top.$$
 @ Initial definitions.
 The LLL and BKZ algorithms can be controlled by the following
 declarations.
-@d BLAS 0
+@d BLAS 1
 @d USE_SSE 0
 @d DEEPINSERT 1
 @d DEEPINSERT_CONST 100
