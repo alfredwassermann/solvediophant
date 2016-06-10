@@ -29,7 +29,7 @@ declarations.
 
 @d GIVENS 1
 @d LASTLINESFACTOR "1000000" /* "100000000" */
-@d EPSILON 0.000001      /* 0.0001  */
+@d EPSILON 0.00001      /* 0.0001  */
 @d LLLCONST_LOW  0.75 /* 0.75*/
 @d LLLCONST_HIGH 0.90    /* 0.99 */
 @d LLLCONST_HIGHER 0.999
