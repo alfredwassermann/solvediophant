@@ -21,7 +21,7 @@ $$x= (1,0,0,1,0,1,0,1,1,0,0,1,0)^\top.$$
 @ Initial definitions.
 The LLL and BKZ algorithms can be controlled by the following
 declarations.
-@d BLAS 1
+@d BLAS 0
 @d USE_SSE 0
 @d DEEPINSERT 1
 @d DEEPINSERT_CONST 100
@@ -2919,7 +2919,14 @@ DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max) {
 }
 
 void compute_w2(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
-    cblas_daxpy(rows,alpha,bd[level],1,w[level],1);
+    #if BLAS
+        cblas_daxpy(rows, alpha, bd[level], 1, w[level],1);
+    #else
+        int i;
+        for (i = 0; i < rows; ++i) {
+            w[level][i] += alpha * bd[level][i];
+        }
+    #endif
     return;
 }
 
