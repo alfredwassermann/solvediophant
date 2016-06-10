@@ -2324,7 +2324,7 @@ int exacttest(DOUBLE *v, int rows, DOUBLE Fq) {
     register int i;
     i = rows - 1;
     do {
-        if (fabs(v[i]) > Fq*(1.0 + EPSILON)) {
+        if (fabs(v[i]) > Fq + EPSILON) {
             return 0;
         }
         i--;
@@ -2457,8 +2457,7 @@ int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *u
                 mpz_divexact_ui(soltest_u, soltest_u, denom);
                 mpz_abs(soltest_u, soltest_u);
                 if (!iszeroone && (mpz_cmp_si(soltest_u, 0) < 0 || mpz_cmp(soltest_u, upperbounds[i]) > 0) ) {
-                    /* upperbounds not defined for $0/1$ problems */
-                    fprintf(stderr," rounding error -> this is not a solutions!\n");
+                    fprintf(stderr," rounding error -> this is not a solution!\n");
                     return 0;
                 }
                 i++;
