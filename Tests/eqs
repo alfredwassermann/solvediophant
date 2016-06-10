@@ -1,0 +1,8 @@
+% Problem file by Michael Kiermaier
+% rounding error in solution?
+3 5 1
+380928 6720 140 3 -31 31
+0 130816 8760 511 -31 31
+0 0 12848 2409 -1 1
+BOUNDS 5
+2159 6477 2159 85 27943595
