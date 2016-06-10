@@ -17,8 +17,8 @@
 #endif
 
 #if BLAS
-    #include "OpenBLAS/common.h"
-    #include "OpenBLAS/cblas.h"
+    #include "OpenBLASsub/common.h"
+    #include "OpenBLASsub/cblas.h"
 #endif
 
 /**
