@@ -734,22 +734,19 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 #if VERBOSE > 0
     int counter = 0;
 #endif
-    for (i = 0; i < lattice->num_cols; i++) {
-        for (j = 0; j < lattice->num_rows; j++) {
-            log2_b = log2mpz(get_entry(lattice->basis, i, j));
-            //mpz_out_str(stderr, 10, b[i][j+1].c);
-            //fprintf(stderr, ", ");
-
-            if (log2_max < log2_b) {
-                log2_max = log2_b;
-            }
-        }
-
-    }
-    fprintf(stderr, "%d\n", log2_max);
-    //print_lattice(lattice);
-    exit(1);
-    //67176262052426717626205242
+    // for (i = 0; i < lattice->num_cols; i++) {
+    //     for (j = 0; j < lattice->num_rows; j++) {
+    //         log2_b = log2mpz(get_entry(lattice->basis, i, j));
+    //         //mpz_out_str(stderr, 10, b[i][j+1].c);
+    //         //fprintf(stderr, ", ");
+    //
+    //         if (log2_max < log2_b) {
+    //             log2_max = log2_b;
+    //         }
+    //     }
+    //
+    // }
+    // fprintf(stderr, "%d\n", log2_max);
 
     fprintf(stderr, "Start LLLHfp with deepinsert %d\n",  deepinsert_blocksize);
 
