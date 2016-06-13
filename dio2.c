@@ -715,12 +715,13 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             DOUBLE delta, int deepinsert_blocksize) {
 
     coeff_t **b = lattice->basis;
-    int i, j, k, k_max;
-    DOUBLE mu;
+    int i, j, k;
     DOUBLE norm;
     int mu_all_zero;
 
     int log2_max = 0, log2_b;
+    DOUBLE theta;
+
     DOUBLE mus;
     mpz_t musvl;
     mpz_t hv;
@@ -734,21 +735,24 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 #if VERBOSE > 0
     int counter = 0;
 #endif
-    // for (i = 0; i < lattice->num_cols; i++) {
-    //     for (j = 0; j < lattice->num_rows; j++) {
-    //         log2_b = log2mpz(get_entry(lattice->basis, i, j));
-    //         //mpz_out_str(stderr, 10, b[i][j+1].c);
-    //         //fprintf(stderr, ", ");
-    //
-    //         if (log2_max < log2_b) {
-    //             log2_max = log2_b;
-    //         }
-    //     }
-    //
-    // }
-    // fprintf(stderr, "%d\n", log2_max);
 
-    fprintf(stderr, "Start LLLHfp with deepinsert %d\n",  deepinsert_blocksize);
+    for (i = 0; i < lattice->num_cols; i++) {
+        for (j = 0; j < lattice->num_rows; j++) {
+            log2_b = log2mpz(get_entry(lattice->basis, i, j));
+            //mpz_out_str(stderr, 10, b[i][j+1].c);
+            //fprintf(stderr, ", ");
+
+            if (log2_max < log2_b) {
+                log2_max = log2_b;
+            }
+        }
+    }
+    if (log2_max > 30) {
+        theta = 0.01;
+    } else {
+        theta = 0.0;
+    }
+    fprintf(stderr, "Start LLLHfp with deepinsert %d; max bits: %d\n",  deepinsert_blocksize, log2_max);
 
     mpz_init(musvl);
     mpz_init(hv);
@@ -762,7 +766,6 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     }
 
     k = (start >= low) ? start : low;
-    k_max = k;
     lowest_pos = k;
 
     /* The main loop */
@@ -801,9 +804,9 @@ start_tricol:
         /* size reduction of $b_k$ */
         mu_all_zero = 1;
         for (j = k - 1; j >= low; j--) {
-            mu = R[k][j] / R[j][j];
-            if (fabs(mu) > ETACONST) {
-                mus = ROUND(mu);
+            //if (fabs(mu) > ETACONST) {
+            if (fabs(R[k][j]) > ETACONST * fabs(R[j][j]) + theta * fabs(R[k][k])) {
+                mus = ROUND(R[k][j] / R[j][j]);
                 mpz_set_d(musvl, mus);
                 //fprintf(stderr, "mu k=%d j=%d %lf %lf\n", k, j, mus, mu);
                 mu_all_zero = 0;
@@ -812,14 +815,12 @@ start_tricol:
                 size_reduction(b, R, musvl, mus, k, j);
                 solutiontest(lattice, k);
             } else {
-                //fprintf(stderr, "MU k=%d j=%d %lf\n", k, j, mu);
             }
         }
         if (!mu_all_zero) {
-            //print_lattice(lattice);
             goto start_tricol;
-        } else {
-            fprintf(stderr, "GOOD %d\n", k);
+        // } else {
+        //     fprintf(stderr, "GOOD %d\n", k);
         }
 
         if (0) {
@@ -2660,9 +2661,8 @@ void hoerner(DOUBLE **R, int low, int up, double p, DOUBLE *eta) {
 
 DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type, DOUBLE p) {
     DOUBLE gh, gh1;
-    DOUBLE alpha, len;
+    DOUBLE alpha;
 
-    len = up - low;
     alpha = 1.05;
 
     gh1 = R[low][low];
