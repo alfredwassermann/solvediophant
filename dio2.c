@@ -692,6 +692,9 @@ int solutiontest(lattice_t *lattice, int position) {
     return 1;
 }
 
+/*
+  Determine max bit size of lattice entries
+ */
 int log2mpz(mpz_t number) {
     int i = 1;
     mpz_t test;
@@ -739,9 +742,6 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     for (i = 0; i < lattice->num_cols; i++) {
         for (j = 0; j < lattice->num_rows; j++) {
             log2_b = log2mpz(get_entry(lattice->basis, i, j));
-            //mpz_out_str(stderr, 10, b[i][j+1].c);
-            //fprintf(stderr, ", ");
-
             if (log2_max < log2_b) {
                 log2_max = log2_b;
             }
@@ -804,11 +804,9 @@ start_tricol:
         /* size reduction of $b_k$ */
         mu_all_zero = 1;
         for (j = k - 1; j >= low; j--) {
-            //if (fabs(mu) > ETACONST) {
             if (fabs(R[k][j]) > ETACONST * fabs(R[j][j]) + theta * fabs(R[k][k])) {
                 mus = ROUND(R[k][j] / R[j][j]);
                 mpz_set_d(musvl, mus);
-                //fprintf(stderr, "mu k=%d j=%d %lf %lf\n", k, j, mus, mu);
                 mu_all_zero = 0;
 
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
@@ -819,8 +817,6 @@ start_tricol:
         }
         if (!mu_all_zero) {
             goto start_tricol;
-        // } else {
-        //     fprintf(stderr, "GOOD %d\n", k);
         }
 
         if (0) {
