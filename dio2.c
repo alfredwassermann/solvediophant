@@ -272,7 +272,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             block_reduce(lattice, lattice->num_cols, lattice->num_rows, 400, LLLCONST_HIGHER, DEEPINSERT_CONST);
         #endif
 
-        lll(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_LOW, 5);
+        lll(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_LOW, -1);
 
         #if 0
             printf("After first reduction\n");
