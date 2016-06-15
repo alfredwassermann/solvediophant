@@ -713,7 +713,7 @@ int log2mpz(mpz_t number) {
 /**
  *  Lattice basis reduction algorithms
  */
-int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
+int LLLHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             int start, int low, int up, int z,
             DOUBLE delta, int deepinsert_blocksize) {
 
@@ -892,24 +892,34 @@ start_tricol:
         */
         #else
         // Pot-LLL
-        pot = pot_max = 0.0;
-        pot_idx = k;
-        for (i = k - 1; i >= low; --i){
-            for (j = k, r_new = 0.0; j >= i; --j) {
-                r_new += R[k][j] * R[k][j];
-            }
-            pot += log(r_new) - log(R[i][i] * R[i][i]);
+        if (deepinsert_blocksize > 0) {
+            pot = pot_max = 0.0;
+            pot_idx = k;
+            for (i = k - 1; i >= low; --i) {
+                for (j = k, r_new = 0.0; j >= i; --j) {
+                    r_new += R[k][j] * R[k][j];
+                }
+                pot += log(r_new) - log(R[i][i] * R[i][i]);
 
-            if (pot < log(delta)/* && pot < pot_max*/) {
-                pot_max = pot;
-                pot_idx = i;
+                if (pot < log(delta)/* && pot < pot_max*/) {
+                    pot_max = pot;
+                    pot_idx = i;
+                }
+            }
+
+            // if (pot_idx < k) {
+            //     fprintf(stderr, "swap %d to %d: gain=%lf\n", k, pot_idx, pot_max);
+            // }
+            insert_pos = pot_idx;
+        } else {
+            insert_pos = k;
+            i = (k > low) ? k - 1 : low;
+            r_new = R[k][k] * R[k][k] + R[k][i] * R[k][i];
+            r_act = delta * R[i][i] * R[i][i];
+            if (r_act > r_new) {
+                insert_pos = i;
             }
         }
-
-        // if (pot_idx < k) {
-        //     fprintf(stderr, "swap %d to %d: gain=%lf\n", k, pot_idx, pot_max);
-        // }
-        insert_pos = pot_idx;
         #endif
 
         if (insert_pos < k) {
