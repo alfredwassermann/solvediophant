@@ -1107,6 +1107,7 @@ void check_precision(coeff_t *b, DOUBLE *R, int z, int k) {
         fprintf(stderr, " %lf\n", r_norm);
         fflush(stderr);
     }
+    mpz_clear(b_norm);
 }
 
 void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, int j) {
@@ -2090,7 +2091,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
                 }
             } else {
                 /* at $|level|=0$ */
-                if (exacttest(w[0],rows,Fq) == 1) {
+                if (exacttest(w[0], rows, Fq, us, lattice) == 1) {
                     print_solution(lattice, w[level], rows, Fq, us, columns);
                     if (lattice->LLL_params.stop_after_solutions > 0 &&
                         lattice->LLL_params.stop_after_solutions <= nosolutions)
@@ -2365,8 +2366,10 @@ void inverse(DOUBLE **mu, DOUBLE **muinv, int columns) {
 }
 
 /* There are several pruning methods.*/
-int exacttest(DOUBLE *v, int rows, DOUBLE Fq) {
+int exacttest(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
     register int i;
+    register int k;
+    
     i = rows - 1;
     do {
         if (fabs(v[i]) > Fq + 0.5 + EPSILON) {
@@ -2374,6 +2377,36 @@ int exacttest(DOUBLE *v, int rows, DOUBLE Fq) {
         }
         i--;
     } while (i>=0);
+    
+    for (i = 0; i < rows; i++) {
+        if (!iszeroone) {
+            if (mpz_cmp_si(upperbounds[i], 0) != 0) {
+                mpz_divexact(soltest_upfac, upperbounds_max, upperbounds[i]);
+            } else {
+                mpz_set(soltest_upfac, upperbounds_max);
+            }
+        }
+        
+        mpz_set_si(soltest_u,0);
+        for (k = 0; k < lattice->num_cols; k++) {
+            if (ROUND(us[k]) > 0) {
+                mpz_addmul_ui(soltest_u, get_entry(lattice->basis, k, i), ROUND(us[k]));
+            } else {
+                mpz_submul_ui(soltest_u, get_entry(lattice->basis, k, i), -ROUND(us[k]));
+            }
+        }
+        
+        mpz_sub(soltest_u, soltest_u, soltest_s);
+        mpz_divexact(soltest_u, soltest_u, max_norm_initial);
+        mpz_divexact(soltest_u, soltest_u, soltest_upfac);
+        mpz_divexact_ui(soltest_u, soltest_u, denom);
+        mpz_abs(soltest_u, soltest_u);
+        if (!iszeroone && (mpz_cmp_si(soltest_u, 0) < 0 || mpz_cmp(soltest_u, upperbounds[i]) > 0) ) {
+            fprintf(stderr," rounding error -> this is not a solution!\n");
+            return 0;
+        }
+    }
+    
     return 1;
 }
 
@@ -2501,10 +2534,7 @@ int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *u
                 mpz_divexact(soltest_u, soltest_u, soltest_upfac);
                 mpz_divexact_ui(soltest_u, soltest_u, denom);
                 mpz_abs(soltest_u, soltest_u);
-                if (!iszeroone && (mpz_cmp_si(soltest_u, 0) < 0 || mpz_cmp(soltest_u, upperbounds[i]) > 0) ) {
-                    fprintf(stderr," rounding error -> this is not a solution!\n");
-                    return 0;
-                }
+
                 i++;
             }
             mpz_out_str(NULL, 10, soltest_u);
