@@ -2370,6 +2370,7 @@ int exacttest(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
     register int i;
     register int k;
     
+    /*
     i = rows - 1;
     do {
         if (fabs(v[i]) > Fq + 0.5 + EPSILON) {
@@ -2377,6 +2378,7 @@ int exacttest(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
         }
         i--;
     } while (i>=0);
+    */
     
     for (i = 0; i < rows; i++) {
         if (!iszeroone) {
