@@ -2370,7 +2370,6 @@ int exacttest(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
     register int i;
     register int k;
     
-    /*
     i = rows - 1;
     do {
         if (fabs(v[i]) > Fq + 0.5 + EPSILON) {
@@ -2378,7 +2377,6 @@ int exacttest(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
         }
         i--;
     } while (i>=0);
-    */
     
     for (i = 0; i < rows; i++) {
         if (!iszeroone) {
@@ -2404,7 +2402,7 @@ int exacttest(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
         mpz_divexact_ui(soltest_u, soltest_u, denom);
         mpz_abs(soltest_u, soltest_u);
         if (!iszeroone && (mpz_cmp_si(soltest_u, 0) < 0 || mpz_cmp(soltest_u, upperbounds[i]) > 0) ) {
-            fprintf(stderr," rounding error -> this is not a solution!\n");
+            //fprintf(stderr," rounding error -> this is not a solution!\n");
             return 0;
         }
     }
