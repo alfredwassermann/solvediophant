@@ -2377,7 +2377,7 @@ int exacttest(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
         }
         i--;
     } while (i>=0);
-    
+ 
     for (i = 0; i < rows; i++) {
         if (!iszeroone) {
             if (mpz_cmp_si(upperbounds[i], 0) != 0) {
