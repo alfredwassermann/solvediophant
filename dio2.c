@@ -291,21 +291,24 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             printf("After cutting\n");
             print_lattice();
         #endif
+
+        #if 1
+            shufflelattice(lattice);
+            /**
+             * second reduction
+             */
+            mpz_set_ui(lastlines_factor, 1);
+            lll(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_MED, 10);
+            lll(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGH, 10);
+            fprintf(stderr, "Second reduction successful\n"); fflush(stderr);
+        #endif
+
+
     } else {
         load_lattice(lattice, restart_filename);
         //print_lattice(lattice);
     }
 
-#if 0
-    shufflelattice(lattice);
-    /**
-     * second reduction
-     */
-    mpz_set_ui(lastlines_factor, 1);
-    lll(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_MED, 10);
-    lll(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGH, 10);
-    fprintf(stderr, "Second reduction successful\n"); fflush(stderr);
-#endif
 
 #if 0
     printf("After second reduction\n");
@@ -335,37 +338,11 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
      */
     fprintf(stderr, "\n"); fflush(stderr);
 
-    /*
-    block_reduce(lattice, lattice->num_cols, lattice->num_rows, 64, LLLCONST_HIGHER, DEEPINSERT_CONST);
-    block_reduce(lattice, lattice->num_cols, lattice->num_rows, 96, LLLCONST_HIGHER, DEEPINSERT_CONST);
-    block_reduce(lattice, lattice->num_cols, lattice->num_rows, 144, LLLCONST_HIGHER, DEEPINSERT_CONST);
-    block_reduce(lattice, lattice->num_cols, lattice->num_rows, 180, LLLCONST_HIGHER, DEEPINSERT_CONST);
-    */
     if (lattice->LLL_params.iterate) {
         iteratedlll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.iterate_no, LLLCONST_HIGH, DEEPINSERT_CONST);
     } else {
         //shufflelattice(lattice);
 
-        /*
-        fprintf(stderr, "BKZ 4\n");
-        lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
-                        4, lattice->LLL_params.bkz.p);
-        fprintf(stderr, "BKZ 8\n");
-        lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
-                        8, lattice->LLL_params.bkz.p);
-
-        fprintf(stderr, "BKZ 16\n");
-        lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
-                        16, lattice->LLL_params.bkz.p);
-
-        fprintf(stderr, "BKZ 32\n");
-        lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
-                        32, lattice->LLL_params.bkz.p);
-
-        fprintf(stderr, "BKZ %d\n", lattice->LLL_params.bkz.beta);
-        lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
-                        lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p);
-        */
         i = 0;
         do {
             lD = lDnew;
@@ -697,8 +674,7 @@ int solutiontest(lattice_t *lattice, int position) {
  */
 int log2mpz(mpz_t number) {
     int i = 1;
-    mpz_t test;
-    mpz_t n;
+    mpz_t test, n;
     mpz_init_set_ui(test, 2);
     mpz_init(n);
     mpz_abs(n, number);
@@ -707,7 +683,24 @@ int log2mpz(mpz_t number) {
         i++;
         mpz_mul_ui(test, test, 2);
     }
+    mpz_clear(test);
+    mpz_clear(n);
     return i;
+}
+
+int get_bit_size(lattice_t *lattice) {
+    int i, j, log2_max = 0, log2_b;
+
+    for (i = 0; i < lattice->num_cols; i++) {
+        for (j = 0; j < lattice->num_rows; j++) {
+            log2_b = log2mpz(get_entry(lattice->basis, i, j));
+            if (log2_max < log2_b) {
+                log2_max = log2_b;
+            }
+        }
+    }
+
+    return log2_max;
 }
 
 /**
@@ -715,15 +708,16 @@ int log2mpz(mpz_t number) {
  */
 int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             int start, int low, int up, int z,
-            DOUBLE delta, int deepinsert_blocksize) {
+            DOUBLE delta, int deepinsert_blocksize,
+            int bit_size) {
 
     coeff_t **b = lattice->basis;
     int i, j, k;
     DOUBLE norm;
     int mu_all_zero;
 
-    int log2_max = 0, log2_b;
-    DOUBLE theta;
+    int log2_b;
+    DOUBLE theta, eta;
 
     DOUBLE mus;
     mpz_t musvl;
@@ -739,20 +733,18 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     int counter = 0;
 #endif
 
-    for (i = 0; i < lattice->num_cols; i++) {
-        for (j = 0; j < lattice->num_rows; j++) {
-            log2_b = log2mpz(get_entry(lattice->basis, i, j));
-            if (log2_max < log2_b) {
-                log2_max = log2_b;
-            }
-        }
-    }
-    if (log2_max > 30) {
+    eta = ETACONST;
+    if (bit_size > 100) {
+        theta = 0.50;
+        eta = 0.52;
+    } else if (bit_size > 55) {
+        theta = 0.05;
+    } else if (bit_size > 30) {
         theta = 0.01;
     } else {
         theta = 0.0;
     }
-    fprintf(stderr, "Start LLLHfp with deepinsert %d; max bits: %d\n",  deepinsert_blocksize, log2_max);
+    fprintf(stderr, "Start LLLHfp with deepinsert %d; max bits: %d\n",  deepinsert_blocksize, bit_size);
 
     mpz_init(musvl);
     mpz_init(hv);
@@ -804,7 +796,7 @@ start_tricol:
         /* size reduction of $b_k$ */
         mu_all_zero = 1;
         for (j = k - 1; j >= low; j--) {
-            if (fabs(R[k][j]) > ETACONST * fabs(R[j][j]) + theta * fabs(R[k][k])) {
+            if (fabs(R[k][j]) > eta * fabs(R[j][j]) + theta * fabs(R[k][k])) {
                 mus = ROUND(R[k][j] / R[j][j]);
                 mpz_set_d(musvl, mus);
                 mu_all_zero = 0;
@@ -1201,7 +1193,7 @@ int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z) 
 
     // Use contiguous memory for BLAS
     (*mu) = (DOUBLE**)calloc(s, sizeof(DOUBLE*));
-    (*mu)[0] = (DOUBLE*)malloc(s * z * sizeof(DOUBLE));
+    (*mu)[0] = (DOUBLE*)calloc(s * z, sizeof(DOUBLE));
     for (i = 1; i < s; i++) {
         (*mu)[i] = (DOUBLE*)((*mu)[0] + i * z); //
     }
@@ -1260,10 +1252,11 @@ void lll(lattice_t *lattice, int s, int z, DOUBLE quality, int deepinsert_blocks
     DOUBLE *beta;
     DOUBLE *N;
     DOUBLE **H;
-    int r;
+    int r, bit_size;
 
     lllalloc(&R, &beta, &N, &H, s, z);
-    r = lllHfp(lattice, R, beta, H, 0, 0, s, z, quality, deepinsert_blocksize);
+    bit_size = get_bit_size(lattice);
+    r = lllHfp(lattice, R, beta, H, 0, 0, s, z, quality, deepinsert_blocksize, bit_size);
     lllfree(R, beta, N, H, s);
 
     return;
@@ -1275,11 +1268,15 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
     DOUBLE *N;
     DOUBLE **H;
     int r, l, i, j, runs;
+    int bit_size;
     coeff_t *swapvl;
     DOUBLE lD;
 
     lllalloc(&R, &beta, &N, &H, s, z);
-    r = lllHfp(lattice, R, beta, H, 0, 0, s, z, quality, deepinsert_blocksize);
+
+    bit_size = get_bit_size(lattice);
+
+    r = lllHfp(lattice, R, beta, H, 0, 0, s, z, quality, deepinsert_blocksize, bit_size);
     lD = log_potential(R, s, z);
     fprintf(stderr, "   log(D)= %f\n", lD);
     fflush(stderr);
@@ -1306,7 +1303,7 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
                 lattice->basis[r] = swapvl;
             }
         }
-        r = lllHfp(lattice, R, beta, H, 0, 0, s, z, quality, deepinsert_blocksize);
+        r = lllHfp(lattice, R, beta, H, 0, 0, s, z, quality, deepinsert_blocksize, bit_size);
         lD = log_potential(R, s, z);
         fprintf(stderr, "%d: log(D)= %f\n", runs, lD);
         fflush(stdout);
@@ -1323,11 +1320,13 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
     DOUBLE *N;
     DOUBLE **H;
     DOUBLE lD;
-    int start = 0, up, size;
+    int start = 0, up, size, bit_size;
     coeff_t **basis_org;
 
     lllalloc(&R, &beta, &N, &H, s, z);
-    //r = lllHfp(lattice, R, beta, H, 0, 0, s, z, quality, deepinsert_blocksize);
+    bit_size = get_bit_size(lattice);
+
+    //r = lllHfp(lattice, R, beta, H, 0, 0, s, z, quality, deepinsert_blocksize, bit_size);
 #if 1
     while (start < s) {
         fprintf(stderr, "Block reduce %d\n", start);
@@ -1337,7 +1336,7 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
         basis_org = lattice->basis;
         lattice->basis = &(lattice->basis[start]);
         size = (start + block_size > up) ? up - start : block_size;
-        lllHfp(lattice, R, beta, H, 0, 0, size, z, quality, deepinsert_blocksize);
+        lllHfp(lattice, R, beta, H, 0, 0, size, z, quality, deepinsert_blocksize, bit_size);
         lattice->basis = basis_org;
         start += block_size;
     }
@@ -1347,7 +1346,7 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
         up = start + block_size;
         up = (up > s) ? s : up;
 
-        lllHfp(lattice, R, beta, H, start, start, up, z, quality, deepinsert_blocksize);
+        lllHfp(lattice, R, beta, H, start, start, up, z, quality, deepinsert_blocksize, bit_size);
         start += block_size;
     }
 #endif
@@ -1379,6 +1378,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
     DOUBLE lD;
     int g, ui, q, j;
     coeff_t *swapvl;
+    int bit_size = get_bit_size(lattice);
 
     mpz_init(hv);
 
@@ -1400,7 +1400,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
     }
 
     lllalloc(&R, &h_beta, &N, &H, s, z);
-    lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, 10); // delta
+    lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, 10, bit_size); // delta
 
     start_block = zaehler = -1;
     //start_block = 0;
@@ -1469,8 +1469,8 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             for (j = 1; j <= z; j++) mpz_set_si(lattice->swap[j].c, 0);
             coeffinit(lattice->swap, z);
 
-            lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, 10);
-            //start_block = lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, 10);
+            lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, 10, bit_size);
+            //start_block = lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, 10, bit_size);
             //fprintf(stderr, "%d\n", start_block);
 
             zaehler = -1;
@@ -1478,7 +1478,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             fprintf(stderr, "enumerate: no improvement %d\n", zaehler);
             fflush(stderr);
             if (h > 0) {
-                lllHfp(lattice, R, h_beta, H, h - 1, h - 1, h + 1, z, 0.0, -1);
+                lllHfp(lattice, R, h_beta, H, h - 1, h - 1, h + 1, z, 0.0, -1, bit_size);
             }
             //start_block++;
             zaehler++;
@@ -1499,7 +1499,8 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
 /**
  * Pruned Gauss-Enumeration.
  */
-DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block, DOUBLE improve_by, int p) {
+DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
+                    int start_block, int end_block, DOUBLE improve_by, int p) {
     DOUBLE x;
     DOUBLE *y, *c;
     DOUBLE c_min;
@@ -1514,13 +1515,6 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block
     double alpha, radius;
     DOUBLE *lambda_min;
     int SCHNITT = 10;
-
-    x = R[start_block][start_block];
-    if (x * x <= EPSILON) {
-        fprintf(stderr, "Hier ist was faul! start_block=%d %f\n", start_block, (double)x);
-        fflush(stderr);
-        exit(1);
-    }
 
     c = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
     y = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
@@ -2375,7 +2369,7 @@ int exacttest(DOUBLE *v, int rows, DOUBLE Fq) {
     register int i;
     i = rows - 1;
     do {
-        if (fabs(v[i]) > Fq + EPSILON) {
+        if (fabs(v[i]) > Fq + 0.5 + EPSILON) {
             return 0;
         }
         i--;
