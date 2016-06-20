@@ -713,7 +713,7 @@ int log2mpz(mpz_t number) {
 /**
  *  Lattice basis reduction algorithms
  */
-int LLLHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
+int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             int start, int low, int up, int z,
             DOUBLE delta, int deepinsert_blocksize) {
 
