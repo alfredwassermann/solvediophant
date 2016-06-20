@@ -86,6 +86,9 @@ extern int lllfree(DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs, int s);
 extern double orthogonality_defect(lattice_t *lattice, DOUBLE **R, int s, int z);
 extern double log_potential(DOUBLE **R, int s, int z);
 
+extern int log2mpz(mpz_t number);
+extern int get_bit_size(lattice_t *lattice);
+
 extern void lll(lattice_t *lattice, int s, int z, DOUBLE quality, int deepinsert_blocksize);
 extern DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE quality, int deepinsert_blocksize);
 extern DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE quality, int deepinsert_blocksize);
@@ -101,7 +104,7 @@ extern void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows
 extern void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq);
 extern void givens(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq);
 extern void inverse(DOUBLE **mu, DOUBLE **muinv, int columns);
-extern int exacttest(DOUBLE *v, int rows, DOUBLE Fq);
+extern int exacttest(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice);
 extern int prune0(DOUBLE li, DOUBLE re);
 extern int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps);
 extern int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
