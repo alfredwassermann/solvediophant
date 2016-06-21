@@ -240,8 +240,8 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 #endif
 
 #if 1 // Do reduction
-#if 0
-    print_NTL_lattice();   /* Version for the NTL output */
+#if 1
+    print_NTL_lattice(lattice);   /* Version for the NTL output */
     return 0;
 #endif
 
@@ -372,10 +372,11 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     read_NTL_lattice();
 #endif // Do reduction
 
-#if 0
+#if 1
     printf("Before enumeration\n");
-    /*|print_NTL_lattice();|*/   /* Version for the NTL output */
-    print_lattice();
+    //print_NTL_lattice(lattice);   /* Version for the NTL output */
+    //return 0;
+    //print_lattice();
 #endif
 
     /**
@@ -2369,7 +2370,7 @@ void inverse(DOUBLE **mu, DOUBLE **muinv, int columns) {
 int exacttest(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
     register int i;
     register int k;
-    
+
     i = rows - 1;
     do {
         if (fabs(v[i]) > Fq + 0.5 + EPSILON) {
@@ -2377,7 +2378,7 @@ int exacttest(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
         }
         i--;
     } while (i>=0);
- 
+
     for (i = 0; i < rows; i++) {
         if (!iszeroone) {
             if (mpz_cmp_si(upperbounds[i], 0) != 0) {
@@ -2386,7 +2387,7 @@ int exacttest(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
                 mpz_set(soltest_upfac, upperbounds_max);
             }
         }
-        
+
         mpz_set_si(soltest_u,0);
         for (k = 0; k < lattice->num_cols; k++) {
             if (ROUND(us[k]) > 0) {
@@ -2395,7 +2396,7 @@ int exacttest(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
                 mpz_submul_ui(soltest_u, get_entry(lattice->basis, k, i), -ROUND(us[k]));
             }
         }
-        
+
         mpz_sub(soltest_u, soltest_u, soltest_s);
         mpz_divexact(soltest_u, soltest_u, max_norm_initial);
         mpz_divexact(soltest_u, soltest_u, soltest_upfac);
@@ -2406,7 +2407,7 @@ int exacttest(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
             return 0;
         }
     }
-    
+
     return 1;
 }
 
@@ -2715,4 +2716,36 @@ DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type, DOUBLE p) {
     fflush(stderr);
 
     return (gh <= gh1) ? gh : gh1;
+}
+
+void print_NTL_lattice(lattice_t *lattice) {
+    int i,j;
+
+    fprintf(stderr, "%d %d\n", lattice->num_cols, lattice->num_rows);
+    //printf("%d\n",system_rows);
+    printf("\n[");
+    for (i = 0; i < lattice->num_cols; i++) {
+        printf("[");
+        for (j = 0; j < lattice->num_rows; j++) {
+            mpz_out_str(NULL, 10, lattice->basis[i][j+1].c);
+            printf(" ");
+        }
+        printf("]");
+        printf("\n");
+    }
+    printf("]\n");
+    fflush(stdout);
+
+    printf("\n");
+    //printf("%d ", lattice->num_cols - 1);
+    mpz_out_str(NULL, 10, upperbounds_max);
+    printf("\n\n[");
+    for (i = 0; i < lattice->num_cols - 1; i++) {
+        mpz_out_str(NULL, 10, upperbounds[i]);
+        printf(" ");
+    }
+    printf("]\n");
+    fflush(stdout);
+
+    return;
 }
