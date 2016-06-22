@@ -240,11 +240,6 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 #endif
 
 #if 1 // Do reduction
-#if 1
-    print_NTL_lattice(lattice);   /* Version for the NTL output */
-    return 0;
-#endif
-
     /**
      * permute lattice columns
      */
@@ -372,12 +367,11 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     read_NTL_lattice();
 #endif // Do reduction
 
-#if 1
-    printf("Before enumeration\n");
-    //print_NTL_lattice(lattice);   /* Version for the NTL output */
-    //return 0;
-    //print_lattice();
-#endif
+    if (lattice->LLL_params.print_ntl) {
+        fprintf(stderr, "Print lattice for NTL and exit\n");
+        print_NTL_lattice(lattice);   /* Version for the NTL output */
+        return 0;
+    }
 
     /**
      * explicit enumeration
@@ -2740,7 +2734,7 @@ void print_NTL_lattice(lattice_t *lattice) {
     //printf("%d ", lattice->num_cols - 1);
     mpz_out_str(NULL, 10, upperbounds_max);
     printf("\n\n[");
-    for (i = 0; i < lattice->num_cols - 1; i++) {
+    for (i = 0; i < lattice->num_rows - 1; i++) {
         mpz_out_str(NULL, 10, upperbounds[i]);
         printf(" ");
     }

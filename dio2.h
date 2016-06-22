@@ -26,7 +26,7 @@ typedef struct {
     int silent;
     long stop_after_solutions;
     long stop_after_loops;
-
+    int print_ntl;
 } lll_params_t;
 
 typedef struct {
