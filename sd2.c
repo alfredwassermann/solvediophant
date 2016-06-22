@@ -123,7 +123,6 @@ int main(int argc, char *argv[]) {
             fprintf(stderr,"No output of solutions, just counting.\n");
 
         } else if (strncmp(argv[i],"-printntl", 9) == 0) {
-            strcpy(suffix, argv[i] + 8);
             lattice.LLL_params.print_ntl = 1;
 
         } else if (strncmp(argv[i],"-iterate", 8) == 0) {
