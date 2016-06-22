@@ -110,6 +110,7 @@ int main(int argc, char *argv[]) {
     mpz_set_si(lattice.matrix_factor, -1);
     mpz_set_si(lattice.max_norm, -1);
     lattice.LLL_params.silent = SILENT = 0;
+    lattice.LLL_params.print_ntl = 0;
     PRINT_REQUIRED = 0;
     DUMP_REQUIRED = 0;
 
