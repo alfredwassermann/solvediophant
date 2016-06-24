@@ -104,7 +104,7 @@ extern void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows
 extern void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq);
 extern void givens(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq);
 extern void inverse(DOUBLE **mu, DOUBLE **muinv, int columns);
-extern int exacttest(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice);
+extern int final_test(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice, int bit_size);
 extern int prune0(DOUBLE li, DOUBLE re);
 extern int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps);
 extern int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,

@@ -711,7 +711,6 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     DOUBLE norm;
     int mu_all_zero;
 
-    int log2_b;
     DOUBLE theta, eta;
 
     DOUBLE mus;
@@ -1784,8 +1783,10 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     long *delta, *d, *eta;
     long *v;
     int *first_nonzero, *first_nonzero_in_column, *firstp;
+    int bit_size;
 
     DOUBLE *N, **mu, *c, **w, **bd, **mu_trans;
+    DOUBLE *bd_1norm;
 
     DOUBLE Fd, Fq, Fqeps;
     DOUBLE *dum;
@@ -1821,6 +1822,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
     us = (DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
     cs = (DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
+    bd_1norm = (DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
     y = (DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
     delta = (long*)calloc(columns+1,sizeof(long));
     d = (long*)calloc(columns+1,sizeof(long));
@@ -1865,6 +1867,8 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
             w[i][l] = 0.0;
     }
 
+    bit_size = get_bit_size(lattice);
+
     /* count nonzero entries in the last rows(s) */
     if (free_RHS) {
         i=0;
@@ -1905,6 +1909,16 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     for (i = 0; i < columns; i++)
         for (j = 0; j < columns; j++)
             mu_trans[j][i] = mu[i][j];
+
+    /* Compute 1-norm of orthogonal basis */
+    for (i = 0; i <= columns; ++i) {
+        bd_1norm[i] = 0.0;
+        for (j = 0; j < rows; ++j) {
+            bd_1norm[i] += fabs(bd[i][j]);
+        }
+        bd_1norm[i] *= Fqeps / c[i];
+    }
+
 
 #if 0
     basis2poly();
@@ -2043,13 +2057,20 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         }
 
         if ((cs[level] < Fd) /*|&& (!prune0(fabs(dum[level]),N[level]))|*/)  {
+            /* Use (1, -1, 0, ...) as values in Hoelder pruning */
+            if (fabs(dum[level]) > bd_1norm[level]) {
+                //goto side_step;
+                goto step_back;
+            }
+
 #if FINCKEPOHST
             if (fabs(us[level]) > fipo[level]) {
                 fipo_success++;
                 goto side_step;
             }
 #endif
-            if (isSideStep) {
+
+            if (0 && isSideStep) {
                 compute_w2(w, bd, stepWidth, level, rows);
             } else {
                 compute_w(w, bd, dum[level], level, rows);
@@ -2086,7 +2107,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
                 }
             } else {
                 /* at $|level|=0$ */
-                if (exacttest(w[0], rows, Fq, us, lattice) == 1) {
+                if (final_test(w[0], rows, Fq, us, lattice, bit_size) == 1) {
                     print_solution(lattice, w[level], rows, Fq, us, columns);
                     if (lattice->LLL_params.stop_after_solutions > 0 &&
                         lattice->LLL_params.stop_after_solutions <= nosolutions)
@@ -2151,6 +2172,7 @@ afterloop:
     /* free allocated memory for enumeration */
     free (us);
     free (cs);
+    free (bd_1norm);
     free (y);
     free (delta);
     free (d);
@@ -2194,31 +2216,32 @@ DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max) {
 }
 
 void compute_w2(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
-#if BLAS
-    cblas_daxpy(rows,alpha,bd[level],1,w[level],1);
-#else
-    int i;
-    for (i = rows - 1; i >= 0; --i) {
-        w[level][i] += alpha * bd[level][i];
-    }
-#endif
+    #if BLAS
+        cblas_daxpy(rows, alpha, bd[level], 1, w[level],1);
+    #else
+        int i;
+        for (i = rows - 1; i >= 0; --i) {
+            w[level][i] += alpha * bd[level][i];
+        }
+    #endif
 
     return;
 }
 
 void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
-#if BLAS
-    cblas_dcopy(rows,w[level+1],1,w[level],1);
-    cblas_daxpy(rows,alpha,bd[level],1,w[level],1);
-#else
-    int l;
+    #if BLAS
+        cblas_dcopy(rows, w[level+1], 1, w[level], 1);
+        cblas_daxpy(rows, alpha, bd[level], 1, w[level], 1);
+    #else
+        int l;
 
-    l = rows - 1;
-    while (l >= 0) {
-        w[level][l] = w[level+1][l] + alpha*bd[level][l];
-        l--;
-    }
-#endif
+        l = rows - 1;
+        while (l >= 0) {
+            w[level][l] = w[level+1][l] + alpha * bd[level][l];
+            l--;
+        }
+    #endif
+
     return;
 }
 
@@ -2361,7 +2384,7 @@ void inverse(DOUBLE **mu, DOUBLE **muinv, int columns) {
 }
 
 /* There are several pruning methods.*/
-int exacttest(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
+int final_test(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice, int bit_size) {
     register int i;
     register int k;
 
@@ -2373,6 +2396,11 @@ int exacttest(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
         i--;
     } while (i>=0);
 
+    // If the involved numbers are to big,
+    // an exact test is done.
+    if (bit_size < 27) {
+        return 1;
+    }
     for (i = 0; i < rows; i++) {
         if (!iszeroone) {
             if (mpz_cmp_si(upperbounds[i], 0) != 0) {
