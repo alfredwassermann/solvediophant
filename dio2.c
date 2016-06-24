@@ -1882,6 +1882,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     for (j = columns - 1; j >= 0; j--) if (mpz_sgn(get_entry(lattice->basis, j, rows-1)) !=0 )
         i++;
     fprintf(stderr, "Number of nonzero entries in the last row: %d\n", i);
+    fprintf(stderr, "Max bit size: %d\n", bit_size);
     fflush(stderr);
 
 #if 0
@@ -2052,10 +2053,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         dum[level] = us[level] + y[level];
         cs[level] = cs[level+1] + dum[level]*dum[level]*c[level];
 
-        if (isSideStep) {
-            stepWidth = dum[level] - olddum;
-        }
-
         if ((cs[level] < Fd) /*|&& (!prune0(fabs(dum[level]),N[level]))|*/)  {
             /* Use (1, -1, 0, ...) as values in Hoelder pruning */
             if (fabs(dum[level]) > bd_1norm[level]) {
@@ -2069,12 +2066,15 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
                 goto side_step;
             }
 #endif
-
-            if (0 && isSideStep) {
+            /*
+            if (isSideStep) {
+                stepWidth = dum[level] - olddum;
                 compute_w2(w, bd, stepWidth, level, rows);
             } else {
                 compute_w(w, bd, dum[level], level, rows);
             }
+            */
+            compute_w(w, bd, dum[level], level, rows);
 
             if (level > 0) {
                 /* not at a leave */
@@ -2217,10 +2217,25 @@ DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max) {
 
 void compute_w2(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     #if BLAS
-        cblas_daxpy(rows, alpha, bd[level], 1, w[level],1);
+        cblas_daxpy(rows, alpha, bd[level], 1, w[level], 1);
     #else
         int i;
         for (i = rows - 1; i >= 0; --i) {
+            /*
+            DOUBLE x, y;
+            x = w[level][i] + alpha * bd[level][i];
+            y = w[level+1][i] + beta * bd[level][i];
+
+            if (fabs(x - y) > 0.0000000001) {
+                fprintf(stderr,"ERROR w2 level=%d: %lf %lf %lf %lf \n", level, x, y, alpha, beta);
+                fprintf(stderr,"                  :%lf %lf %lf %lf\n", old, ys, u, bd[level][i]);
+                fprintf(stderr,"                  :%lf\n", (x - y)/ bd[level][i]);
+                fflush(stderr);
+            }
+
+
+            w[level][i] = x;
+            */
             w[level][i] += alpha * bd[level][i];
         }
     #endif
@@ -2233,12 +2248,12 @@ void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
         cblas_dcopy(rows, w[level+1], 1, w[level], 1);
         cblas_daxpy(rows, alpha, bd[level], 1, w[level], 1);
     #else
-        int l;
+        int i;
 
-        l = rows - 1;
-        while (l >= 0) {
-            w[level][l] = w[level+1][l] + alpha * bd[level][l];
-            l--;
+        i = rows - 1;
+        while (i >= 0) {
+            w[level][i] = w[level+1][i] + alpha * bd[level][i];
+            i--;
         }
     #endif
 
