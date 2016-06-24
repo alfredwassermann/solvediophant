@@ -1767,8 +1767,8 @@ long fipo_success;
 DOUBLE dum1, dum2;
 
 long only_zeros_no, only_zeros_success, hoelder_no, hoelder_success;
+long hoelder2_success;
 long cs_success;
-long N_success;
 
 DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     /* local variables for |explicit_enumeration() */
@@ -2025,9 +2025,8 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     us[level] = 1;
     v[level] = 1;
     only_zeros_no = only_zeros_success = 0;
-    hoelder_no = hoelder_success = 0;
+    hoelder_no = hoelder_success = hoelder2_success = 0;
     cs_success = nosolutions = loops = 0;
-    N_success = 0;
 
     /* the loop of the exhaustive enumeration */
     do {
@@ -2053,10 +2052,10 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         dum[level] = us[level] + y[level];
         cs[level] = cs[level+1] + dum[level]*dum[level]*c[level];
 
-        if ((cs[level] < Fd) /*|&& (!prune0(fabs(dum[level]),N[level]))|*/)  {
+        if ((cs[level] < Fd))  {
             /* Use (1, -1, 0, ...) as values in Hoelder pruning */
             if (fabs(dum[level]) > bd_1norm[level]) {
-                //goto side_step;
+                ++hoelder2_success;
                 goto step_back;
             }
 
@@ -2146,7 +2145,7 @@ afterloop:
     fprintf(stderr, "Prune_cs: %ld\n", cs_success);
     fprintf(stderr, "Prune_only_zeros: %ld of %ld\n", only_zeros_success, only_zeros_no);
     fprintf(stderr, "Prune_hoelder: %ld of %ld\n", hoelder_success, hoelder_no);
-    fprintf(stderr, "Prune_N: %ld\n", N_success);
+    fprintf(stderr, "Prune_hoelder interval: %ld\n", hoelder2_success);
 #if FINCKEPOHST
     printf("Fincke-Pohst: %ld\n", fipo_success);
 #endif
@@ -2446,15 +2445,6 @@ int final_test(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice, i
     }
 
     return 1;
-}
-
-int prune0(DOUBLE li, DOUBLE re) {
-    if (li > re*(1+EPSILON)) {
-        N_success++;
-        return 1;
-    } else {
-        return 0;
-    }
 }
 
 /* Pruning according to H\"olders inequality */
