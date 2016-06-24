@@ -770,7 +770,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
         #if 0
         // Look ahead
-        i = householder_column(b, R, H, beta, k, s, z);
+        i = householder_column(b, R, H, beta, k, s, z, bit_size);
         if (i > k) {
             swapvl = b[i];
             for (j = i; j > k; --j) {
@@ -785,7 +785,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
 start_tricol:
         /* Recompute column k of R */
-        i = householder_column(b, R, H, beta, k, k + 1, z);
+        i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
 
         /* size reduction of $b_k$ */
         mu_all_zero = 1;
@@ -928,7 +928,7 @@ start_tricol:
 
 }
 
-int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int s, int z) {
+int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int s, int z, int bit_size) {
     int i, j;
     int l;
     DOUBLE zeta;
@@ -955,11 +955,15 @@ int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k,
             cblas_daxpy(z - i, -w_beta, &(H[i][i]), 1, &(R[k][i]), 1);
         }
         // |R[k]|
-        j = cblas_idamax(z - k, &(R[k][k]), 1);
-        zeta = fabs(R[k][k + j]);
-        cblas_dscal(z - k, 1 / zeta, &(R[k][k]), 1);
-        norm = zeta * cblas_dnrm2(z - k, &(R[k][k]), 1);
-        cblas_dscal(z - k, zeta, &(R[k][k]), 1);
+        if (bit_size < 27) {
+            norm = cblas_dnrm2(z - k, &(R[k][k]), 1);
+        } else {
+            j = cblas_idamax(z - k, &(R[k][k]), 1);
+            zeta = fabs(R[k][k + j]);
+            cblas_dscal(z - k, 1 / zeta, &(R[k][k]), 1);
+            norm = zeta * cblas_dnrm2(z - k, &(R[k][k]), 1);
+            cblas_dscal(z - k, zeta, &(R[k][k]), 1);
+        }
 
         // H[k] = R[k] / |R[k]|
         cblas_dcopy(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
@@ -987,17 +991,23 @@ int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k,
         }
 
         // |R[k]|
-        // Use zeta for stability
-        for (j = k, zeta = 0.0; j < z; ++j) {
-            if (fabs(R[k][j]) > zeta) {
-                zeta = fabs(R[k][j]);
+        if (bit_size < 27) {
+            for (j = k, norm = 0.0; j < z; ++j) {
+                norm += x * x;
             }
+        } else {
+            // Use zeta for stability
+            for (j = k, zeta = 0.0; j < z; ++j) {
+                if (fabs(R[k][j]) > zeta) {
+                    zeta = fabs(R[k][j]);
+                }
+            }
+            for (j = k, norm = 0.0; j < z; ++j) {
+                x = R[k][j] / zeta;
+                norm += x * x;
+            }
+            norm = zeta * SQRT(norm);
         }
-        for (j = k, norm = 0.0; j < z; ++j) {
-            x = R[k][j] / zeta;
-            norm += x * x;
-        }
-        norm = zeta * SQRT(norm);
 
         // H[k] = R[k] / |R[k]|
         for (j = k; j < z; ++j) {

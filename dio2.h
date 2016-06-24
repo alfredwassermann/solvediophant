@@ -78,7 +78,7 @@ extern DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n);
 
 extern void check_precision(coeff_t *b, DOUBLE *R, int z, int k);
 
-extern int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int s, int z);
+extern int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int s, int z, int bit_size);
 extern void size_reduction(coeff_t **b, DOUBLE **mu, mpz_t musvl, DOUBLE mus, int k, int j);
 
 extern int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z);
