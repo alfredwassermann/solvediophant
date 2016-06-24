@@ -1793,9 +1793,9 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     DOUBLE tmp;
     // coeff_t *swap_vec;
 
-    int isSideStep = 0;
-    DOUBLE stepWidth = 0.0;
-    DOUBLE olddum;
+    //int isSideStep = 0;
+    //DOUBLE stepWidth = 0.0;
+    //DOUBLE olddum;
 
 #if defined(FINCKEPOHST)
     DOUBLE *fipo;
@@ -2049,7 +2049,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         handle_signals(lattice);
 
         /* compute new |cs| */
-        olddum = dum[level];
+        //olddum = dum[level];
         dum[level] = us[level] + y[level];
         cs[level] = cs[level+1] + dum[level]*dum[level]*c[level];
 
@@ -2103,7 +2103,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
                     y[level] = compute_y(mu_trans,us,level,level_max);
                     us[level] = v[level] = ROUND(-y[level]);
                     d[level] = (v[level]>-y[level]) ? -1 : 1;
-                    isSideStep = 0;
+                    //isSideStep = 0;
                 }
             } else {
                 /* at $|level|=0$ */
@@ -2137,7 +2137,7 @@ side_step:
                 delta[level] += (delta[level]*d[level]>=0) ? d[level] : -d[level] ;
             }
             us[level] = v[level] + delta[level];
-            isSideStep = 1;
+            //isSideStep = 1;
         }
     } while (level<columns);
 afterloop:
