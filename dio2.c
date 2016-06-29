@@ -1812,7 +1812,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     DOUBLE *dual_bound;
 #endif
 
-
     /* Vector to collect enumeration statistics */
     long nlow[1000];
     for (i=0;i<1000;i++) nlow[i] = 0;
@@ -1973,8 +1972,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         dual_bound[i] = tmp * Fq * (1.0 + EPSILON);
     }
 
-
-
 #if VERBOSE > -1
     fprintf(stderr, "\n\n");
     fflush(stderr);
@@ -2059,7 +2056,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         dum[level] = us[level] + y[level];
         cs[level] = cs[level+1] + dum[level]*dum[level]*c[level];
 
-        if ((cs[level] < Fd))  {
+        if (cs[level] < Fd)  {
             /* Use (1, -1, 0, ...) as values in Hoelder pruning */
             if (fabs(dum[level]) > bd_1norm[level]) {
                 ++hoelder2_success;
@@ -2124,6 +2121,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
                 /* at $|level|=0$ */
                 if (final_test(w[0], rows, Fq, us, lattice, bit_size) == 1) {
                     print_solution(lattice, w[level], rows, Fq, us, columns);
+
                     if (lattice->LLL_params.stop_after_solutions > 0 &&
                         lattice->LLL_params.stop_after_solutions <= nosolutions)
                         goto afterloop;
