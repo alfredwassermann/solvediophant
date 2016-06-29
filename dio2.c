@@ -1770,7 +1770,6 @@ DOUBLE sample(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, i
  */
 #if FINCKEPOHST
     DOUBLE **muinv;
-    DOUBLE **fipo_UB, **fipo_LB;
 #endif
 /*|mpz_t *upb,*lowb;|*/
 long dual_bound_success;
@@ -1860,13 +1859,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     muinv = (DOUBLE**)calloc(columns, sizeof(DOUBLE*));
     for(i = 0; i < columns; ++i)
         muinv[i] = (DOUBLE*)calloc(rows, sizeof(DOUBLE));
-
-    fipo_LB = (DOUBLE**)calloc(columns+1, sizeof(DOUBLE*));
-    fipo_UB = (DOUBLE**)calloc(columns+1, sizeof(DOUBLE*));
-    for (i = 0; i <= columns; ++i) {
-        fipo_LB[i] = (DOUBLE*)calloc(columns+1, sizeof(DOUBLE));
-        fipo_UB[i] = (DOUBLE*)calloc(columns+1, sizeof(DOUBLE));
-    }
 
     dual_basis = (DOUBLE**)calloc(columns+1, sizeof(DOUBLE*));
     for (i = 0; i <= columns; ++i) {
@@ -1959,19 +1951,21 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
                 tmp += muinv[i][l] * bd[l][j] / c[l];
             }
             dual_basis[i][j] = tmp;
+            printf("%lf ", dual_basis[i][j]);
             fipo[i] += tmp * tmp;
             dum1 += fabs(tmp);
         }
+        printf(": ");
         fipo[i] = SQRT(fipo[i] * Fd);
         dum1 =  fabs(dum1 * Fq) * (1.0 + EPSILON);
         if (dum1 < fipo[i]) {
             fipo[i] = dum1;
         }
 
-        fipo_LB[columns][i] = -fipo[i];
-        fipo_UB[columns][i] =  fipo[i];
 #if VERBOSE > -1
-        fprintf(stderr, "%0.3lf ", fipo[i]);
+        //fprintf(stderr, "%0.3lf ", fipo[i]);
+        printf("%0.3lf ", fipo[i]);
+        printf("\n");
 #endif
     }
 
