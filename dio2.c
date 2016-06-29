@@ -1951,11 +1951,9 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
                 tmp += muinv[i][l] * bd[l][j] / c[l];
             }
             dual_basis[i][j] = tmp;
-            printf("%lf ", dual_basis[i][j]);
             fipo[i] += tmp * tmp;
             dum1 += fabs(tmp);
         }
-        printf(": ");
         fipo[i] = SQRT(fipo[i] * Fd);
         dum1 =  fabs(dum1 * Fq) * (1.0 + EPSILON);
         if (dum1 < fipo[i]) {
@@ -1963,9 +1961,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         }
 
 #if VERBOSE > -1
-        //fprintf(stderr, "%0.3lf ", fipo[i]);
-        printf("%0.3lf ", fipo[i]);
-        printf("\n");
+        fprintf(stderr, "%0.3lf ", fipo[i]);
 #endif
     }
 
@@ -2373,7 +2369,9 @@ void givens(lattice_t *lattice, int columns, int rows, DOUBLE **mu,
     /* Finally some scaling has to be done, since $Q$ is a orthonormal matrix */
     for (i = 0; i < columns; i++) {
         c[i] = mu[i][i] * mu[i][i];
-
+        for (j = 0; j < rows; j++) {
+            bd[i][j] *= mu[i][i];
+        }
         for (j = columns - 1; j >= i; j--)
             mu[j][i] /= mu[i][i];
 
