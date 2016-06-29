@@ -1910,7 +1910,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
     /* set the simple pruning bounds */
     Fq = (DOUBLE)mpz_get_d(lattice->max_norm);
-    Fd = (rows*Fq*Fq)*(1.0+EPSILON);
+    Fd = (rows*Fq*Fq) * (1.0 + EPSILON);
     Fqeps = (1.0 + EPSILON) * Fq;        /* Used in prune() */
 #if VERBOSE > 0
     fprintf(stderr, "Fq: %f\n", (double)Fq);
@@ -1939,25 +1939,23 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         bd_1norm[i] *= Fqeps / c[i];
     }
 
-
-#if 0
-    basis2poly();
-#endif
-
 #if FINCKEPOHST
     /* determine Fincke-Pohst bounds */
     dual_bound_success = 0;
     inverse(mu, muinv, columns);
 
 #if VERBOSE > -1
-    fprintf(stderr, "\nFincke-Pohst bounds:\n");
+    fprintf(stderr, "Dual bounds:\n");
     fflush(stderr);
 #endif
 
     /* Symmetric Fincke-Pohst */
     for (i = 0; i < columns; i++) {
-        for (j = 0, dum1 = 0.0, fipo[i] = 0.0; j < rows; j++) {
-            for (l = i, tmp = 0.0; l < columns; l++) {
+        dum1 = 0.0;
+        fipo[i] = 0.0;
+        for (j = 0; j < rows; j++) {
+            tmp = 0.0;
+            for (l = i; l < columns; l++) {
                 tmp += muinv[i][l] * bd[l][j] / c[l];
             }
             dual_basis[i][j] = tmp;
@@ -1965,10 +1963,10 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
             dum1 += fabs(tmp);
         }
         fipo[i] = SQRT(fipo[i] * Fd);
-        dum1 =  fabs(dum1 * Fq);
-        if (dum1 < fipo[i])
+        dum1 =  fabs(dum1 * Fq) * (1.0 + EPSILON);
+        if (dum1 < fipo[i]) {
             fipo[i] = dum1;
-        fipo[i] *= (1.0 + EPSILON);
+        }
 
         fipo_LB[columns][i] = -fipo[i];
         fipo_UB[columns][i] =  fipo[i];
@@ -2008,15 +2006,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
             break;
         }
     }
-#endif
-    /*|print_lattice();|*/
-#if 0
-    @<orthogonalize the basis@>;
-    @<determine Fincke-Pohst bounds@>;
-#endif
-
-#if 0
-    basis2LP(fipo_l,fipo_u);
 #endif
 
     /* initialize first-nonzero arrays */
