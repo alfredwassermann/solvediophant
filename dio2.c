@@ -2000,7 +2000,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
        This is important for the Selfdual Bent Functions Problems
      */
 #if 1
-    for (i=columns-1; i>=0; i--) {
+    for (i = columns - 1; i >= 0; i--) {
         if (fipo[i]<0.9) {
             printf("DEL\n");
             columns--;
