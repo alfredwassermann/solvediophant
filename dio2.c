@@ -1746,12 +1746,12 @@ DOUBLE sample(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, i
         }
     }
 
-    free (c);
-    free (y);
-    free (delta);
-    free (d);
-    free (v);
-    free (u_loc);
+    free(c);
+    free(y);
+    free(delta);
+    free(d);
+    free(v);
+    free(u_loc);
 
     if (!found_improvement) {
         c_min = R[start_block][start_block];
@@ -1773,7 +1773,7 @@ DOUBLE sample(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, i
     DOUBLE **fipo_UB, **fipo_LB;
 #endif
 /*|mpz_t *upb,*lowb;|*/
-long fipo_success;
+long dual_bound_success;
 DOUBLE dum1, dum2;
 
 long only_zeros_no, only_zeros_success, hoelder_no, hoelder_success;
@@ -1809,6 +1809,8 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
 #if defined(FINCKEPOHST)
     DOUBLE *fipo;
+    DOUBLE **dual_basis;
+    DOUBLE *dual_bound;
 #endif
 
 
@@ -1854,17 +1856,24 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     dum = (DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
 
 #if FINCKEPOHST
-    fipo=(DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
-    muinv=(DOUBLE**)calloc(columns,sizeof(DOUBLE*));
+    fipo = (DOUBLE*)calloc(columns+1, sizeof(DOUBLE));
+    muinv = (DOUBLE**)calloc(columns, sizeof(DOUBLE*));
     for(i = 0; i < columns; ++i)
-        muinv[i] = (DOUBLE*)calloc(rows,sizeof(DOUBLE));
+        muinv[i] = (DOUBLE*)calloc(rows, sizeof(DOUBLE));
 
-    fipo_LB=(DOUBLE**)calloc(columns+1,sizeof(DOUBLE*));
-    fipo_UB=(DOUBLE**)calloc(columns+1,sizeof(DOUBLE*));
+    fipo_LB = (DOUBLE**)calloc(columns+1, sizeof(DOUBLE*));
+    fipo_UB = (DOUBLE**)calloc(columns+1, sizeof(DOUBLE*));
     for (i = 0; i <= columns; ++i) {
-        fipo_LB[i] = (DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
-        fipo_UB[i] = (DOUBLE*)calloc(columns+1,sizeof(DOUBLE));
+        fipo_LB[i] = (DOUBLE*)calloc(columns+1, sizeof(DOUBLE));
+        fipo_UB[i] = (DOUBLE*)calloc(columns+1, sizeof(DOUBLE));
     }
+
+    dual_basis = (DOUBLE**)calloc(columns+1, sizeof(DOUBLE*));
+    for (i = 0; i <= columns; ++i) {
+        dual_basis[i] = (DOUBLE*)calloc(rows, sizeof(DOUBLE));
+    }
+    dual_bound = (DOUBLE*)calloc(columns+1, sizeof(DOUBLE));
+
 #endif
 
     /* initialize arrays */
@@ -1911,9 +1920,9 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
     /* orthogonalize the basis */
 #if GIVENS
-    givens(lattice, columns, rows, mu, bd, c, N, Fq);
+    givens(lattice, columns, rows, mu, bd, c);
 #else
-    gramschmidt(lattice, columns, rows, mu, bd, c, N, Fq);
+    gramschmidt(lattice, columns, rows, mu, bd, c);
 #endif
 
     /* compute $mu^\top$, the transpose of $mu$. */
@@ -1937,7 +1946,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
 #if FINCKEPOHST
     /* determine Fincke-Pohst bounds */
-    fipo_success = 0;
+    dual_bound_success = 0;
     inverse(mu, muinv, columns);
 
 #if VERBOSE > -1
@@ -1947,20 +1956,19 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
     /* Symmetric Fincke-Pohst */
     for (i = 0; i < columns; i++) {
-        fipo[i] = 0.0;
-        dum1 = 0.0;
-        for (j = 0; j < rows; j++) {
-            tmp = 0.0;
-            for (l = i; l < columns; l++)
-                tmp += muinv[i][l]*bd[l][j]/c[l];
-            fipo[i] += tmp*tmp;
+        for (j = 0, dum1 = 0.0, fipo[i] = 0.0; j < rows; j++) {
+            for (l = i, tmp = 0.0; l < columns; l++) {
+                tmp += muinv[i][l] * bd[l][j] / c[l];
+            }
+            dual_basis[i][j] = tmp;
+            fipo[i] += tmp * tmp;
             dum1 += fabs(tmp);
         }
-        fipo[i] = SQRT(fipo[i]*Fd);
-        dum1 =  fabs(dum1*Fq);
+        fipo[i] = SQRT(fipo[i] * Fd);
+        dum1 =  fabs(dum1 * Fq);
         if (dum1 < fipo[i])
             fipo[i] = dum1;
-        fipo[i] *= (1.0+EPSILON);
+        fipo[i] *= (1.0 + EPSILON);
 
         fipo_LB[columns][i] = -fipo[i];
         fipo_UB[columns][i] =  fipo[i];
@@ -1968,6 +1976,16 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         fprintf(stderr, "%0.3lf ", fipo[i]);
 #endif
     }
+
+    for (i = columns - 2; i >= 0; --i) {
+        for (j = 0, tmp = 0.0; j < rows; j++) {
+            dum1 = dual_basis[i][j] + dual_basis[i + 1][j];
+            tmp += fabs(dum1);
+        }
+        dual_bound[i] = tmp * Fq * (1.0 + EPSILON);
+    }
+
+
 
 #if VERBOSE > -1
     fprintf(stderr, "\n\n");
@@ -2049,7 +2067,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         if (loops % 100000000 ==0) {                 /*10000000*/
             printf("%ld loops, solutions: %ld ", loops, nosolutions);
 #if FINCKEPOHST
-            printf("fipo: %ld ", fipo_success);
+            printf("dual bounds: %ld ", dual_bound_success);
 #endif
             printf("\n");
             fflush(stdout);
@@ -2071,10 +2089,19 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
 #if FINCKEPOHST
             if (fabs(us[level]) > fipo[level]) {
-                fipo_success++;
+                dual_bound_success++;
                 goto side_step;
             }
 #endif
+
+            /*
+            if (level < columns - 1 && fabs(us[level] + us[level + 1]) > dual_bound[level]) {
+                fprintf(stderr, "%lf %lf\n", us[level] + us[columns -1], dual_bound[level]);
+                fflush(stderr);
+                goto side_step;
+            }
+            */
+
             /*
             if (isSideStep) {
                 stepWidth = dum[level] - olddum;
@@ -2157,7 +2184,7 @@ afterloop:
     fprintf(stderr, "Prune_hoelder: %ld of %ld\n", hoelder_success, hoelder_no);
     fprintf(stderr, "Prune_hoelder interval: %ld\n", hoelder2_success);
 #if FINCKEPOHST
-    printf("Fincke-Pohst: %ld\n", fipo_success);
+    printf("Fincke-Pohst: %ld\n", dual_bound_success);
 #endif
     printf("Loops: %ld\n",loops);
 
@@ -2179,30 +2206,34 @@ afterloop:
     fflush(stdout);
 
     /* free allocated memory for enumeration */
-    free (us);
-    free (cs);
-    free (bd_1norm);
-    free (y);
-    free (delta);
-    free (d);
-    free (first_nonzero);
-    free (first_nonzero_in_column);
-    free (firstp);
+    free(us);
+    free(cs);
+    free(bd_1norm);
+    free(y);
+    free(delta);
+    free(d);
+    free(first_nonzero);
+    free(first_nonzero_in_column);
+    free(firstp);
 
-    free (eta);
-    free (v);
-    for (l = 0; l <= columns; l++) free (w[l]);
-    free (w);
-    free (original_columns);
+    free(eta);
+    free(v);
+    for (l = 0; l <= columns; l++) free(w[l]);
+    free(w);
+    free(original_columns);
 
 #if FINCKEPOHST
-    free (fipo);
-    for (l=0;l<columns;l++) free (muinv[l]);
+    free(fipo);
+    for (l = 0; l < columns; l++) free(muinv[l]);
     free(muinv);
+
+    for (l = 0; l <= columns; l++) free(dual_basis[l]);
+    free(dual_basis);
+    free(dual_bound);
 #endif
 
-    lllfree(mu,c,N,bd,columns);
-    for (l=0;l<columns;l++) free (mu_trans[l]);
+    lllfree(mu, c, N, bd, columns);
+    for (l = 0; l < columns; l++) free(mu_trans[l]);
     free(mu_trans);
 
     return 1;
@@ -2270,13 +2301,12 @@ void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
 }
 
 void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu,
-                 DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq) {
+                 DOUBLE **bd, DOUBLE *c) {
     int i, l, j;
     DOUBLE dum;
 
     for (i = 0; i < columns; i++) {
         for (l = 0; l < rows; l++) bd[i][l] = (DOUBLE)mpz_get_d(get_entry(lattice->basis, i, l));
-        N[i] = 0.0;
         for (j = 0; j < i; j++) {
             dum = 0.0;
             for (l = 0; l < rows; l++) dum += (DOUBLE)mpz_get_d(get_entry(lattice->basis, i, l)) * bd[j][l];
@@ -2285,13 +2315,9 @@ void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu,
         }
 
         c[i] = scalarproductfp(bd[i], bd[i], rows);
-        for (l = 0; l < rows; l++) N[i] += fabs(bd[i][l]);
-        N[i] /= c[i];
-        N[i] *= Fq;
 #if VERBOSE > 0
         printf("%lf ",(double)c[i]);
 #endif
-/*|        N[i] *= (1.0 + EPSILON);|*/
     }
 #if VERBOSE > 0
     printf("\n\n");
@@ -2301,7 +2327,7 @@ void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu,
 }
 
 void givens(lattice_t *lattice, int columns, int rows, DOUBLE **mu,
-            DOUBLE **bd, DOUBLE *c, DOUBLE *N, DOUBLE Fq) {
+            DOUBLE **bd, DOUBLE *c) {
     int i,l,j;
     int mm;
     DOUBLE d1,d2;
@@ -2363,16 +2389,7 @@ void givens(lattice_t *lattice, int columns, int rows, DOUBLE **mu,
 
     /* Finally some scaling has to be done, since $Q$ is a orthonormal matrix */
     for (i = 0; i < columns; i++) {
-        c[i] = mu[i][i]*mu[i][i];
-        N[i] = 0.0;
-        for (j = 0; j < rows; j++) {
-            bd[i][j] *= mu[i][i];
-            N[i] += fabs(bd[i][j]);
-        }
-        N[i] /= c[i];
-        N[i] *= Fq;
-
-        /* N[i] *= 1.0 + EPSILON; */
+        c[i] = mu[i][i] * mu[i][i];
 
         for (j = columns - 1; j >= i; j--)
             mu[j][i] /= mu[i][i];
