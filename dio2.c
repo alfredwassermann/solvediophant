@@ -1405,7 +1405,7 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
         }
     }
 
-    #if 1
+    #if 0
     swapvl = b[lattice->num_cols];
     for (i = lattice->num_cols; i > start; i--)
         b[i] = b[i - 1];
@@ -1513,7 +1513,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
 
             /* successful enumeration */
             insert_vector(lattice, u, start_block, end_block, z, hv);
-            lllHfp(lattice, R, h_beta, H, start_block - 1, 0, s/*h + 1*/, z, delta, 10, bit_size);
+            lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, -1, bit_size);
             //lattice->num_cols--;
 
             //start_block = lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, 10, bit_size);
@@ -2082,7 +2082,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
 #if VERBOSE > -1
         if (loops % 100000000 ==0) {                 /*10000000*/
-            printf("%ld loops, solutions: %ld ", loops, nosolutions);
+            printf("%ld loops, solutions: %ld", loops, nosolutions);
 #if FINCKEPOHST
             printf(", dual bounds: %ld ", dual_bound_success);
 #endif
