@@ -723,9 +723,9 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     int insert_pos, lowest_pos;
     coeff_t *swapvl;
 
-#if VERBOSE > 0
-    int counter = 0;
-#endif
+    #if VERBOSE > 0
+        int counter = 0;
+    #endif
 
     eta = ETACONST;
     if (bit_size > 100) {
@@ -759,13 +759,13 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         if (k < lowest_pos) {
             lowest_pos = k;
         }
-#if VERBOSE > 0
-        if ((counter % 10000) == 0) {
-            fprintf(stderr, "LLL_H: %d k:%d\n", counter, k);
-            fflush(stderr);
-        }
-        counter++;
-#endif
+        #if VERBOSE > 0
+            if ((counter % 10000) == 0) {
+                fprintf(stderr, "LLL_H: %d k:%d\n", counter, k);
+                fflush(stderr);
+            }
+            counter++;
+        #endif
         handle_signals(lattice);
 
         #if 0
@@ -783,7 +783,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         #endif
 
 
-start_tricol:
+    start_tricol:
         /* Recompute column k of R */
         i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
 
@@ -1082,15 +1082,15 @@ DOUBLE scalarproductlfp (coeff_t *v, coeff_t *w) {
 }
 
 DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n) {
-#if BLAS
-    return cblas_ddot(n, v, 1, w, 1);
-#else
-    DOUBLE r;
-    int i;
-    r = 0.0;
-    for (i = n - 1; i >= 0; i--) r += v[i] * w[i];
-    return r;
-#endif
+    #if BLAS
+        return cblas_ddot(n, v, 1, w, 1);
+    #else
+        DOUBLE r;
+        int i;
+        r = 0.0;
+        for (i = n - 1; i >= 0; i--) r += v[i] * w[i];
+        return r;
+    #endif
 }
 
 void check_precision(coeff_t *b, DOUBLE *R, int z, int k) {
@@ -1238,12 +1238,10 @@ double log_potential(DOUBLE **R, int s, int z) {
 
 double orthogonality_defect(lattice_t *lattice, DOUBLE **R, int s, int z) {
     double defect = 0.0;
-
-#if 1
     int i;
+
     for (i = 0; i < s; i++)
         defect += log(scalarproductlfp(lattice->basis[i], lattice->basis[i])) - log(R[i][i]);
-#endif
 
     defect *= 0.5;
     return defect;
@@ -1287,7 +1285,7 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
     fflush(stderr);
 
     for (runs = 1; runs < no_iterates; runs++) {
-#if 0
+        #if 0
         for (j = s - 1; j > 0; j--) {
             for (l = j - 1; l >= 0; l--) {
                 /*|if (N[l] < N[j]) {|*/    /* $<$ sorts 'in descending order.' */
@@ -1298,7 +1296,7 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
                 }
             }
         }
-#endif
+        #endif
         // Shuffle
         for (j = 0; j < 100; j++) {
             for (i = s - 1; i > 0; i--) {
@@ -1332,7 +1330,7 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
     bit_size = get_bit_size(lattice);
 
     //r = lllHfp(lattice, R, beta, H, 0, 0, s, z, quality, deepinsert_blocksize, bit_size);
-#if 1
+    #if 1
     while (start < s) {
         fprintf(stderr, "Block reduce %d\n", start);
         up = start + block_size;
@@ -1345,7 +1343,7 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
         lattice->basis = basis_org;
         start += block_size;
     }
-#else
+    #else
     while (start < s) {
         fprintf(stderr, "Block reduce %d\n", start);
         up = start + block_size;
@@ -1354,7 +1352,7 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
         lllHfp(lattice, R, beta, H, start, start, up, z, quality, deepinsert_blocksize, bit_size);
         start += block_size;
     }
-#endif
+    #endif
     //print_lattice(lattice);
 
     lD = log_potential(R, s, z);
@@ -1364,7 +1362,6 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
 
     return lD;
 }
-
 
 /**
  * Blockwise Korkine Zolotareff reduction
@@ -2043,7 +2040,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         if (loops % 100000000 ==0) {                 /*10000000*/
             printf("%ld loops, solutions: %ld ", loops, nosolutions);
 #if FINCKEPOHST
-            printf("dual bounds: %ld ", dual_bound_success);
+            printf(", dual bounds: %ld ", dual_bound_success);
 #endif
             printf("\n");
             fflush(stdout);
@@ -2217,19 +2214,19 @@ afterloop:
 }
 
 DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max) {
-#if BLAS
-    return cblas_ddot(level_max-level, &(us[level+1]), 1, &(mu_trans[level][level+1]), 1);
-#else
-    int i;
-    DOUBLE dum;
-    i = level_max;
-    dum = 0.0;
-    while (i >= level + 1) {
-        dum += mu_trans[level][i]*us[i];
-        i--;
-    }
-    return dum;
-#endif
+    #if BLAS
+        return cblas_ddot(level_max-level, &(us[level+1]), 1, &(mu_trans[level][level+1]), 1);
+    #else
+        int i;
+        DOUBLE dum;
+        i = level_max;
+        dum = 0.0;
+        while (i >= level + 1) {
+            dum += mu_trans[level][i]*us[i];
+            i--;
+        }
+        return dum;
+    #endif
 }
 
 void compute_w2(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
@@ -2277,8 +2274,7 @@ void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     return;
 }
 
-void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu,
-                 DOUBLE **bd, DOUBLE *c) {
+void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c) {
     int i, l, j;
     DOUBLE dum;
 
@@ -2292,14 +2288,14 @@ void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu,
         }
 
         c[i] = scalarproductfp(bd[i], bd[i], rows);
-#if VERBOSE > 0
-        printf("%lf ",(double)c[i]);
-#endif
+        #if VERBOSE > 0
+            printf("%lf ",(double)c[i]);
+        #endif
     }
-#if VERBOSE > 0
-    printf("\n\n");
-    fflush(stdout);
-#endif
+    #if VERBOSE > 0
+        printf("\n\n");
+        fflush(stdout);
+    #endif
     return;
 }
 
@@ -2455,22 +2451,22 @@ int final_test(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice, i
 
 /* Pruning according to H\"olders inequality */
 int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps) {
-#if BLAS
-    if (cs < Fqeps * cblas_dasum(rows, w, 1)) {
-        return 0;
-    }
-#else
-    register DOUBLE reseite;
-    register int i;
+    #if BLAS
+        if (cs < Fqeps * cblas_dasum(rows, w, 1)) {
+            return 0;
+        }
+    #else
+        register DOUBLE reseite;
+        register int i;
 
-    reseite = 0.0; /*|-cs/Fqeps;|*/ /* | * (1-eps) | */
-    i = rows - 1;
-    do {
-        reseite += fabs(w[i]);
-        i--;
-    } while (i >= 0);
-    if (cs < Fqeps * reseite) return 0;
-#endif
+        reseite = 0.0; /*|-cs/Fqeps;|*/ /* | * (1-eps) | */
+        i = rows - 1;
+        do {
+            reseite += fabs(w[i]);
+            i--;
+        } while (i >= 0);
+        if (cs < Fqeps * reseite) return 0;
+    #endif
 
     return 1;
 }
@@ -2643,11 +2639,11 @@ void shufflelattice(lattice_t *lattice) {
     int i, j, r;
     unsigned int s;
 
-#if 0
-    s = (unsigned)(time(0))*getpid();
-#else
-    s = 1300964772;
-#endif
+    #if 0
+        s = (unsigned)(time(0))*getpid();
+    #else
+        s = 1300964772;
+    #endif
     fprintf(stderr, "Seed=%u\n",s);
     srand(s);
 
@@ -2673,11 +2669,9 @@ DOUBLE GH(DOUBLE **R, int low, int up) {
     int i, n, k;
     DOUBLE log_det, V1;
     static DOUBLE pi = 3.141592653589793238462643383;
-    static DOUBLE e = 2.718281828459045235360287471352662497757247093;
+    //static DOUBLE e = 2.718281828459045235360287471352662497757247093;
 
     for (i = low, log_det = 0.0; i < up; ++i) {
-        //x = R[i][i] * R[i][i];
-        //fprintf(stderr, "%0.10lf %0.10lf %f\n", x, gh, logf(x));
         log_det += log(R[i][i] * R[i][i]);
     }
     log_det *= 0.5;
