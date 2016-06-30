@@ -107,7 +107,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
      * allocate memory
      */
     lattice->basis = (coeff_t**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(coeff_t*));
-    for (j = 0; j < lattice->num_cols + ADDITIONAL_COLS; j++) {
+    for (j = 0; j < lattice->num_cols/* + ADDITIONAL_COLS*/; j++) {
         lattice->basis[j] = (coeff_t*)calloc(lattice->num_rows + 1, sizeof(coeff_t));
         for (i = 0; i <= lattice->num_rows; i++)
             mpz_init(lattice->basis[j][i].c);
@@ -388,8 +388,20 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     /**
      * free multiprecision memory
      */
-    //mpz_clear(lattice->matrix_factor);
-    //mpz_clear(lattice->max_norm);
+    for (j = 0; j < lattice->num_cols; j++) {
+        for (i = 0; i <= lattice->num_rows; i++) {
+            mpz_clear(lattice->basis[j][i].c);
+        }
+        free(lattice->basis[j]);
+    }
+    free(lattice->basis);
+    for (i = 0; i <= lattice->num_rows; i++) {
+        mpz_clear(lattice->swap[i].c);
+    }
+    free(lattice->swap);
+    mpz_clear(lattice->matrix_factor);
+    mpz_clear(lattice->max_norm);
+
     mpz_clear(lastlines_factor);
     mpz_clear(upfac);
     mpz_clear(max_norm_initial);

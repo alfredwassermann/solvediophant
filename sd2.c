@@ -295,13 +295,6 @@ int main(int argc, char *argv[]) {
     fflush(stdout);
 
 	lgs_free_mem(&LGS);
-    /*
-    for(j=0;j<lattice->num_cols;j++) {
-        for (i=0;i<=lattice->num_rows;i++) mpz_clear(lattice->basis[j][i].c);
-    }
-
-    free(lattice);
-    */
 
     return 0;
 }
