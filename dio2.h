@@ -89,9 +89,9 @@ extern double log_potential(DOUBLE **R, int s, int z);
 extern int log2mpz(mpz_t number);
 extern int get_bit_size(lattice_t *lattice);
 
-extern void lll(lattice_t *lattice, int s, int z, DOUBLE quality, int deepinsert_blocksize);
-extern DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE quality, int deepinsert_blocksize);
-extern DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE quality, int deepinsert_blocksize);
+extern void lll(lattice_t *lattice, int s, int z, DOUBLE quality, int reduction_type);
+extern DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE quality, int reduction_type);
+extern DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE quality, int reduction_type);
 
 extern DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p);
 extern DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block, DOUBLE improve_by, int p);

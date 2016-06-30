@@ -3,6 +3,10 @@
 
 #define DEEPINSERT 1
 #define DEEPINSERT_CONST 30
+
+#define CLASSIC_LLL -1
+#define POT_LLL -2
+
 #define VERBOSE 1
 
 #define GIVENS 1
