@@ -388,7 +388,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     /**
      * free multiprecision memory
      */
-    for (j = 0; j < lattice->num_cols; j++) {
+    for (j = 0; j < lattice->num_cols/* + ADDITIONAL_COLS*/; j++) {
         for (i = 0; i <= lattice->num_rows; i++) {
             mpz_clear(lattice->basis[j][i].c);
         }
@@ -440,7 +440,7 @@ void debug_print(char *m, int l) {
  */
 void print_lattice(lattice_t *lattice) {
     int i, j;
-    for (i = 0; i < lattice->num_cols; i++) {
+    for (i = 0; i <= lattice->num_cols; i++) {
         for (j = 0; j < lattice->num_rows; j++) {
             mpz_out_str(NULL, 10, get_entry(lattice->basis, i, j));
             printf(" ");
@@ -835,15 +835,23 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             }
             norm = SQRT(norm);
         #endif
-        if (norm < 0.5) {
+
+        if (norm != norm || norm < 0.5) {  // nan or < 0.5
+            print_lattice(lattice);
             swapvl = b[k];
-            for (i = k + 1; i < up; i++) {
+            //for (i = k + 1; i < up; i++) {
+            for (i = k + 1; i < lattice->num_cols; i++) {
                 b[i-1] = b[i];
             }
-            b[up - 1] = swapvl;
+            b[lattice->num_cols] = swapvl;
+
             up--;
+            lattice->num_cols--;
+
             k = 0;
+            print_lattice(lattice);
             fprintf(stderr, "Zero vector at %d\n", k);
+            fflush(stderr);
             continue;
         }
 
@@ -1384,6 +1392,7 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
     /* build new basis */
     for (j = 1; j <= z; j++)
         mpz_set_si(lattice->swap[j].c, 0);
+    coeffinit(lattice->swap, z);
 
     // Store new linear combination in lattice->swap
     for (i = start; i <= end; i++) {
@@ -1395,9 +1404,19 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
             }
         }
     }
+
+    #if 1
+    swapvl = b[lattice->num_cols];
+    for (i = lattice->num_cols; i > start; i--)
+        b[i] = b[i - 1];
+    b[start] = lattice->swap;
+    lattice->swap = swapvl;
+
+    lattice->num_cols++;
+
+    #else
     g = end;
     while (u[g] == 0) g--;
-
     i = g - 1;
     while (labs(u[g]) > 1) {
         while (u[i] == 0) i--;
@@ -1426,6 +1445,7 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
     for (j = 1; j <= z; j++)
         mpz_set_si(lattice->swap[j].c, 0);
     coeffinit(lattice->swap, z);
+    #endif
 
 }
 
@@ -1493,8 +1513,9 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
 
             /* successful enumeration */
             insert_vector(lattice, u, start_block, end_block, z, hv);
+            lllHfp(lattice, R, h_beta, H, start_block - 1, 0, s/*h + 1*/, z, delta, 10, bit_size);
+            //lattice->num_cols--;
 
-            lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, 10, bit_size);
             //start_block = lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, 10, bit_size);
             //fprintf(stderr, "%d\n", start_block);
 
