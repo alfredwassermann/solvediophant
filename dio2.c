@@ -859,7 +859,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             continue;
         }
 
-        /* fourth step: swap columns */        
+        /* fourth step: swap columns */
         if (reduction_type != POT_LLL) {
             if (reduction_type == CLASSIC_LLL) {
                 // Standard LLL
@@ -1470,14 +1470,18 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
     }
 
     lllalloc(&R, &h_beta, &N, &H, s, z);
-    lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size); // delta
+    //lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size);
 
     start_block = zaehler = -1;
     //start_block = 0;
     while (zaehler < last) {
         start_block++;
-        if (start_block == last)
+        if (start_block == last) {
             start_block = 0;
+        }
+        if (start_block == 0) {
+            lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size);
+        }
 
         end_block = start_block + beta - 1;
         end_block = (end_block < last) ? end_block : last;
@@ -1496,7 +1500,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
 
             /* successful enumeration */
             insert_vector(lattice, u, start_block, end_block, z, hv);
-            lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, POT_LLL, bit_size);
+            lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size);
             //lattice->num_cols--;
 
             //start_block = lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, 10, bit_size);
