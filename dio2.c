@@ -1470,7 +1470,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
     }
 
     lllalloc(&R, &h_beta, &N, &H, s, z);
-    //lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size);
+    lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size);
 
     start_block = zaehler = -1;
     //start_block = 0;
@@ -1480,7 +1480,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             start_block = 0;
         }
         if (start_block == 0) {
-            lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size);
+            //lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size);
         }
 
         end_block = start_block + beta - 1;
@@ -1503,7 +1503,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size);
             //lattice->num_cols--;
 
-            //start_block = lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, 10, bit_size);
+            //start_block = lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size);
             //fprintf(stderr, "%d\n", start_block);
 
             zaehler = -1;
