@@ -1428,8 +1428,15 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
     for (j = 1; j <= z; j++)
         mpz_set_si(lattice->swap[j].c, 0);
     coeffinit(lattice->swap, z);
-    #endif
 
+    for (j = 0; j < z; j++) {
+        mpz_out_str(stderr, 10, get_entry(lattice->basis, start, j));
+        fprintf(stderr," ");
+    }
+    fprintf(stderr, "\n");
+    fflush(stderr);
+
+    #endif
 }
 
 /**
@@ -1501,6 +1508,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             /* successful enumeration */
             insert_vector(lattice, u, start_block, end_block, z, hv);
             lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size);
+            //lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, 0.0, CLASSIC_LLL, bit_size);
             //lattice->num_cols--;
 
             //start_block = lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size);
