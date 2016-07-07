@@ -776,7 +776,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             }
             counter++;
         #endif
-        handle_signals(lattice);
+        handle_signals(lattice, R);
 
         #if 0
         // Look ahead
@@ -1526,7 +1526,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
         }
     } /* end of |while| */
 
-    lD = log_potential(R, s-1, z);
+    lD = log_potential(R, s, z);
 
     fprintf(stderr, "bkz: log(D)= %f\n", lD);
     fflush(stderr);
@@ -1596,7 +1596,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
         u_loc[t] = 1.0;
 
         while (t <= t_max) {
-            handle_signals(lattice);
+            handle_signals(lattice, R);
 
             x = (u_loc[t] + y[t]) * R[t][t];
             c[t] = c[t + 1] + x * x;
@@ -1730,7 +1730,7 @@ DOUBLE sample(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, i
         u_loc[t] = 1.0;
 
         while (t <= t_max) {
-            handle_signals(lattice);
+            handle_signals(lattice, R);
 
             x = (u_loc[t] + y[t]) * R[t][t];
             c[t] = c[t + 1] + x * x;
@@ -2085,7 +2085,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
             fflush(stdout);
         }
 #endif
-        handle_signals(lattice);
+        handle_signals(lattice, NULL);
 
         /* compute new |cs| */
         //olddum = dum[level];
@@ -2662,15 +2662,27 @@ void dump_lattice_sig(int sig) {
     DUMP_REQUIRED = 1;
 }
 
-void handle_signals(lattice_t *lattice) {
-    if (PRINT_REQUIRED) {
-        print_lattice(lattice);
+void handle_signals(lattice_t *lattice, DOUBLE **R) {
+    if (PRINT_REQUIRED && R != NULL) {
+        //print_lattice(lattice);
+        print_lattice_stat(lattice, R);
         PRINT_REQUIRED = 0;
     }
     if (DUMP_REQUIRED) {
         dump_lattice(lattice);
         DUMP_REQUIRED = 0;
     }
+}
+
+void print_lattice_stat(lattice_t *lattice, DOUBLE **R) {
+    int i;
+    printf("--------------------------------\n");
+    for (i = 0; i < lattice->num_cols; i++) {
+        printf("%0.3lf ", R[i][i]);
+    }
+    printf("\n logD=%0.3lf\n", log_potential(R, lattice->num_cols, lattice->num_rows));
+    printf("--------------------------------\n");
+    fflush(stdout);
 }
 
 void shufflelattice(lattice_t *lattice) {

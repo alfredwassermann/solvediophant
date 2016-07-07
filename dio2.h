@@ -56,7 +56,7 @@ extern long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart,
 
 extern long nosolutions;
 
-extern void handle_signals(lattice_t *lattice);
+extern void handle_signals(lattice_t *lattice, DOUBLE **R);
 extern void stop_program_sig(int sig);
 extern void print_lattice_sig(int sig);
 extern void dump_lattice_sig(int sig);
@@ -65,6 +65,7 @@ extern void dump_lattice_sig(int sig);
 extern void print_num_solutions(long num_solutions);
 extern void debug_print(char *m, int l);
 extern void print_lattice(lattice_t *lattice);
+extern void print_lattice_stat(lattice_t *lattice, DOUBLE **R);
 extern void dump_lattice(lattice_t *lattice);
 extern void load_lattice(lattice_t *lattice, char *fname);
 
@@ -111,7 +112,7 @@ extern int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps);
 extern int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
                      int *first_nonzero_in_column, int *firstp,
                      DOUBLE **bd, DOUBLE *y, DOUBLE *us, int columns);
-                     
+
 extern int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns);
 extern void shufflelattice(lattice_t *lattice);
 extern DOUBLE GH(DOUBLE **R, int low, int up);
