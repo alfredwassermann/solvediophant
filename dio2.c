@@ -1373,13 +1373,14 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
     long q, ui;
 
     /* build new basis */
-    for (j = 1; j <= z; j++)
+    for (j = 1; j <= z; j++) {
         mpz_set_si(lattice->swap[j].c, 0);
+    }
     coeffinit(lattice->swap, z);
 
     // Store new linear combination in lattice->swap
     for (i = start; i <= end; i++) {
-        if (u[i] != 0) for(j = 1; j <= z; j++) {
+        if (u[i] != 0) for (j = 1; j <= z; j++) {
             if (u[i] > 0) {
                 mpz_addmul_ui(lattice->swap[j].c, b[i][j].c, u[i]);
             } else {
@@ -1398,43 +1399,44 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
     lattice->num_cols++;
 
     #else
-    g = end;
-    while (u[g] == 0) g--;
-    i = g - 1;
-    while (labs(u[g]) > 1) {
-        while (u[i] == 0) i--;
-        q = (long)ROUND((1.0 * u[g]) / u[i]);
-        ui = u[i];
-        u[i] = u[g] - q*u[i];
-        u[g] = ui;
+        g = end;
+        while (u[g] == 0) g--;
+        i = g - 1;
+        while (labs(u[g]) > 1) {
+            while (u[i] == 0) i--;
+            q = (long)ROUND((1.0 * u[g]) / u[i]);
+            ui = u[i];
+            u[i] = u[g] - q*u[i];
+            u[g] = ui;
 
-        for (j = 1; j <= z; j++) {
-            mpz_set(hv, b[g][j].c);
-            mpz_mul_si(b[g][j].c, b[g][j].c, (long)q);
-            mpz_add(b[g][j].c, b[g][j].c, b[i][j].c);
-            mpz_set(b[i][j].c, hv);
+            for (j = 1; j <= z; j++) {
+                mpz_set(hv, b[g][j].c);
+                mpz_mul_si(b[g][j].c, b[g][j].c, (long)q);
+                mpz_add(b[g][j].c, b[g][j].c, b[i][j].c);
+                mpz_set(b[i][j].c, hv);
+            }
+            coeffinit(b[g], z);
+            coeffinit(b[i], z);
         }
-        coeffinit(b[g], z);
-        coeffinit(b[i], z);
-    }
 
-    swapvl = b[g];
-    for (i = g; i > start; i--)
-        b[i] = b[i - 1];
-    b[start] = lattice->swap;
-    coeffinit(b[start], z);
+        swapvl = b[g];
+        for (i = g; i > start; i--) {
+            b[i] = b[i - 1];
+        }
+        b[start] = lattice->swap;
+        coeffinit(b[start], z);
 
-    lattice->swap = swapvl;
-    for (j = 1; j <= z; j++)
-        mpz_set_si(lattice->swap[j].c, 0);
-    coeffinit(lattice->swap, z);
+        lattice->swap = swapvl;
+        for (j = 1; j <= z; j++)
+            mpz_set_si(lattice->swap[j].c, 0);
+        coeffinit(lattice->swap, z);
 
-    for (j = 0; j < z; j++) {
-        mpz_out_str(stderr, 10, get_entry(lattice->basis, start, j));
-        fprintf(stderr," ");
-    }
-    fprintf(stderr, "\n");
-    fflush(stderr);
+        for (j = 0; j < z; j++) {
+            mpz_out_str(stderr, 10, get_entry(lattice->basis, start, j));
+            fprintf(stderr," ");
+        }
+        fprintf(stderr, "\n");
+        fflush(stderr);
 
     #endif
 }
@@ -2678,7 +2680,7 @@ void print_lattice_stat(lattice_t *lattice, DOUBLE **R) {
     int i;
     printf("--------------------------------\n");
     for (i = 0; i < lattice->num_cols; i++) {
-        printf("%0.3lf ", R[i][i]);
+        printf("%0.3lf ", R[i][i] * R[i][i]);
     }
     printf("\n logD=%0.3lf\n", log_potential(R, lattice->num_cols, lattice->num_rows));
     printf("--------------------------------\n");
