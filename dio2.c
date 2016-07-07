@@ -1390,14 +1390,12 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
     }
 
     #if 0
-    swapvl = b[lattice->num_cols];
-    for (i = lattice->num_cols; i > start; i--)
-        b[i] = b[i - 1];
-    b[start] = lattice->swap;
-    lattice->swap = swapvl;
-
-    lattice->num_cols++;
-
+        swapvl = b[lattice->num_cols];
+        for (i = lattice->num_cols; i > start; i--)
+            b[i] = b[i - 1];
+        b[start] = lattice->swap;
+        lattice->swap = swapvl;
+        lattice->num_cols++;
     #else
         g = end;
         while (u[g] == 0) g--;
@@ -1448,7 +1446,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
     DOUBLE **R, *h_beta, *N;
     DOUBLE **H;
     DOUBLE r_tt;
-    DOUBLE new_cj;
+    DOUBLE new_cj, new_cj2;
     DOUBLE lD;
 
     static mpz_t hv;
@@ -1497,7 +1495,6 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
 
         new_cj = enumerate(lattice, R, u, s, start_block, end_block, delta, p);
         //new_cj = sample(lattice, R, u, s, start_block, last);
-
         h = (end_block + 1 < last) ? end_block + 1 : last;
 
         r_tt = R[start_block][start_block];
@@ -1509,6 +1506,13 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
 
             /* successful enumeration */
             insert_vector(lattice, u, start_block, end_block, z, hv);
+            i = householder_column(lattice->basis, R, H, h_beta, start_block, start_block + 1, z, bit_size);
+            new_cj2 = R[i][i] * R[i][i];
+            if (fabs(new_cj2 - new_cj) > EPSILON) {
+                fprintf(stderr, "???????????????? We have a problem: %lf %lf\n", new_cj2, new_cj);
+                fflush(stdout);
+            }
+
             lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size);
             //lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, 0.0, CLASSIC_LLL, bit_size);
             //lattice->num_cols--;
