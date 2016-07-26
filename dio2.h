@@ -3,6 +3,8 @@
 #include <gmp.h>
 #include "lgs.h"
 
+#define TRUE 1
+#define FALSE 0
 #define SQRT sqrt
 #define DOUBLE double
 

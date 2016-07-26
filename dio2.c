@@ -706,6 +706,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
     coeff_t **b = lattice->basis;
     int i, j, k;
+    int cnt_tricol;
     DOUBLE norm;
     int mu_all_zero;
 
@@ -731,9 +732,9 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         theta = 0.50;
         eta = 0.52;
     } else if (bit_size > 55) {
-        theta = 0.05;
+        theta = 0.1;
     } else if (bit_size > 30) {
-        theta = 0.01;
+        theta = 0.04;
     } else {
         theta = 0.0;
     }
@@ -793,24 +794,34 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         #endif
 
 
+        cnt_tricol = 0;
     start_tricol:
         /* Recompute column k of R */
         i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
 
         /* size reduction of $b_k$ */
-        mu_all_zero = 1;
+        mu_all_zero = TRUE;
         for (j = k - 1; j >= low; j--) {
+            /* Subtract suitable multiple of $b_j$ from $b_k$. */
             if (fabs(R[k][j]) > eta * fabs(R[j][j]) + theta * fabs(R[k][k])) {
                 mus = ROUND(R[k][j] / R[j][j]);
                 mpz_set_d(musvl, mus);
-                mu_all_zero = 0;
-
+                mu_all_zero = FALSE;
+if (cnt_tricol > 1000) {
+    fprintf(stderr, "%d: %0.2lf, %lf %lf %lf\n\t %lf\n", j, mus, fabs(R[k][j]), fabs(R[j][j]), fabs(R[k][k]), eta * fabs(R[j][j]) + theta * fabs(R[k][k]));
+}
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
                 size_reduction(b, R, musvl, mus, k, j);
                 solutiontest(lattice, k);
-            } else {
-            }
+            } else {}
         }
+
+        if (cnt_tricol > 0 && cnt_tricol % 1000 == 0) {
+            fprintf(stderr, "tricol %d at %d\n", cnt_tricol, k);
+            fflush(stderr);
+        }
+        cnt_tricol++;
+
         if (!mu_all_zero) {
             goto start_tricol;
         }
