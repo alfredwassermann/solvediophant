@@ -97,8 +97,11 @@ extern DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOU
 extern DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE quality, int reduction_type);
 
 extern DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p);
+extern DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p);
 extern DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block, DOUBLE improve_by, int p);
+extern DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block, DOUBLE improve_by, int p);
 extern void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t hv);
+extern void dual_insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t hv);
 
 extern DOUBLE sample(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block);
 extern DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows);

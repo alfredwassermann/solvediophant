@@ -327,14 +327,24 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         i = 0;
         do {
             lD = lDnew;
+
+            #if 1
+            lDnew = dual_bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
+                            lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p);
+            fprintf(stderr, "Dual BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
+            fflush(stderr);
+            #endif
+
+
             //shufflelattice(lattice);
             lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
                             lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p);
             fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
             fflush(stderr);
+
             i++;
         }
-        while (i < 1 && fabs(lDnew - lD) > 0.01);
+        while (i < 4 && fabs(lDnew - lD) > 0.01);
     }
     fprintf(stderr, "Third reduction successful\n"); fflush(stderr);
 
@@ -1450,6 +1460,168 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
     #endif
 }
 
+void dual_insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t hv) {
+    coeff_t **b = lattice->basis;
+    coeff_t *swapvl;
+    int i, j, g;
+    long q, ui;
+
+    /* build new basis */
+    for (j = 1; j <= z; j++) {
+        mpz_set_si(lattice->swap[j].c, 0);
+    }
+    coeffinit(lattice->swap, z);
+
+    // Store new linear combination in lattice->swap
+    for (i = start; i <= end; i++) {
+        if (u[i] != 0) for (j = 1; j <= z; j++) {
+            if (u[i] > 0) {
+                mpz_addmul_ui(lattice->swap[j].c, b[i][j].c, u[i]);
+            } else {
+                mpz_submul_ui(lattice->swap[j].c, b[i][j].c, -u[i]);
+            }
+        }
+    }
+
+    #if 0
+        swapvl = b[lattice->num_cols];
+        for (i = lattice->num_cols; i > start; i--)
+            b[i] = b[i - 1];
+        b[start] = lattice->swap;
+        lattice->swap = swapvl;
+        lattice->num_cols++;
+    #else
+        g = start;
+        while (u[g] == 0) g++;
+        i = g + 1;
+        while (labs(u[g]) > 1) {
+            while (u[i] == 0) i++;
+            q = (long)ROUND((1.0 * u[g]) / u[i]);
+            ui = u[i];
+            u[i] = u[g] - q*u[i];
+            u[g] = ui;
+
+            for (j = 1; j <= z; j++) {
+                mpz_set(hv, b[g][j].c);
+                mpz_mul_si(b[g][j].c, b[g][j].c, (long)q);
+                mpz_add(b[g][j].c, b[g][j].c, b[i][j].c);
+                mpz_set(b[i][j].c, hv);
+            }
+            coeffinit(b[g], z);
+            coeffinit(b[i], z);
+        }
+
+        swapvl = b[g];
+        for (i = g; i < end; i++) {
+            b[i] = b[i + 1];
+        }
+        b[end] = lattice->swap;
+        coeffinit(b[end], z);
+
+        lattice->swap = swapvl;
+        for (j = 1; j <= z; j++)
+            mpz_set_si(lattice->swap[j].c, 0);
+        coeffinit(lattice->swap, z);
+
+        for (j = 0; j < z; j++) {
+            mpz_out_str(stderr, 10, get_entry(lattice->basis, start, j));
+            fprintf(stderr," ");
+        }
+        fprintf(stderr, "\n");
+        fflush(stderr);
+
+    #endif
+}
+
+
+DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
+    DOUBLE **R, *h_beta, *N;
+    DOUBLE **H;
+    DOUBLE r_tt;
+    DOUBLE new_cj, new_cj2;
+    DOUBLE lD;
+
+    static mpz_t hv;
+    int zaehler;
+    int h, i, last;
+    int start_block, end_block;
+    int bit_size = get_bit_size(lattice);
+
+    long *u;
+
+    mpz_init(hv);
+
+    last = s - 1;    /* |last| points to the last nonzero vector of the lattice.*/
+    if (last < 1) {
+        printf("BKZ: the number of basis vectors is too small.\n");
+        printf("Probably the number of rows is less or equal");
+        printf(" to number of columns in the original system\n");
+        printf("Maybe you have to increase c0 (the first parameter)!\n");
+
+        mpz_clear(hv);
+        return 0.0;
+    }
+
+    fprintf(stderr, "######### DUAL BKZ ########\n");
+    u = (long*)calloc(s, sizeof(long));
+    for (i = 0; i < s; i++) {
+        u[i] = 0;
+    }
+
+    lllalloc(&R, &h_beta, &N, &H, s, z);
+    lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size);
+
+    zaehler = -1;
+    end_block = last;
+    //start_block = 0;
+    while (zaehler < last) {
+        end_block--;
+        if (end_block == 0) {
+            end_block = last;
+        }
+
+        start_block = end_block - beta + 1;
+        start_block = (start_block >= 0) ? start_block : 0;
+
+        new_cj = dual_enumerate(lattice, R, u, s, start_block, end_block, delta, p);
+        h = (end_block + 1 < last) ? end_block + 1 : last;
+
+        r_tt = 1.0 / R[end_block][end_block];
+        r_tt *= r_tt;
+        if (delta * r_tt > new_cj) {
+            fprintf(stderr, "dual enumerate successful %d %lf improvement: %lf\n",
+                start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
+            fflush(stderr);
+
+            /* successful enumeration */
+            dual_insert_vector(lattice, u, start_block, end_block, z, hv);
+            i = householder_column(lattice->basis, R, H, h_beta, end_block, end_block + 1, z, bit_size);
+            new_cj2 = 1.0 / (R[i][i] * R[i][i]);
+            if (FALSE && fabs(new_cj2 - new_cj) > EPSILON) {
+                fprintf(stderr, "???????????????? We have a problem: %lf %lf\n", new_cj2, new_cj);
+                fflush(stderr);
+                exit(1);
+            }
+
+            lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size);
+            //zaehler = -1;
+            zaehler++;
+        } else {
+            zaehler++;
+        }
+    } /* end of |while| */
+
+    lD = log_potential(R, s, z);
+
+    fprintf(stderr, "bkz: log(D)= %f\n", lD);
+    fflush(stderr);
+    lllfree(R, h_beta, N, H, s);
+    free(u);
+    mpz_clear(hv);
+
+    return lD;
+}
+
 /**
  * Blockwise Korkine Zolotareff reduction
  */
@@ -1505,7 +1677,6 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
         end_block = (end_block < last) ? end_block : last;
 
         new_cj = enumerate(lattice, R, u, s, start_block, end_block, delta, p);
-        //new_cj = sample(lattice, R, u, s, start_block, last);
         h = (end_block + 1 < last) ? end_block + 1 : last;
 
         r_tt = R[start_block][start_block];
@@ -1600,6 +1771,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     }
     c_min *= improve_by;
 
+    // Find minimum Eigen value
     i = start_block;
     lambda_min[i] = R[i][i] * R[i][i];
     for (i = start_block + 1; i <= end_block; ++i) {
@@ -1649,6 +1821,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
             radius = alpha * c_min;
 
             #if 0
+            // Use minimum Eigen value
             if (t - start_block + 1 > 5) {
                 x = lambda_min[t] * (t - start_block + 1) / 32;
                 //fprintf(stderr, "> %lf\n", x);
@@ -1706,6 +1879,127 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
 
     if (!found_improvement) {
         c_min = R[start_block][start_block];
+        c_min *= c_min;
+    }
+    return (c_min);
+}
+
+
+DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
+                    int start_block, int end_block, DOUBLE improve_by, int p) {
+    DOUBLE x;
+    DOUBLE *y, *c, *a;
+    DOUBLE c_min;
+
+    int i, j;
+    int t, t_min;
+    int found_improvement = 0;
+
+    long *delta, *d, *v;
+    DOUBLE *u_loc;
+    int len, k;
+    double alpha, radius;
+    int SCHNITT = 10;
+
+    c = (DOUBLE*)calloc(s+1, sizeof(DOUBLE));
+    y = (DOUBLE*)calloc(s+1, sizeof(DOUBLE));
+    a = (DOUBLE*)calloc(s+1, sizeof(DOUBLE));
+    d = (long*)calloc(s+1, sizeof(long));
+    v = (long*)calloc(s+1, sizeof(long));
+    u_loc = (DOUBLE*)calloc(s+1, sizeof(DOUBLE));
+    delta = (long*)calloc(s+1, sizeof(long));
+
+    len = end_block + 1 - start_block;
+    for (i = start_block; i <= end_block; i++) {
+        c[i] = y[i] = a[i] = 0.0;
+        u_loc[i] = 0.0;
+        v[i] = delta[i] = 0;
+        d[i] = 1;
+    }
+    c_min = 1.0 / (R[end_block][end_block] * R[end_block][end_block]);
+    c_min *= improve_by;
+
+    for (t_min = end_block - 1; t_min >= start_block+1; t_min--) {
+        t = t_min;
+        u_loc[t] = 1.0;
+
+        //fprintf(stderr, "LOOP %d %d %d\n", t_min, end_block, s+1);
+        while (t >= t_min) {
+            handle_signals(lattice, R);
+
+            a[t] = u_loc[t] - y[t];
+            x = a[t] / R[t][t];
+            if (t > 0) {
+                c[t] = c[t - 1] + x * x;
+            } else {
+                c[t] = x * x;
+            }
+
+            if (len <= SCHNITT) {
+                alpha = 1.0;
+            } else {
+                p = 0.5;
+                k = (end_block + 1 - t);
+                if (k > len / 2) {
+                    alpha = p * 2 * k / len;
+                    alpha = 1.0;
+                } else {
+                    alpha = 2 * p - 1 + 2 * k * (1 - p) / len;
+                }
+                alpha = (alpha < 1.0) ? alpha : 1.0;
+            }
+            radius = alpha * c_min;
+
+            if (c[t] < radius - EPSILON) {
+                if (t < end_block) {
+                    // forward
+                    t++;
+
+                    #if BLAS
+                        y[t] = cblas_ddot(t - t_min, &(u_loc[t_min]), 1, &(R[t][t_min]), 1);
+                    #else
+                        for (j = t_min, y[t] = 0.0; j < t; j++) {
+                            y[t] += a[j] * R[t][j];
+                        }
+                    #endif
+                    y[t] /= R[t][t];
+
+                    u_loc[t] = v[t] = (long)(ROUND(y[t]));
+                    delta[t] = 0;
+                    d[t] = (v[t] > y[t]) ? -1 : 1;
+
+                    continue;
+                } else {
+                    // Found shorter vector
+                    c_min = c[t];
+                    for (i = start_block; i <= end_block; i++) {
+                        u[i] = (long)round(u_loc[i]);
+                        fprintf(stderr, "%ld ", u[i]);
+                    }
+                    fprintf(stderr, "\n");
+                    found_improvement = 1;
+                }
+            } else {
+                // back
+                t--;
+            }
+            // next
+            if (t > t_min) delta[t] *= -1.0;
+            if (delta[t] * d[t] >= 0) delta[t] += d[t];
+            u_loc[t] = v[t] + delta[t];
+        }
+    }
+
+    free(delta);
+    free(u_loc);
+    free(v);
+    free(d);
+    free(a);
+    free(y);
+    free(c);
+
+    if (!found_improvement) {
+        c_min = 1.0 / R[end_block][end_block];
         c_min *= c_min;
     }
     return (c_min);
