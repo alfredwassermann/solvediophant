@@ -339,10 +339,11 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
                 fprintf(stderr, "Dual BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
             }
             fflush(stderr);
+            dump_lattice(lattice);
 
             i++;
         }
-        while (i < 4 && fabs(lDnew - lD) > 0.01);
+        while (i < 20 && fabs(lDnew - lD) > 0.01);
     }
     fprintf(stderr, "Third reduction successful\n"); fflush(stderr);
 
@@ -1549,7 +1550,7 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p)
 
     static mpz_t hv;
     int zaehler;
-    int h, i, last;
+    int h, i, last, h_end;
     int start_block, end_block;
     int bit_size = get_bit_size(lattice);
 
@@ -1582,15 +1583,16 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p)
     //start_block = 0;
     while (zaehler < last) {
         end_block--;
-        if (end_block == 0) {
-            end_block = last;
+        if (end_block < 2) {
+            break;
         }
+        h_end = (end_block < last) ? end_block + 1 : last;
 
         start_block = end_block - beta + 1;
         start_block = (start_block >= 0) ? start_block : 0;
 
         new_cj = dual_enumerate(lattice, R, u, s, start_block, end_block, delta, p);
-        h = (end_block + 1 < last) ? end_block + 1 : last;
+        h = (start_block - 1 < 0) ? 0 : start_block - 1;
 
         r_tt = 1.0 / R[end_block][end_block];
         r_tt *= r_tt;
@@ -1608,14 +1610,15 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p)
                 fflush(stderr);
                 exit(1);
             }
-
-            lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size);
+            lllHfp(lattice, R, h_beta, H, h, 0, h_end, z, delta, CLASSIC_LLL, bit_size);
             //zaehler = -1;
             zaehler++;
         } else {
             zaehler++;
         }
     } /* end of |while| */
+
+    lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size);
 
     lD = log_potential(R, s, z);
 
@@ -1953,13 +1956,11 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
             if (len <= SCHNITT) {
                 alpha = 1.0;
             } else {
-                p = 0.5;
-                k = (end_block + 1 - t);
-                if (k > len / 2) {
-                    alpha = p * 2 * k / len;
+                k = t - start_block + 1;
+                if (k > 2 * len / 4) {
                     alpha = 1.0;
                 } else {
-                    alpha = 2 * p - 1 + 2 * k * (1 - p) / len;
+                    alpha = 0.8;
                 }
                 alpha = (alpha < 1.0) ? alpha : 1.0;
             }
