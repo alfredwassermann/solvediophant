@@ -32,10 +32,9 @@ typedef struct {
     int num_rows;
     int num_cols;
     coeff_t **basis;
-    //coeff_t **basis_s;
-    //
     long **basis_long;
     coeff_t *swap;
+    long *swap_long;
 
     mpz_t matrix_factor;
     mpz_t max_norm;
@@ -45,6 +44,6 @@ typedef struct {
     lll_params_t LLL_params;
 } lattice_t;
 
-#define ADDITIONAL_COLS 20
+#define ADDITIONAL_COLS 1
 
 #endif

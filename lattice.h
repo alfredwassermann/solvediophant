@@ -38,4 +38,7 @@ extern int log2mpz(mpz_t number);
 extern int get_bit_size(lattice_t *lattice);
 
 extern void shufflelattice(lattice_t *lattice);
+
+extern void copy_lattice_to_long(lattice_t *lattice);
+extern void copy_lattice_to_mpz(lattice_t *lattice);
 #endif

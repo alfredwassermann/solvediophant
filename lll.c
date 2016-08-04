@@ -450,7 +450,7 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
     }
 }
 
-int lllHfp_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
+int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             int start, int low, int up, int z,
             DOUBLE delta, int reduction_type,
             int bit_size,
@@ -466,7 +466,6 @@ int lllHfp_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
     DOUBLE mus;
     long musl;
-    long hv;
 
     DOUBLE r_new, r_act;
     DOUBLE pot, pot_max;
@@ -705,7 +704,7 @@ int householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int 
 
     for (l = k; l < s; l++) {
         for (j = 0; j < z; ++j) {
-            R[k][j] = (DOUBLE)b[l][j];
+            R[k][j] = b[l][j];
         }
 
     #if BLAS

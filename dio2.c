@@ -103,21 +103,18 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
      * allocate memory
      */
     lattice->basis = (coeff_t**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(coeff_t*));
+    lattice->basis_long = (long**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(long*));
     for (j = 0; j < lattice->num_cols/* + ADDITIONAL_COLS*/; j++) {
         lattice->basis[j] = (coeff_t*)calloc(lattice->num_rows + 1, sizeof(coeff_t));
+        lattice->basis_long[j] = (long*)calloc(lattice->num_rows, sizeof(long));
         for (i = 0; i <= lattice->num_rows; i++)
             mpz_init(lattice->basis[j][i].c);
     }
-    // lattice->basis_s = (coeff_t**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(coeff_t*));
-    // for (j = 0; j < lattice->num_cols + ADDITIONAL_COLS; j++) {
-    //     lattice->basis_s[j] = (coeff_t*)calloc(lattice->num_rows + 1, sizeof(coeff_t));
-    //     for (i = 0; i <= lattice->num_rows; i++)
-    //         mpz_init(lattice->basis_s[j][i].c);
-    // }
-
     lattice->swap = (coeff_t*)calloc(lattice->num_rows + 1, sizeof(coeff_t));
-    for (i = 0; i <= lattice->num_rows; i++)
+    lattice->swap_long = (long*)calloc(lattice->num_rows + 1, sizeof(long));
+    for (i = 0; i <= lattice->num_rows; i++) {
         mpz_init(lattice->swap[i].c);
+    }
 
     /**
      * read the system
@@ -340,7 +337,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 
             i++;
         }
-        while (i < 1 && fabs(lDnew - lD) > 0.01);
+        while (i < 2 && fabs(lDnew - lD) > 0.01);
     }
     fprintf(stderr, "Third reduction successful\n"); fflush(stderr);
 
@@ -385,8 +382,11 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             mpz_clear(lattice->basis[j][i].c);
         }
         free(lattice->basis[j]);
+        free(lattice->basis_long[j]);
     }
     free(lattice->basis);
+    free(lattice->basis_long);
+
     for (i = 0; i <= lattice->num_rows; i++) {
         mpz_clear(lattice->swap[i].c);
     }
@@ -547,7 +547,7 @@ int solutiontest(lattice_t *lattice, int position) {
         printf(" L = ");
         mpz_out_str(NULL,10,soltest_u);
     }
-    printf("\n");
+    printf(" !!\n");
     fflush(stdout);
 
     /* test if one solution is enough */
@@ -560,6 +560,108 @@ int solutiontest(lattice_t *lattice, int position) {
 
     return 1;
 }
+
+int solutiontest_long(lattice_t *lattice, int position) {
+    int i, j;
+    int low, up;
+    int end;
+
+    #if 0
+    int is_good = TRUE;
+    for (j = 0; j < lattice->num_rows; ++j) {
+        if (labs(lattice->basis_long[position][j]) != 1) {
+            is_good = FALSE;
+            break;
+        }
+    }
+    if (is_good) {
+        printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SOLUTION\n");
+    }
+    #endif
+
+    for (j = 0; j < lattice->num_rows; ++j) {
+        mpz_set_si(lattice->basis[position][j+1].c, lattice->basis_long[position][j]);
+    }
+    coeffinit(lattice->basis[position], lattice->num_rows);
+
+    /* test the last two rows */
+    if (mpz_cmpabs(get_entry(lattice->basis, position, lattice->num_rows-1), lattice->max_norm) !=0 ) return 0;
+    if (mpz_sgn(get_entry(lattice->basis, position, lattice->num_rows-1-free_RHS)) ==0 ) return 0;
+
+    /* test, if column is a solution */
+    low = 0;
+    up = lattice->num_rows-1-free_RHS;
+    if (lattice->num_cols == system_columns + 1 + free_RHS) {
+        for (i = 0; i < system_rows; i++)
+            if (mpz_sgn(get_entry(lattice->basis, position, i))!=0) return 0;
+        low = system_rows;
+    }
+
+    if (iszeroone) {
+        for (i=low;i<up;i++) {
+            if (mpz_cmpabs(get_entry(lattice->basis, position,i), lattice->max_norm)!=0) return 0;
+        }
+    } else {
+        for (i=low;i<up;i++) {
+            if (mpz_cmpabs(get_entry(lattice->basis, position,i), lattice->max_norm)>0) return 0;
+        }
+    }
+
+    mpz_set_si(upfac,1);
+    mpz_divexact(soltest_s, get_entry(lattice->basis, position, lattice->num_rows-1), lattice->LLL_params.scalelastlinefactor);
+
+    /* write a solution with blanks */
+    i = low;
+
+    end = (lattice->cut_after == -1) ? no_original_columns : lattice->cut_after;
+
+    for (j = 0; j < end; j++) {
+        if (original_columns[j] == 0) {
+            mpz_set_si(soltest_u,0);
+        } else {
+            if (!iszeroone) {
+                if (mpz_cmp_si(upperbounds[i-low],0) != 0) {
+                    mpz_divexact(soltest_upfac,upperbounds_max,upperbounds[i-low]);
+                } else {
+                    mpz_set(soltest_upfac,upperbounds_max);
+                }
+            }
+            mpz_set(soltest_u,get_entry(lattice->basis, position, i));
+            mpz_sub(soltest_u,soltest_u,soltest_s);
+            mpz_divexact(soltest_u,soltest_u,max_norm_initial);
+            mpz_divexact(soltest_u,soltest_u,soltest_upfac);
+            mpz_divexact_ui(soltest_u,soltest_u,denom);
+            mpz_abs(soltest_u,soltest_u);
+            i++;
+        }
+        mpz_out_str(NULL,10,soltest_u);
+        printf(" ");
+        if (lattice->LLL_params.stop_after_solutions == 1) {
+            mpz_out_str(fp,10,soltest_u);
+            fprintf(fp," ");
+        }
+    }
+    if (free_RHS) {
+        mpz_divexact(soltest_u, get_entry(lattice->basis, position, up), max_up);
+        mpz_divexact(soltest_u, soltest_u, lattice->LLL_params.scalelastlinefactor);
+        mpz_abs(soltest_u,soltest_u);
+        printf(" L = ");
+        mpz_out_str(NULL,10,soltest_u);
+    }
+    printf(" ||\n");
+    fflush(stdout);
+
+    /* test if one solution is enough */
+    if (lattice->LLL_params.stop_after_solutions == 1) {
+        fprintf(fp,"\n");
+
+        fprintf(stderr, "Stopped in phase 1 after finding a random solution\n");
+        exit(8);
+    }
+
+    return 1;
+}
+
 
 /**
  * LLL variants
@@ -587,13 +689,19 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
     int r, l, i, j, runs;
     int bit_size;
     coeff_t *swapvl;
+    long *swap;
     DOUBLE lD;
 
     lllalloc(&R, &beta, &N, &H, s, z);
 
     bit_size = get_bit_size(lattice);
 
-    r = lllHfp(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest);
+    if (bit_size < 32) {
+        copy_lattice_to_long(lattice);
+        r = lllH_long(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest_long);
+    } else {
+        r = lllHfp(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest);
+    }
     lD = log_potential(R, s, z);
     fprintf(stderr, "   log(D)= %f\n", lD);
     fflush(stderr);
@@ -618,14 +726,25 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
                 swapvl = lattice->basis[i];
                 lattice->basis[i] = lattice->basis[r];
                 lattice->basis[r] = swapvl;
+
+                swap = lattice->basis_long[i];
+                lattice->basis_long[i] = lattice->basis_long[r];
+                lattice->basis_long[r] = swap;
+
             }
         }
-        r = lllHfp(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest);
+        if (bit_size < 32) {
+            r = lllH_long(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest_long);
+        } else {
+            r = lllHfp(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest);
+        }
         lD = log_potential(R, s, z);
         fprintf(stderr, "%d: log(D)= %f\n", runs, lD);
         fflush(stdout);
     }
-
+    if (bit_size < 32) {
+        copy_lattice_to_mpz(lattice);
+    }
     lllfree(R, beta, N, H, s);
 
     return lD;
@@ -750,6 +869,61 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
         fprintf(stderr, "\n");
         fflush(stderr);
         #endif
+    #endif
+}
+
+
+void insert_vector_long(lattice_t *lattice, long *u, int start, int end, int z) {
+    long **b = lattice->basis_long;
+    long *swap;
+    int i, j, g;
+    long q, ui;
+    long hv;
+
+    /* build new basis */
+    for (j = 0; j < z; j++) {
+        lattice->swap_long[j] = 0;
+    }
+
+    // Store new linear combination in lattice->swap
+    for (i = start; i <= end; i++) {
+        if (u[i] != 0) for (j = 0; j < z; j++) {
+            lattice->swap_long[j] += b[i][j] * u[i];
+        }
+    }
+
+    #if 0
+    #else
+        g = end;
+        while (u[g] == 0) g--;
+        i = g - 1;
+        while (labs(u[g]) > 1) {
+            while (u[i] == 0) i--;
+            q = (long)ROUND((1.0 * u[g]) / u[i]);
+            ui = u[i];
+            u[i] = u[g] - q*u[i];
+            u[g] = ui;
+
+            // (b[g], b[i]) = (b[g] * q + b[i], b[g])
+            for (j = 0; j < z; j++) {
+                hv = b[g][j];
+                b[g][j] = b[g][j] * q + b[i][j];
+                b[i][j] = hv;
+            }
+        }
+
+        // (b[start], b[start+1], ... , b[g]) -> (b[g], b[start], ... , b[g-1])
+        swap = b[g];
+        for (i = g; i > start; i--) {
+            b[i] = b[i - 1];
+        }
+        b[start] = lattice->swap_long;
+
+        lattice->swap_long = swap;
+        for (j = 0; j < z; j++) {
+            lattice->swap_long[j] = 0;
+        }
+
     #endif
 }
 
@@ -961,7 +1135,12 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
     }
 
     lllalloc(&R, &h_beta, &N, &H, s, z);
-    lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
+    if (bit_size < 32) {
+        copy_lattice_to_long(lattice);
+        lllH_long(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest_long);
+    } else {
+        lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
+    }
 
     start_block = zaehler = -1;
     //start_block = 0;
@@ -988,15 +1167,23 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             fflush(stderr);
 
             /* successful enumeration */
-            insert_vector(lattice, u, start_block, end_block, z, hv);
-            i = householder_column(lattice->basis, R, H, h_beta, start_block, start_block + 1, z, bit_size);
+            if (bit_size < 32) {
+                insert_vector_long(lattice, u, start_block, end_block, z);
+            } else {
+                insert_vector(lattice, u, start_block, end_block, z, hv);
+            }
+            i = householder_column_long(lattice->basis_long, R, H, h_beta, start_block, start_block + 1, z, bit_size);
             new_cj2 = R[i][i] * R[i][i];
             if (fabs(new_cj2 - new_cj) > EPSILON) {
                 fprintf(stderr, "???????????????? We have a problem: %lf %lf\n", new_cj2, new_cj);
                 fflush(stdout);
             }
 
-            lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size, solutiontest);
+            if (bit_size < 32) {
+                lllH_long(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size, solutiontest_long);
+            } else {
+                lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size, solutiontest);
+            }
             //lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
             //lattice->num_cols--;
 
@@ -1008,12 +1195,19 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             //fprintf(stderr, "enumerate: no improvement %d\n", zaehler);
             //fflush(stderr);
             if (h > 0) {
-                lllHfp(lattice, R, h_beta, H, h - 1, h - 1, h + 1, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
+                if (bit_size < 32) {
+                    lllH_long(lattice, R, h_beta, H, h - 1,  h - 1, h + 1, z, 0.0, CLASSIC_LLL, bit_size, solutiontest_long);
+                } else {
+                    lllHfp(lattice, R, h_beta, H, h - 1, h - 1, h + 1, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
+                }
             }
             //start_block++;
             zaehler++;
         }
     } /* end of |while| */
+    if (bit_size < 32) {
+        copy_lattice_to_mpz(lattice);
+    }
 
     lD = log_potential(R, s, z);
 

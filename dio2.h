@@ -15,6 +15,7 @@ extern long nosolutions;
 /* Basic subroutines */
 extern int cutlattice(lattice_t *lattice);
 extern int solutiontest(lattice_t *lattice, int position);
+extern int solutiontest_long(lattice_t *lattice, int position);
 
 extern void lll(lattice_t *lattice, int s, int z, DOUBLE quality, int reduction_type);
 extern DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE quality, int reduction_type);
@@ -25,6 +26,7 @@ extern DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta,
 extern DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block, DOUBLE improve_by, int p);
 extern DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block, DOUBLE improve_by, int p);
 extern void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t hv);
+extern void insert_vector_long(lattice_t *lattice, long *u, int start, int end, int z);
 extern void dual_insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t hv);
 
 extern DOUBLE sample(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block);

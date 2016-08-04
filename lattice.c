@@ -329,3 +329,24 @@ void shufflelattice(lattice_t *lattice) {
     }
     return;
 }
+
+void copy_lattice_to_long(lattice_t *lattice) {
+    int i, j;
+
+    for (i = 0; i < lattice->num_cols; ++i) {
+        for (j = 0; j < lattice->num_rows; ++j) {
+            lattice->basis_long[i][j] = mpz_get_si(lattice->basis[i][j+1].c);
+        }
+    }
+}
+
+void copy_lattice_to_mpz(lattice_t *lattice) {
+    int i, j;
+
+    for (i = 0; i < lattice->num_cols; ++i) {
+        for (j = 0; j < lattice->num_rows; ++j) {
+            mpz_set_si(lattice->basis[i][j+1].c, lattice->basis_long[i][j]);
+        }
+        coeffinit(lattice->basis[i], lattice->num_rows);
+    }
+}
