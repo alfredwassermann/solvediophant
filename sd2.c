@@ -6,6 +6,9 @@
 #include <sys/times.h>  /* For run time measurements */
 #include <unistd.h>
 #include "lgs.h"
+#include "const.h"
+#include "datastruct.h"
+#include "lattice.h"
 #include "dio2.h"
 
 /*
@@ -59,6 +62,10 @@ void print_delta_time_tps(int l, int tps, char *str) {
 void print_delta_time(int l, char *str) {
     print_delta_time_tps(l, os_ticks_per_second(), str);
 }
+
+int SILENT;
+int PRINT_REQUIRED;
+int DUMP_REQUIRED;
 
 /**
  * Main program

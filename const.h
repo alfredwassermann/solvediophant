@@ -1,6 +1,9 @@
 #ifndef _LLLCONST_H
 #define _LLLCONST_H
 
+#define TRUE 1
+#define FALSE 0
+
 #define DEEPINSERT 1
 #define DEEPINSERT_CONST 30
 
@@ -24,5 +27,14 @@
 #define PRUNE_HOERNER 1
 #define PRUNE_BKZ 2
 #define PRUNE_BKZ2 3
+
+/* Global variable used in stop_program */
+extern int SILENT;
+extern int PRINT_REQUIRED;
+extern int DUMP_REQUIRED;
+
+#define ROUND(r) ceil(r-0.5)
+#define SQRT sqrt
+#define DOUBLE double
 
 #endif
