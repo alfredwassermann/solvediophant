@@ -731,7 +731,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     int deep_size;
     coeff_t *swapvl;
 
-    #if VERBOSE > 0
+    #if VERBOSE > 1
         int counter = 0;
     #endif
 
@@ -1397,7 +1397,6 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
     for (j = 1; j <= z; j++) {
         mpz_set_si(lattice->swap[j].c, 0);
     }
-    coeffinit(lattice->swap, z);
 
     // Store new linear combination in lattice->swap
     for (i = start; i <= end; i++) {
@@ -1409,6 +1408,7 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
             }
         }
     }
+    coeffinit(lattice->swap, z);
 
     #if 0
         swapvl = b[lattice->num_cols];
@@ -1428,6 +1428,7 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
             u[i] = u[g] - q*u[i];
             u[g] = ui;
 
+            // (b[g], b[i]) = (b[g] * q + b[i], b[g])
             for (j = 1; j <= z; j++) {
                 mpz_set(hv, b[g][j].c);
                 mpz_mul_si(b[g][j].c, b[g][j].c, (long)q);
@@ -1438,6 +1439,7 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
             coeffinit(b[i], z);
         }
 
+        // (b[start], b[start+1], ... , b[g]) -> (b[g], b[start], ... , b[g-1])
         swapvl = b[g];
         for (i = g; i > start; i--) {
             b[i] = b[i - 1];
@@ -1471,7 +1473,6 @@ void dual_insert_vector(lattice_t *lattice, long *u, int start, int end, int z, 
     for (j = 1; j <= z; j++) {
         mpz_set_si(lattice->swap[j].c, 0);
     }
-    coeffinit(lattice->swap, z);
 
     // Store new linear combination in lattice->swap
     for (i = start; i <= end; i++) {
@@ -1483,6 +1484,7 @@ void dual_insert_vector(lattice_t *lattice, long *u, int start, int end, int z, 
             }
         }
     }
+    coeffinit(lattice->swap, z);
 
     #if 0
         swapvl = b[lattice->num_cols];
@@ -1502,6 +1504,7 @@ void dual_insert_vector(lattice_t *lattice, long *u, int start, int end, int z, 
             u[i] = u[g] - q*u[i];
             u[g] = ui;
 
+            // (b[g], b[i]) = (b[g] * q + b[i], b[g])
             for (j = 1; j <= z; j++) {
                 mpz_set(hv, b[g][j].c);
                 mpz_mul_si(b[g][j].c, b[g][j].c, (long)q);
@@ -1512,6 +1515,7 @@ void dual_insert_vector(lattice_t *lattice, long *u, int start, int end, int z, 
             coeffinit(b[i], z);
         }
 
+        // (b[g], b[g+1], ... , b[end]) -> (b[g+1], ... , b[end], b[g])
         swapvl = b[g];
         for (i = g; i < end; i++) {
             b[i] = b[i + 1];
