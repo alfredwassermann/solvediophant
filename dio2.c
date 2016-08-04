@@ -1066,10 +1066,12 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p)
 
             /* successful enumeration */
             dual_insert_vector(lattice, u, start_block, end_block, z, hv);
-            i = householder_column(lattice->basis, R, H, h_beta, end_block, end_block + 1, z, bit_size);
+            //i = householder_column(lattice->basis, R, H, h_beta, end_block, end_block + 1, z, bit_size);
+            lllHfp(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
+            i = end_block;
             new_cj2 = 1.0 / (R[i][i] * R[i][i]);
             if (FALSE && fabs(new_cj2 - new_cj) > EPSILON) {
-                fprintf(stderr, "???????????????? We have a problem: %lf %lf\n", new_cj2, new_cj);
+                fprintf(stderr, "???????????????? We have a problem at %d: %lf %lf\n", i, new_cj2, new_cj);
                 fflush(stderr);
                 exit(1);
             }
