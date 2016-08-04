@@ -328,18 +328,16 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         do {
             lD = lDnew;
 
-            #if 1
-            lDnew = dual_bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
-                            lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p);
-            fprintf(stderr, "Dual BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
-            fflush(stderr);
-            #endif
-
-
             //shufflelattice(lattice);
-            lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
+            if (i % 2 == 0) {
+                lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
                             lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p);
-            fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
+                fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
+            } else {
+                lDnew = dual_bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
+                            lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p);
+                fprintf(stderr, "Dual BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
+            }
             fflush(stderr);
 
             i++;
@@ -749,17 +747,19 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         theta = 0.0;
     }
 
-    fprintf(stderr, "LLLH: ");
-    if (reduction_type == POT_LLL) {
-        fprintf(stderr, "use PotLLL");
-    } else if (reduction_type == CLASSIC_LLL) {
-        fprintf(stderr, "use classic LLL");
-    } else {
-        fprintf(stderr, "use deepinsert %d", reduction_type);
-    }
-    fprintf(stderr, ", delta=%0.3lf", delta);
-    fprintf(stderr, ", eta=%0.3lf", eta);
-    fprintf(stderr, ", max bits: %d\n", bit_size);
+    #if VERBOSE > 1
+        fprintf(stderr, "LLLH: ");
+        if (reduction_type == POT_LLL) {
+            fprintf(stderr, "use PotLLL");
+        } else if (reduction_type == CLASSIC_LLL) {
+            fprintf(stderr, "use classic LLL");
+        } else {
+            fprintf(stderr, "use deepinsert %d", reduction_type);
+        }
+        fprintf(stderr, ", delta=%0.3lf", delta);
+        fprintf(stderr, ", eta=%0.3lf", eta);
+        fprintf(stderr, ", max bits: %d\n", bit_size);
+    #endif
 
     mpz_init(musvl);
     mpz_init(hv);
@@ -780,8 +780,8 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         if (k < lowest_pos) {
             lowest_pos = k;
         }
-        #if VERBOSE > 0
-            if ((counter % 10000) == 0) {
+        #if VERBOSE > 1
+            if (counter > 0 && (counter % 10000) == 0) {
                 fprintf(stderr, "LLL: %d k:%d\n", counter, k);
                 fflush(stderr);
             }
@@ -1450,13 +1450,14 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
             mpz_set_si(lattice->swap[j].c, 0);
         coeffinit(lattice->swap, z);
 
+        #if 0
         for (j = 0; j < z; j++) {
             mpz_out_str(stderr, 10, get_entry(lattice->basis, start, j));
             fprintf(stderr," ");
         }
         fprintf(stderr, "\n");
         fflush(stderr);
-
+        #endif
     #endif
 }
 
@@ -1523,13 +1524,14 @@ void dual_insert_vector(lattice_t *lattice, long *u, int start, int end, int z, 
             mpz_set_si(lattice->swap[j].c, 0);
         coeffinit(lattice->swap, z);
 
+        #if 0
         for (j = 0; j < z; j++) {
             mpz_out_str(stderr, 10, get_entry(lattice->basis, start, j));
             fprintf(stderr," ");
         }
         fprintf(stderr, "\n");
         fflush(stderr);
-
+        #endif
     #endif
 }
 
@@ -1562,7 +1564,7 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p)
         return 0.0;
     }
 
-    fprintf(stderr, "######### DUAL BKZ ########\n");
+    fprintf(stderr, "\n######### DUAL BKZ ########\n");
     u = (long*)calloc(s, sizeof(long));
     for (i = 0; i < s; i++) {
         u[i] = 0;
@@ -1613,8 +1615,11 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p)
 
     lD = log_potential(R, s, z);
 
+    #if 0
     fprintf(stderr, "bkz: log(D)= %f\n", lD);
     fflush(stderr);
+    #endif
+
     lllfree(R, h_beta, N, H, s);
     free(u);
     mpz_clear(hv);
@@ -1653,7 +1658,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
         return 0.0;
     }
 
-    fprintf(stderr, "######### BKZ ########\n");
+    fprintf(stderr, "\n######### BKZ ########\n");
     u = (long*)calloc(s, sizeof(long));
     for (i = 0; i < s; i++) {
         u[i] = 0;
@@ -1705,7 +1710,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             zaehler = -1;
         } else {
             //fprintf(stderr, "enumerate: no improvement %d\n", zaehler);
-            fflush(stderr);
+            //fflush(stderr);
             if (h > 0) {
                 lllHfp(lattice, R, h_beta, H, h - 1, h - 1, h + 1, z, 0.0, CLASSIC_LLL, bit_size);
             }
@@ -1716,8 +1721,11 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
 
     lD = log_potential(R, s, z);
 
+    #if 0
     fprintf(stderr, "bkz: log(D)= %f\n", lD);
     fflush(stderr);
+    #endif
+
     lllfree(R, h_beta, N, H, s);
     free(u);
     mpz_clear(hv);
@@ -1861,6 +1869,9 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
             } else {
                 // back
                 t++;
+                if (t > t_max) {
+                    break;
+                }
             }
             // next
             if (t < t_max) delta[t] *= -1.0;
@@ -1919,7 +1930,7 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     c_min = 1.0 / (R[end_block][end_block] * R[end_block][end_block]);
     c_min *= improve_by;
 
-    for (t_min = end_block - 1; t_min >= start_block+1; t_min--) {
+    for (t_min = end_block - 1; t_min >= start_block; t_min--) {
         t = t_min;
         u_loc[t] = 1.0;
 
@@ -1982,6 +1993,9 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
             } else {
                 // back
                 t--;
+                if (t < t_min) {
+                    break;
+                }
             }
             // next
             if (t > t_min) delta[t] *= -1.0;
@@ -2483,7 +2497,12 @@ step_back:
             /* Up: we go to $|level|+1$. */
             nlow[level]++;
             level++;
-            if (level_max<level) level_max = level;
+            if (level >= columns) {
+                // We are done, let's leave the loop.
+                break;
+            } else if (level > level_max) {
+                level_max = level;
+            }
 side_step:
             /*
                 Side step: the next value in the same level is
@@ -3096,8 +3115,10 @@ DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type, DOUBLE p) {
         gh = gh1; // prune_type == PRUNE_NO
     }
 
-    fprintf(stderr, ">>>> %d %lf %lf\n", up - low, gh1, gh);
-    fflush(stderr);
+    #if VERBOSE > 1
+        fprintf(stderr, ">>>> %d %lf %lf\n", up - low, gh1, gh);
+        fflush(stderr);
+    #endif
 
     return (gh <= gh1) ? gh : gh1;
 }
