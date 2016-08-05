@@ -675,7 +675,7 @@ void lll(lattice_t *lattice, int s, int z, DOUBLE quality, int reduction_type) {
 
     lllalloc(&R, &beta, &N, &H, s, z);
     bit_size = get_bit_size(lattice);
-    r = lllHfp(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest);
+    r = lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest);
     lllfree(R, beta, N, H, s);
 
     return;
@@ -700,7 +700,7 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
         copy_lattice_to_long(lattice);
         r = lllH_long(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest_long);
     } else {
-        r = lllHfp(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest);
+        r = lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest);
     }
     lD = log_potential(R, s, z);
     fprintf(stderr, "   log(D)= %f\n", lD);
@@ -736,7 +736,7 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
         if (bit_size < 32) {
             r = lllH_long(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest_long);
         } else {
-            r = lllHfp(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest);
+            r = lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest);
         }
         lD = log_potential(R, s, z);
         fprintf(stderr, "%d: log(D)= %f\n", runs, lD);
@@ -762,7 +762,7 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
     lllalloc(&R, &beta, &N, &H, s, z);
     bit_size = get_bit_size(lattice);
 
-    //r = lllHfp(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size);
+    //r = lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size);
     #if 1
     while (start < s) {
         fprintf(stderr, "Block reduce %d\n", start);
@@ -772,7 +772,7 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
         basis_org = lattice->basis;
         lattice->basis = &(lattice->basis[start]);
         size = (start + block_size > up) ? up - start : block_size;
-        lllHfp(lattice, R, beta, H, 0, 0, size, z, quality, reduction_type, bit_size, solutiontest);
+        lllH(lattice, R, beta, H, 0, 0, size, z, quality, reduction_type, bit_size, solutiontest);
         lattice->basis = basis_org;
         start += block_size;
     }
@@ -782,7 +782,7 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
         up = start + block_size;
         up = (up > s) ? s : up;
 
-        lllHfp(lattice, R, beta, H, start, start, up, z, quality, reduction_type, bit_size);
+        lllH(lattice, R, beta, H, start, start, up, z, quality, reduction_type, bit_size);
         start += block_size;
     }
     #endif
@@ -1039,7 +1039,7 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p)
     }
 
     lllalloc(&R, &h_beta, &N, &H, s, z);
-    lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
+    lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
 
     zaehler = -1;
     end_block = last;
@@ -1067,7 +1067,7 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p)
             /* successful enumeration */
             dual_insert_vector(lattice, u, start_block, end_block, z, hv);
             //i = householder_column(lattice->basis, R, H, h_beta, end_block, end_block + 1, z, bit_size);
-            lllHfp(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
+            lllH(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
             i = end_block;
             new_cj2 = 1.0 / (R[i][i] * R[i][i]);
             if (FALSE && fabs(new_cj2 - new_cj) > EPSILON) {
@@ -1075,7 +1075,7 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p)
                 fflush(stderr);
                 exit(1);
             }
-            lllHfp(lattice, R, h_beta, H, h, 0, h_end, z, delta, CLASSIC_LLL, bit_size, solutiontest);
+            lllH(lattice, R, h_beta, H, h, 0, h_end, z, delta, CLASSIC_LLL, bit_size, solutiontest);
             //zaehler = -1;
             zaehler++;
         } else {
@@ -1083,7 +1083,7 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p)
         }
     } /* end of |while| */
 
-    lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
+    lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
 
     lD = log_potential(R, s, z);
 
@@ -1141,7 +1141,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
         copy_lattice_to_long(lattice);
         lllH_long(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest_long);
     } else {
-        lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
+        lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
     }
 
     start_block = zaehler = -1;
@@ -1152,7 +1152,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             start_block = 0;
         }
         if (start_block == 0) {
-            //lllHfp(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size);
+            //lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size);
         }
 
         end_block = start_block + beta - 1;
@@ -1184,12 +1184,12 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
             if (bit_size < 32) {
                 lllH_long(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size, solutiontest_long);
             } else {
-                lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size, solutiontest);
+                lllH(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size, solutiontest);
             }
-            //lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
+            //lllH(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
             //lattice->num_cols--;
 
-            //start_block = lllHfp(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size);
+            //start_block = lllH(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size);
             //fprintf(stderr, "%d\n", start_block);
 
             zaehler = -1;
@@ -1200,7 +1200,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p) {
                 if (bit_size < 32) {
                     lllH_long(lattice, R, h_beta, H, h - 1,  h - 1, h + 1, z, 0.0, CLASSIC_LLL, bit_size, solutiontest_long);
                 } else {
-                    lllHfp(lattice, R, h_beta, H, h - 1, h - 1, h + 1, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
+                    lllH(lattice, R, h_beta, H, h - 1, h - 1, h + 1, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
                 }
             }
             //start_block++;

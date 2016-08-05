@@ -5,7 +5,7 @@
 #include "datastruct.h"
 #include "lgs.h"
 
-extern int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
+extern int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             int start, int low, int up, int z,
             DOUBLE delta, int reduction_type,
             int bit_size,

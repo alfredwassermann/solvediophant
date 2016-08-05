@@ -19,7 +19,7 @@
 /**
  *  Lattice basis reduction algorithms
  */
-int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
+int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             int start, int low, int up, int z,
             DOUBLE delta, int reduction_type,
             int bit_size,
@@ -80,7 +80,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
     /* Test for trivial cases. */
     if ((z <= 1) || (up <= 1)) {
-        fprintf(stderr, "Wrong dimensions in LLLHfp\n");
+        fprintf(stderr, "Wrong dimensions in lllH\n");
         fflush(stderr);
         return(0);
     }
@@ -160,7 +160,7 @@ int lllHfp(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             Before going to step 4 we test if $b_k$ is linear dependent.
             If we find a linear dependent vector $b_k$,
             we shift b_k to the last column of the
-            matrix and restart lllHfp with s = s-1.
+            matrix and restart lllH with s = s-1.
         */
         #if BLAS
             norm = cblas_dnrm2(k + 1, R[k], 1);
@@ -582,7 +582,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             Before going to step 4 we test if $b_k$ is linear dependent.
             If we find a linear dependent vector $b_k$,
             we shift b_k to the last column of the
-            matrix and restart lllHfp with s = s-1.
+            matrix and restart lllH with s = s-1.
         */
         #if BLAS
             norm = cblas_dnrm2(k + 1, R[k], 1);
