@@ -337,7 +337,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 
             i++;
         }
-        while (i < 2 && fabs(lDnew - lD) > 0.01);
+        while (i < 20 && fabs(lDnew - lD) > 0.01);
     }
     fprintf(stderr, "Third reduction successful\n"); fflush(stderr);
 
@@ -1243,7 +1243,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     int len, k;
     double alpha, radius;
     DOUBLE *lambda_min;
-    int SCHNITT = 10;
+    int SCHNITT = 30;
 
     c = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
     y = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
@@ -1402,7 +1402,7 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     DOUBLE *u_loc;
     int len, k;
     double alpha, radius;
-    int SCHNITT = 10;
+    int SCHNITT = 30;
 
     c = (DOUBLE*)calloc(s+1, sizeof(DOUBLE));
     y = (DOUBLE*)calloc(s+1, sizeof(DOUBLE));
@@ -1438,7 +1438,7 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                 c[t] = x * x;
             }
 
-            if (len <= SCHNITT) {
+            if (TRUE || len <= SCHNITT) {
                 alpha = 1.0;
             } else {
                 k = t - start_block + 1;
@@ -1457,7 +1457,8 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                     t++;
 
                     #if BLAS
-                        y[t] = cblas_ddot(t - t_min, &(u_loc[t_min]), 1, &(R[t][t_min]), 1);
+                        //y[t] = cblas_ddot(t - t_min, &(u_loc[t_min]), 1, &(R[t][t_min]), 1);
+                        y[t] = cblas_ddot(t - t_min, &(a[t_min]), 1, &(R[t][t_min]), 1);
                     #else
                         for (j = t_min, y[t] = 0.0; j < t; j++) {
                             y[t] += a[j] * R[t][j];
