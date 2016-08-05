@@ -48,6 +48,8 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         int counter = 0;
     #endif
 
+    lattice->work_on_long = FALSE;
+
     eta = ETACONST;
     if (bit_size > 100) {
         theta = 0.50;
@@ -172,7 +174,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         #endif
 
         if (norm != norm || norm < 0.5) {  // nan or < 0.5
-            print_lattice(lattice);
+            //print_lattice(lattice);
             swapvl = b[k];
             //for (i = k + 1; i < up; i++) {
             for (i = k + 1; i < lattice->num_cols; i++) {
@@ -184,7 +186,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             lattice->num_cols--;
 
             k = 0;
-            print_lattice(lattice);
+            //print_lattice(lattice);
             fprintf(stderr, "Zero vector at %d\n", k);
             fflush(stderr);
             continue;
@@ -478,6 +480,8 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         int counter = 0;
     #endif
 
+    lattice->work_on_long = TRUE;
+
     eta = ETACONST;
     if (bit_size > 100) {
         theta = 0.50;
@@ -594,7 +598,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         #endif
 
         if (norm != norm || norm < 0.5) {  // nan or < 0.5
-            print_lattice(lattice);
+            //print_lattice(lattice);
             swap = b[k];
             //for (i = k + 1; i < up; i++) {
             for (i = k + 1; i < lattice->num_cols; i++) {
@@ -606,7 +610,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             lattice->num_cols--;
 
             k = 0;
-            print_lattice(lattice);
+            //print_lattice(lattice);
             fprintf(stderr, "Zero vector at %d\n", k);
             fflush(stderr);
             continue;

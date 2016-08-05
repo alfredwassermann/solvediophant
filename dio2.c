@@ -115,6 +115,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     for (i = 0; i <= lattice->num_rows; i++) {
         mpz_init(lattice->swap[i].c);
     }
+    lattice->work_on_long = FALSE;
 
     /**
      * read the system
@@ -1042,7 +1043,7 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p)
     lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
 
     zaehler = -1;
-    end_block = last;
+    end_block = last + 1;
     //start_block = 0;
     while (zaehler < last) {
         end_block--;
@@ -1432,10 +1433,9 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
 
             a[t] = u_loc[t] - y[t];
             x = a[t] / R[t][t];
+            c[t] = x * x;
             if (t > 0) {
-                c[t] = c[t - 1] + x * x;
-            } else {
-                c[t] = x * x;
+                c[t] += c[t - 1];
             }
 
             if (TRUE || len <= SCHNITT) {
@@ -1457,7 +1457,6 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                     t++;
 
                     #if BLAS
-                        //y[t] = cblas_ddot(t - t_min, &(u_loc[t_min]), 1, &(R[t][t_min]), 1);
                         y[t] = cblas_ddot(t - t_min, &(a[t_min]), 1, &(R[t][t_min]), 1);
                     #else
                         for (j = t_min, y[t] = 0.0; j < t; j++) {

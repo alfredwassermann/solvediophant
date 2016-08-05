@@ -41,6 +41,8 @@ typedef struct {
     int cut_after;
     int free_RHS;
 
+    int work_on_long;
+
     lll_params_t LLL_params;
 } lattice_t;
 

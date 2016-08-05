@@ -38,10 +38,15 @@ void debug_print(char *m, int l) {
  */
 void print_lattice(lattice_t *lattice) {
     int i, j;
+
     for (i = 0; i <= lattice->num_cols; i++) {
         for (j = 0; j < lattice->num_rows; j++) {
-            mpz_out_str(NULL, 10, get_entry(lattice->basis, i, j));
-            printf(" ");
+            if (lattice->work_on_long) {
+                printf("%ld ", lattice->basis_long[i][j]);
+            } else {
+                mpz_out_str(NULL, 10, get_entry(lattice->basis, i, j));
+                printf(" ");
+            }
         }
         printf("\n");
     }
@@ -62,8 +67,12 @@ void dump_lattice(lattice_t *lattice) {
 
     for (i = 0; i < lattice->num_cols; i++) {
         for (j = 0; j < lattice->num_rows; j++) {
-            mpz_out_str(f, 10, get_entry(lattice->basis, i, j));
-            fprintf(f, " ");
+            if (lattice->work_on_long) {
+                fprintf(f, "%ld ", lattice->basis_long[i][j]);
+            } else {
+                mpz_out_str(f, 10, get_entry(lattice->basis, i, j));
+                fprintf(f, " ");
+            }
         }
         fprintf(f, "\n");
     }
