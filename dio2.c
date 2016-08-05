@@ -1244,7 +1244,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     int len, k;
     double alpha, radius;
     DOUBLE *lambda_min;
-    int SCHNITT = 30;
+    int SCHNITT = 20;
 
     c = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
     y = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
@@ -1403,7 +1403,7 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     DOUBLE *u_loc;
     int len, k;
     double alpha, radius;
-    int SCHNITT = 30;
+    int SCHNITT = 20;
 
     c = (DOUBLE*)calloc(s+1, sizeof(DOUBLE));
     y = (DOUBLE*)calloc(s+1, sizeof(DOUBLE));
