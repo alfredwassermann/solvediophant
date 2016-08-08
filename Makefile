@@ -40,18 +40,27 @@ sd2: sd2.o dio2.o lgs.o lattice.o lll.o
 	$(CC) $(CFLAGS) -o sd2 sd2.o dio2.o lll.o lattice.o lgs.o $(ASSEMBLERLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
 
 dio2.pdf: dio2.c
-	#vim -c 'set printfont=DejaVu\ Sans\ Mono:h9' -c 'set printoptions=number:y' -c 'hardcopy > dio2.ps' -c quit dio2.c
 	vim $(VIMFLAGS) -c 'hardcopy > dio2.ps' -c quit dio2.c
 	ps2pdf dio2.ps
 	rm dio2.ps
+
+lattice.pdf: lattice.c
+	vim $(VIMFLAGS) -c 'hardcopy > lattice.ps' -c quit lattice.c
+	ps2pdf lattice.ps
+	rm lattice.ps
+
+lll.pdf: lll.c
+	vim $(VIMFLAGS) -c 'hardcopy > lll.ps' -c quit lll.c
+	ps2pdf lll.ps
+	rm lll.ps
 
 sd2.pdf: sd2.c
 	vim $(VIMFLAGS) -c 'hardcopy > sd2.ps' -c quit sd2.c
 	ps2pdf sd2.ps
 	rm sd2.ps
 
-gls.pdf: lgs.c
-	vim $(VIMFLAGS) -c 'hardcopy > gls.ps' -c quit lgs.c
+lgs.pdf: lgs.c
+	vim $(VIMFLAGS) -c 'hardcopy > lgs.ps' -c quit lgs.c
 	ps2pdf lgs.ps
 	rm lgs.ps
 
