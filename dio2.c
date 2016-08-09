@@ -327,11 +327,13 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             //shufflelattice(lattice);
             if (i % 2 == 0) {
                 lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
-                            lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p);
+                            lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
+                            solutiontest, solutiontest_long);
                 fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
             } else {
                 lDnew = dual_bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
-                            lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p);
+                            lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
+                            solutiontest);
                 fprintf(stderr, "Dual BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
             }
             fflush(stderr);
@@ -1667,90 +1669,6 @@ void dump_lattice_sig(int sig) {
        return;
 
     DUMP_REQUIRED = 1;
-}
-
-/*
-    An estimate on gamma_1(L[low, up]), excluding up
-    lambda_1(L) = (det(L) / V_n(1))^(1/n)
-
-    V_n(1) = pi^(n/2) / Gamma(n/2 + 1)
-    Gamma(n/2 + 1) = sqrt(pi n) (n/2)^(n/2)*e^(-n/2)
- */
-DOUBLE GH(DOUBLE **R, int low, int up) {
-    int i, n, k;
-    DOUBLE log_det, V1;
-    static DOUBLE pi = 3.141592653589793238462643383;
-    //static DOUBLE e = 2.718281828459045235360287471352662497757247093;
-
-    for (i = low, log_det = 0.0; i < up; ++i) {
-        log_det += log(R[i][i] * R[i][i]);
-    }
-    log_det *= 0.5;
-    n = up - low;
-
-    // Exact formulae for unit ball volume
-    if (n % 2 == 0) {
-        k = n / 2;
-        for (i = 1, V1 = 1.0; i <= k; i++) {
-            V1 *= pi / i;
-        }
-    } else {
-        k = (n - 1)/ 2;
-        for (i = 0, V1 = 1.0 / pi; i <= k; i++) {
-            V1 *= 2.0 * pi / (2*i + 1);
-        }
-    }
-    V1 = exp(log(V1) / n);
-
-    return exp(log_det / n) / V1;
-}
-
-/*
-    Hoerners version of the Gaussian volume heuristics.
-*/
-void hoerner(DOUBLE **R, int low, int up, double p, DOUBLE *eta) {
-    int i;
-    static DOUBLE pi = 3.141592653589793238462643383;
-    static DOUBLE e = 2.718281828459045235360287471352662497757247093;
-    DOUBLE c, x;
-    int t_up;
-
-    c = R[low][low];
-    x = log(c * c);
-    for (i = low + 1; i < up; i++) {
-        t_up = i - low;
-        eta[i] = 0.5 * t_up * exp((log(pi * t_up) - 2.0 * p * log(2.0) + x) / t_up ) / (pi * e);
-        //fprintf(stderr, "::: %lf \n", eta[i]);
-        if (i < up - 1) {
-            c = R[i][i];
-            x += log(c * c);
-        }
-    }
-}
-
-DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type, DOUBLE p) {
-    DOUBLE gh, gh1;
-    DOUBLE alpha;
-
-    alpha = 1.05;
-
-    gh1 = R[low][low];
-    gh1 *= gh1;
-
-    if (prune_type == PRUNE_BKZ) {
-        gh = GH(R, low, up);
-        gh *= gh;
-        gh *= alpha;
-    } else {
-        gh = gh1; // prune_type == PRUNE_NO
-    }
-
-    #if VERBOSE > 1
-        fprintf(stderr, ">>>> %d %lf %lf\n", up - low, gh1, gh);
-        fflush(stderr);
-    #endif
-
-    return (gh <= gh1) ? gh : gh1;
 }
 
 void print_NTL_lattice(lattice_t *lattice) {
