@@ -767,7 +767,7 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
             a[t] = u_loc[t] - y[t];
             x = a[t] / R[t][t];
             c[t] = x * x;
-            if (t > 0) {
+            if (t > t_min) {
                 c[t] += c[t - 1];
             }
 
