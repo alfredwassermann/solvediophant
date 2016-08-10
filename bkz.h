@@ -12,6 +12,9 @@ extern DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int 
     int (*solutiontest)(lattice_t *lattice, int k), int (*solutiontest_long)(lattice_t *lattice, int k));
 extern DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p,
     int (*solutiontest)(lattice_t *lattice, int k));
+extern DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p,
+    int (*solutiontest)(lattice_t *lattice, int k));
+
 extern DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block, DOUBLE improve_by, int p);
 extern DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block, DOUBLE improve_by, int p);
 extern void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t hv);
