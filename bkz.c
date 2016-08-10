@@ -273,7 +273,7 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, i
         lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
 
         fprintf(stderr, "Primal\n");
-        for (start_block = 0; start_block + beta - 1 <= last; ++start_block) {
+        for (start_block = 0; start_block + beta - 1 < last; ++start_block) {
             end_block = start_block + beta - 1;
 
             new_cj = enumerate(lattice, R, u, s, start_block, end_block, delta, p);
