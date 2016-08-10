@@ -272,29 +272,6 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, i
     while (1) {
         lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
 
-        fprintf(stderr, "Primal\n");
-        for (start_block = 0; start_block + beta - 1 < last; ++start_block) {
-            end_block = start_block + beta - 1;
-
-            new_cj = enumerate(lattice, R, u, s, start_block, end_block, delta, p);
-            //new_cj = dual_enumerate(lattice, R, u, s, start_block, end_block, delta, p);
-            h = (start_block - 1 < 0) ? 0 : start_block - 1;
-            h_end = (end_block + 1 <= last) ? end_block + 1 : last;
-
-            r_tt = R[start_block][start_block];
-            r_tt *= r_tt;
-            if (delta * r_tt > new_cj) {
-                fprintf(stderr, "primal enumerate successful %d %lf improvement: %lf\n",
-                    start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
-                fflush(stderr);
-                insert_vector(lattice, u, start_block, end_block, z, hv);
-                lllH(lattice, R, h_beta, H, h, 0, h_end, z, delta, CLASSIC_LLL, bit_size, solutiontest);
-            } else {
-                lllH(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
-            }
-        }
-
-
         fprintf(stderr, "Dual\n");
         for (start_block = last - beta + 1; start_block >= 0; --start_block) {
             end_block = start_block + beta - 1;
@@ -315,6 +292,29 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, i
                 lllH(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
             }
         }
+
+        fprintf(stderr, "Primal\n");
+        for (start_block = 0; start_block + beta - 1 < last; ++start_block) {
+            end_block = start_block + beta - 1;
+
+            new_cj = enumerate(lattice, R, u, s, start_block, end_block, delta, p);
+            h = (start_block - 1 < 0) ? 0 : start_block - 1;
+            h_end = (end_block + 1 <= last) ? end_block + 1 : last;
+
+            r_tt = R[start_block][start_block];
+            r_tt *= r_tt;
+            if (delta * r_tt > new_cj) {
+                fprintf(stderr, "primal enumerate successful %d %lf improvement: %lf\n",
+                    start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
+                fflush(stderr);
+                insert_vector(lattice, u, start_block, end_block, z, hv);
+                lllH(lattice, R, h_beta, H, h, 0, h_end, z, delta, CLASSIC_LLL, bit_size, solutiontest);
+            } else {
+                lllH(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
+            }
+        }
+
+
         zaehler++;
         if (zaehler > 3) break;
 
@@ -563,7 +563,8 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p,
  */
 DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                     int start_block, int end_block, DOUBLE improve_by, int p) {
-    DOUBLE x;
+
+    //DOUBLE x;
     DOUBLE *y, *c;
     DOUBLE c_min;
 
@@ -575,7 +576,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     DOUBLE *u_loc;
     int len, k;
     double alpha, radius;
-    DOUBLE *lambda_min;
+    //DOUBLE *lambda_min;
     int SCHNITT = 20;
 
     c = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
@@ -584,7 +585,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     d = (long*)calloc(s+1,sizeof(long));
     v = (long*)calloc(s+1,sizeof(long));
     u_loc = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
-    lambda_min = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    //lambda_min = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
 
     len = end_block + 1 - start_block;
     for (i = start_block; i <= end_block + 1; i++) {
@@ -605,12 +606,14 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     c_min *= improve_by;
 
     // Find minimum Eigen value
+    /*
     i = start_block;
     lambda_min[i] = R[i][i] * R[i][i];
     for (i = start_block + 1; i <= end_block; ++i) {
         x = R[i][i] * R[i][i];
         lambda_min[i] = (x < lambda_min[i-1]) ? x : lambda_min[i-1];
     }
+    */
 
     //t = t_max = end_block;
     for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
@@ -620,8 +623,10 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
         while (t <= t_max) {
             handle_signals(lattice, R);
 
-            x = (u_loc[t] + y[t]) * R[t][t];
-            c[t] = c[t + 1] + x * x;
+            // c[t] = ((u_loc[t] + y[t]) * R[t][t])^2 + c[t + 1]
+            c[t] = (u_loc[t] + y[t]) * R[t][t];
+            c[t] *= c[t];
+            c[t] += c[t + 1];
 
             if (len <= SCHNITT) {
                 alpha = 1.0;
@@ -711,7 +716,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     free(d);
     free(v);
     free(u_loc);
-    free(lambda_min);
+    //free(lambda_min);
 
     if (!found_improvement) {
         c_min = R[start_block][start_block];
@@ -723,7 +728,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
 
 DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                     int start_block, int end_block, DOUBLE improve_by, int p) {
-    DOUBLE x;
+
     DOUBLE *y, *c, *a;
     DOUBLE c_min;
 
@@ -765,8 +770,9 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
             handle_signals(lattice, R);
 
             a[t] = u_loc[t] - y[t];
-            x = a[t] / R[t][t];
-            c[t] = x * x;
+            // c[t] = c[t - 1] + (a[t]/ R[t][t])^2
+            c[t] = a[t] / R[t][t];
+            c[t] *= c[t];
             if (t > t_min) {
                 c[t] += c[t - 1];
             }
