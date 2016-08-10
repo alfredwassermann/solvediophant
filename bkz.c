@@ -270,28 +270,8 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, i
     lllalloc(&R, &h_beta, &N, &H, s, z);
 
     while (1) {
+        fprintf(stderr, "Start tour\n");
         lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
-
-        fprintf(stderr, "Dual\n");
-        for (start_block = last - beta + 1; start_block >= 0; --start_block) {
-            end_block = start_block + beta - 1;
-
-            new_cj = dual_enumerate(lattice, R, u, s, start_block, end_block, delta, p);
-            h = (start_block - 1 < 0) ? 0 : start_block - 1;
-            h_end = (end_block + 1 <= last) ? end_block + 1 : last;
-
-            r_tt = 1.0 / R[end_block][end_block];
-            r_tt *= r_tt;
-            if (delta * r_tt > new_cj) {
-                fprintf(stderr, "dual enumerate successful %d %lf improvement: %lf\n",
-                    start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
-                fflush(stderr);
-                dual_insert_vector(lattice, u, start_block, end_block, z, hv);
-                lllH(lattice, R, h_beta, H, h, 0, h_end, z, delta, CLASSIC_LLL, bit_size, solutiontest);
-            } else {
-                lllH(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
-            }
-        }
 
         fprintf(stderr, "Primal\n");
         for (start_block = 0; start_block + beta - 1 < last; ++start_block) {
@@ -314,11 +294,33 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, i
             }
         }
 
+        fprintf(stderr, "Dual\n");
+        for (start_block = last - beta + 1; start_block > 0; --start_block) {
+            end_block = start_block + beta - 1;
+
+            new_cj = dual_enumerate(lattice, R, u, s, start_block, end_block, delta, p);
+            h = (start_block - 1 < 0) ? 0 : start_block - 1;
+            h_end = (end_block + 1 <= last) ? end_block + 1 : last;
+
+            r_tt = 1.0 / R[end_block][end_block];
+            r_tt *= r_tt;
+            if (delta * r_tt > new_cj) {
+                fprintf(stderr, "dual enumerate successful %d %lf improvement: %lf\n",
+                    start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
+                fflush(stderr);
+                dual_insert_vector(lattice, u, start_block, end_block, z, hv);
+                lllH(lattice, R, h_beta, H, h, 0, h_end, z, delta, CLASSIC_LLL, bit_size, solutiontest);
+            } else {
+                lllH(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
+            }
+        }
 
         zaehler++;
         if (zaehler > 3) break;
 
     } /* end of |while| */
+
+    lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
 
     lD = log_potential(R, s, z);
 
@@ -623,7 +625,9 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
         while (t <= t_max) {
             handle_signals(lattice, R);
 
-            // c[t] = ((u_loc[t] + y[t]) * R[t][t])^2 + c[t + 1]
+            /*
+                c[t] = ((u_loc[t] + y[t]) * R[t][t])^2 + c[t + 1]
+            */
             c[t] = (u_loc[t] + y[t]) * R[t][t];
             c[t] *= c[t];
             c[t] += c[t + 1];
@@ -704,9 +708,14 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                 }
             }
             // next
-            if (t < t_max) delta[t] *= -1.0;
-            if (delta[t] * d[t] >= 0) delta[t] += d[t];
-            u_loc[t] = v[t] + delta[t];
+            if (t == t_max) {
+                //fprintf(stderr, "%d %ld %ld u=%lf v=%ld, %ld\n", t, d[t], delta[t], u_loc[t], v[t], v[t] + delta[t]);
+                u_loc[t] += 1;
+            } else {
+                if (t < t_max) delta[t] *= -1.0;
+                if (delta[t] * d[t] >= 0) delta[t] += d[t];
+                u_loc[t] = v[t] + delta[t];
+            }
         }
     }
 
@@ -742,6 +751,7 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     double alpha, radius;
     int SCHNITT = 20;
 
+    //fprintf(stderr, "-----------\n");
     c = (DOUBLE*)calloc(s+1, sizeof(DOUBLE));
     y = (DOUBLE*)calloc(s+1, sizeof(DOUBLE));
     a = (DOUBLE*)calloc(s+1, sizeof(DOUBLE));
@@ -757,7 +767,7 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
         v[i] = delta[i] = 0;
         d[i] = 1;
     }
-    c_min = 1.0 / R[start_block][start_block];
+    c_min = 1.0 / R[end_block][end_block];
     c_min *= c_min;
     c_min *= improve_by;
 
@@ -770,7 +780,9 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
             handle_signals(lattice, R);
 
             a[t] = u_loc[t] - y[t];
-            // c[t] = c[t - 1] + (a[t]/ R[t][t])^2
+            /*
+                c[t] = c[t - 1] + (a[t]/ R[t][t])^2
+            */
             c[t] = a[t] / R[t][t];
             c[t] *= c[t];
             if (t > t_min) {
@@ -827,9 +839,14 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                 }
             }
             // next
-            if (t > t_min) delta[t] *= -1.0;
-            if (delta[t] * d[t] >= 0) delta[t] += d[t];
-            u_loc[t] = v[t] + delta[t];
+            if (t == t_min) {
+                u_loc[t] += 1;
+                //fprintf(stderr, "%d %ld %ld u=%lf v=%ld, %ld\n", t, d[t], delta[t], u_loc[t], v[t], v[t] + delta[t]);
+            } else {
+                if (t > t_min) delta[t] *= -1.0;
+                if (delta[t] * d[t] >= 0) delta[t] += d[t];
+                u_loc[t] = v[t] + delta[t];
+            }
         }
     }
 
