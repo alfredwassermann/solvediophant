@@ -303,13 +303,13 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, i
             h = (start_block - 1 < 0) ? 0 : start_block - 1;
             h_end = (end_block + 1 <= last) ? end_block + 1 : last;
 
-            r_tt = 1.0 / R[start_block][start_block];
+            r_tt = 1.0 / R[end_block][end_block];
             r_tt *= r_tt;
             if (delta * r_tt > new_cj) {
                 fprintf(stderr, "dual enumerate successful %d %lf improvement: %lf\n",
                     start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
                 fflush(stderr);
-                insert_vector(lattice, u, start_block, end_block, z, hv);
+                dual_insert_vector(lattice, u, start_block, end_block, z, hv);
                 lllH(lattice, R, h_beta, H, h, 0, h_end, z, delta, CLASSIC_LLL, bit_size, solutiontest);
             } else {
                 lllH(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
@@ -388,7 +388,7 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p,
         new_cj = dual_enumerate(lattice, R, u, s, start_block, end_block, delta, p);
         h = (start_block - 1 < 0) ? 0 : start_block - 1;
 
-        r_tt = 1.0 / R[start_block][start_block];
+        r_tt = 1.0 / R[end_block][end_block];
         r_tt *= r_tt;
         if (delta * r_tt > new_cj) {
             fprintf(stderr, "dual enumerate successful %d %lf improvement: %lf\n",
@@ -396,10 +396,10 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p,
             fflush(stderr);
 
             /* successful enumeration */
-            insert_vector(lattice, u, start_block, end_block, z, hv);
+            dual_insert_vector(lattice, u, start_block, end_block, z, hv);
             //i = householder_column(lattice->basis, R, H, h_beta, end_block, end_block + 1, z, bit_size);
             lllH(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
-            i = start_block;
+            i = end_block;
 
             new_cj2 = 1.0 / (R[i][i] * R[i][i]);
             if (FALSE && fabs(new_cj2 - new_cj) > EPSILON) {
@@ -836,7 +836,7 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     free(c);
 
     if (!found_improvement) {
-        c_min = 1.0 / R[start_block][start_block];
+        c_min = 1.0 / R[end_block][end_block];
         c_min *= c_min;
     }
     return (c_min);
