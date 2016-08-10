@@ -1112,6 +1112,20 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
             if (fabs(us[level]) > fipo[level]) {
                 dual_bound_success++;
                 goto side_step;
+
+                /*
+                // Irrelevant improvement
+
+                if (eta[level] == 1) {
+                    goto step_back;
+                }
+                eta[level] = 1;
+                delta[level] *= -1;
+                if (delta[level]*d[level] >=0 ) delta[level] += d[level];
+                us[level] = v[level] + delta[level];
+                continue;
+                */
+
             }
 #endif
 
@@ -1152,7 +1166,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
                     }
                     eta[level] = 1;
                     delta[level] *= -1;
-                    if (delta[level]*d[level]>=0) delta[level] += d[level];
+                    if (delta[level]*d[level] >=0 ) delta[level] += d[level];
                     us[level] = v[level] + delta[level];
                 } else {
                     level--;
@@ -1211,7 +1225,7 @@ afterloop:
     fprintf(stderr, "Prune_hoelder: %ld of %ld\n", hoelder_success, hoelder_no);
     fprintf(stderr, "Prune_hoelder interval: %ld\n", hoelder2_success);
 #if FINCKEPOHST
-    printf("Fincke-Pohst: %ld\n", dual_bound_success);
+    printf("Dual bounds: %ld\n", dual_bound_success);
 #endif
     printf("Loops: %ld\n",loops);
 
