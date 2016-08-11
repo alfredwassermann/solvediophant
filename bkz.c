@@ -792,14 +792,14 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                 c[t] += c[t - 1];
             }
 
-            if (TRUE || len <= SCHNITT) {
+            if (len <= SCHNITT) {
                 alpha = 1.0;
             } else {
                 k = t - start_block + 1;
                 if (k > 2 * len / 4) {
                     alpha = 1.0;
                 } else {
-                    alpha = 0.8;
+                    alpha = 0.5;
                 }
                 alpha = (alpha < 1.0) ? alpha : 1.0;
             }
