@@ -855,9 +855,9 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     DOUBLE tmp;
     // coeff_t *swap_vec;
 
-    //int isSideStep = 0;
-    //DOUBLE stepWidth = 0.0;
-    //DOUBLE olddum;
+    int isSideStep = FALSE;
+    DOUBLE stepWidth = 0.0;
+    DOUBLE olddum;
 
 #if defined(FINCKEPOHST)
     DOUBLE *fipo;
@@ -1105,7 +1105,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         handle_signals(lattice, NULL);
 
         /* compute new |cs| */
-        //olddum = dum[level];
+        olddum = dum[level];
         dum[level] = us[level] + y[level];
         cs[level] = cs[level+1] + dum[level]*dum[level]*c[level];
 
@@ -1119,41 +1119,17 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 #if FINCKEPOHST
             if (fabs(us[level]) > fipo[level]) {
                 dual_bound_success++;
+                isSideStep = FALSE;
                 goto side_step;
-
-                /*
-                // Irrelevant improvement
-
-                if (eta[level] == 1) {
-                    goto step_back;
-                }
-                eta[level] = 1;
-                delta[level] *= -1;
-                if (delta[level]*d[level] >=0 ) delta[level] += d[level];
-                us[level] = v[level] + delta[level];
-                continue;
-                */
-
             }
 #endif
 
-            /*
-            if (level < columns - 1 && fabs(us[level] + us[level + 1]) > dual_bound[level]) {
-                fprintf(stderr, "%lf %lf\n", us[level] + us[columns -1], dual_bound[level]);
-                fflush(stderr);
-                goto side_step;
-            }
-            */
-
-            /*
             if (isSideStep) {
                 stepWidth = dum[level] - olddum;
                 compute_w2(w, bd, stepWidth, level, rows);
             } else {
                 compute_w(w, bd, dum[level], level, rows);
             }
-            */
-            compute_w(w, bd, dum[level], level, rows);
 
             if (level > 0) {
                 /* not at a leave */
@@ -1176,13 +1152,14 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
                     delta[level] *= -1;
                     if (delta[level]*d[level] >=0 ) delta[level] += d[level];
                     us[level] = v[level] + delta[level];
+                    isSideStep = TRUE;
                 } else {
                     level--;
                     delta[level] = eta[level] = 0;
-                    y[level] = compute_y(mu_trans,us,level,level_max);
+                    y[level] = compute_y(mu_trans,us, level, level_max);
                     us[level] = v[level] = ROUND(-y[level]);
-                    d[level] = (v[level]>-y[level]) ? -1 : 1;
-                    //isSideStep = 0;
+                    d[level] = (v[level] > -y[level]) ? -1 : 1;
+                    isSideStep = FALSE;
                 }
             } else {
                 /* at $|level|=0$ */
@@ -1193,9 +1170,8 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
                         lattice->LLL_params.stop_after_solutions <= nosolutions)
                         goto afterloop;
                 }
+                isSideStep = TRUE;
                 goto side_step;
-
-
             }
         } else {
             cs_success++;
@@ -1209,6 +1185,8 @@ step_back:
             } else if (level > level_max) {
                 level_max = level;
             }
+            isSideStep = TRUE;
+
 side_step:
             /*
                 Side step: the next value in the same level is
@@ -1222,7 +1200,6 @@ side_step:
                 delta[level] += (delta[level]*d[level]>=0) ? d[level] : -d[level] ;
             }
             us[level] = v[level] + delta[level];
-            //isSideStep = 1;
         }
     } while (level<columns);
 afterloop:
