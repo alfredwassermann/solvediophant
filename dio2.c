@@ -320,7 +320,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     } else {
         //shufflelattice(lattice);
 
-        #if 1
+        #if 0
         i = 0;
         do {
             lD = lDnew;
@@ -351,7 +351,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             i++;
         } while (i < 1 && fabs(lDnew - lD) > 0.01);
         #else
-        lDnew = self_dual_bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
+            lDnew = self_dual_bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
                     lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
                     solutiontest);
         #endif
