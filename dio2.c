@@ -320,17 +320,20 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     } else {
         //shufflelattice(lattice);
 
-        #if 0
+        #if 1
         i = 0;
         do {
             lD = lDnew;
 
             //shufflelattice(lattice);
+            #if 0
             if (i % 2 == 0) {
                 lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
-                            lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
-                            solutiontest, solutiontest_long);
+                        lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
+                        solutiontest, solutiontest_long);
                 fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
+
+                dump_lattice(lattice);
             } else {
                 lDnew = dual_bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
                             lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
@@ -338,15 +341,20 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
                 fprintf(stderr, "Dual BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
             }
             fflush(stderr);
-            dump_lattice(lattice);
+            #endif
+
+            lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
+                        lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
+                        solutiontest, solutiontest_long);
+            fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
 
             i++;
-        }
-        while (i < 20 && fabs(lDnew - lD) > 0.01);
-        #endif
+        } while (i < 1 && fabs(lDnew - lD) > 0.01);
+        #else
         lDnew = self_dual_bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
                     lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
                     solutiontest);
+        #endif
     }
     fprintf(stderr, "Third reduction successful\n"); fflush(stderr);
 
