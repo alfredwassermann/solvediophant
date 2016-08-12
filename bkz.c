@@ -232,7 +232,7 @@ void dual_insert_vector(lattice_t *lattice, long *u, int start, int end, int z, 
     #endif
 }
 
-DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p,
+DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
         int (*solutiontest)(lattice_t *lattice, int k)) {
     DOUBLE **R, *h_beta, *N;
     DOUBLE **H;
@@ -270,7 +270,7 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, i
     lllalloc(&R, &h_beta, &N, &H, s, z);
 
     while (1) {
-        fprintf(stderr, "Start tour\n");
+        fprintf(stderr, "Start tour #no %d\n", zaehler);
         lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
 
         fprintf(stderr, "Primal\n");
@@ -319,7 +319,7 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, i
         }
 
         zaehler++;
-        if (zaehler > 3) break;
+        if (zaehler > 1) break;
 
     } /* end of |while| */
 
@@ -339,7 +339,7 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, i
     return lD;
 }
 
-DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p,
+DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
         int (*solutiontest)(lattice_t *lattice, int k)) {
     DOUBLE **R, *h_beta, *N;
     DOUBLE **H;
@@ -439,12 +439,13 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p,
 /**
  * Blockwise Korkine Zolotareff reduction
  */
-DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p,
+DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
             int (*solutiontest)(lattice_t *lattice, int k), int (*solutiontest_long)(lattice_t *lattice, int k)) {
     DOUBLE **R, *h_beta, *N;
     DOUBLE **H;
     DOUBLE r_tt;
-    DOUBLE new_cj, new_cj2;
+    DOUBLE new_cj;
+    //DOUBLE new_cj2;
     DOUBLE lD;
 
     static mpz_t hv;
@@ -512,12 +513,14 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p,
             } else {
                 insert_vector(lattice, u, start_block, end_block, z, hv);
             }
+            /*
             i = householder_column_long(lattice->basis_long, R, H, h_beta, start_block, start_block + 1, z, bit_size);
             new_cj2 = R[i][i] * R[i][i];
             if (fabs(new_cj2 - new_cj) > EPSILON) {
                 fprintf(stderr, "???????????????? We have a problem: %lf %lf\n", new_cj2, new_cj);
                 fflush(stdout);
             }
+            */
 
             if (bit_size < 32) {
                 lllH_long(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size, solutiontest_long);
@@ -567,7 +570,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, int p,
  * Pruned Gauss-Enumeration.
  */
 DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
-                    int start_block, int end_block, DOUBLE improve_by, int p) {
+                    int start_block, int end_block, DOUBLE improve_by, DOUBLE p) {
 
     //DOUBLE x;
     DOUBLE *y, *c;
@@ -600,7 +603,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
         d[i] = 1;
     }
 
-    p = 0.25;
+    //p = 0.25;
     if (end_block - start_block <= SCHNITT) {
         c_min = set_prune_const(R, start_block, end_block + 1, PRUNE_NO, 1.0);
     } else {
@@ -638,20 +641,23 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
             if (len <= SCHNITT) {
                 alpha = 1.0;
             } else {
+                /*
                 #if 0
                     alpha = 1.05 * (end_block + 1 - t) / len;
                 #elif 1
+                */
                     k = (end_block + 1 - t);
                     if (k > 2 * len / 4) {
                         alpha = 1.0;
                     } else {
-                        alpha = 0.6;
+                        alpha = p;
                         //alpha = k / len;
                     }
+                /*
                 #elif 0
                     alpha = 1.0;
                 #else
-                    p = 0.5;
+                    //p = 0.5;
                     k = (end_block + 1 - t);
                     if (k > len / 2) {
                         alpha = p * 2 * k / len;
@@ -660,6 +666,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                         alpha = 2 * p - 1 + 2 * k * (1 - p) / len;
                     }
                 #endif
+                */
                 alpha = (alpha < 1.0) ? alpha : 1.0;
             }
             //fprintf(stderr, "%d %d %d %lf\n", start_block, t, end_block, alpha);
@@ -739,7 +746,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
 
 
 DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
-                    int start_block, int end_block, DOUBLE improve_by, int p) {
+                    int start_block, int end_block, DOUBLE improve_by, DOUBLE p) {
 
     DOUBLE *y, *c, *a;
     DOUBLE c_min;
@@ -799,7 +806,7 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                 if (k > 2 * len / 4) {
                     alpha = 1.0;
                 } else {
-                    alpha = 0.5;
+                    alpha = p;
                 }
                 alpha = (alpha < 1.0) ? alpha : 1.0;
             }

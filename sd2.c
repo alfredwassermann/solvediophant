@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
 
         } else if (strncmp(argv[i],"-p", 2) == 0) {
             strcpy(suffix, argv[i] + 2);
-            lattice.LLL_params.bkz.p = atoi(suffix);
+            lattice.LLL_params.bkz.p = atof(suffix);
 
         } else if (strncmp(argv[i],"-time", 5) == 0) {
             strcpy(suffix, argv[i] + 5);

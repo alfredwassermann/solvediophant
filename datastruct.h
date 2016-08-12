@@ -19,7 +19,7 @@ typedef struct {
     int iterate_no;
     struct Bkz {
         int beta;
-        int p;
+        DOUBLE p;
     } bkz;
 
     int silent;
