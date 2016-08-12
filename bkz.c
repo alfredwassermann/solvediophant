@@ -319,7 +319,7 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
         }
 
         zaehler++;
-        if (zaehler > 1) break;
+        if (zaehler > 3) break;
 
     } /* end of |while| */
 
@@ -595,7 +595,6 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     u_loc = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
     //lambda_min = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
 
-    len = end_block + 1 - start_block;
     for (i = start_block; i <= end_block + 1; i++) {
         c[i] = y[i] = 0.0;
         u_loc[i] = 0.0;
@@ -603,7 +602,6 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
         d[i] = 1;
     }
 
-    //p = 0.25;
     if (end_block - start_block <= SCHNITT) {
         c_min = set_prune_const(R, start_block, end_block + 1, PRUNE_NO, 1.0);
     } else {
@@ -613,20 +611,12 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     }
     c_min *= improve_by;
 
-    // Find minimum Eigen value
-    /*
-    i = start_block;
-    lambda_min[i] = R[i][i] * R[i][i];
-    for (i = start_block + 1; i <= end_block; ++i) {
-        x = R[i][i] * R[i][i];
-        lambda_min[i] = (x < lambda_min[i-1]) ? x : lambda_min[i-1];
-    }
-    */
 
     //t = t_max = end_block;
     for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
         t = t_max;
         u_loc[t] = 1.0;
+        len = t_max + 1 - start_block;
 
         while (t <= t_max) {
             handle_signals(lattice, R);
@@ -641,45 +631,17 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
             if (len <= SCHNITT) {
                 alpha = 1.0;
             } else {
-                /*
-                #if 0
-                    alpha = 1.05 * (end_block + 1 - t) / len;
-                #elif 1
-                */
-                    k = (end_block + 1 - t);
-                    if (k > 2 * len / 4) {
-                        alpha = 1.0;
-                    } else {
-                        alpha = p;
-                        //alpha = k / len;
-                    }
-                /*
-                #elif 0
+                k = (end_block + 1 - t);
+                if (k > 7 * len / 9) {
                     alpha = 1.0;
-                #else
-                    //p = 0.5;
-                    k = (end_block + 1 - t);
-                    if (k > len / 2) {
-                        alpha = p * 2 * k / len;
-                        alpha = 1.0;
-                    } else {
-                        alpha = 2 * p - 1 + 2 * k * (1 - p) / len;
-                    }
-                #endif
-                */
+                } else {
+                    //alpha = p;
+                    alpha = p * k / len;
+                }
                 alpha = (alpha < 1.0) ? alpha : 1.0;
             }
             //fprintf(stderr, "%d %d %d %lf\n", start_block, t, end_block, alpha);
             radius = alpha * c_min;
-
-            #if 0
-            // Use minimum Eigen value
-            if (t - start_block + 1 > 5) {
-                x = lambda_min[t] * (t - start_block + 1) / 32;
-                //fprintf(stderr, "> %lf\n", x);
-                radius -= x;
-            }
-            #endif
 
             if (c[t] < radius - EPSILON) {
                 if (t > start_block) {
@@ -784,6 +746,7 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     for (t_min = end_block - 1; t_min >= start_block; t_min--) {
         t = t_min;
         u_loc[t] = 1.0;
+        len = end_block + 1 - t_min;
 
         //fprintf(stderr, "LOOP %d %d %d\n", t_min, end_block, s+1);
         while (t >= t_min) {
@@ -803,10 +766,11 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                 alpha = 1.0;
             } else {
                 k = t - start_block + 1;
-                if (k > 2 * len / 4) {
+                if (k > 3 * len / 4) {
                     alpha = 1.0;
                 } else {
-                    alpha = p;
+                    //alpha = p;
+                    alpha = p * k / len;
                 }
                 alpha = (alpha < 1.0) ? alpha : 1.0;
             }
