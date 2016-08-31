@@ -632,11 +632,11 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                 alpha = 1.0;
             } else {
                 k = (end_block + 1 - t);
-                if (k > 7 * len / 9) {
+                if (k > 6 * len / 9) {
                     alpha = 1.0;
                 } else {
                     //alpha = p;
-                    alpha = p * k / len;
+                    alpha = 3 * p * k / len;
                 }
                 alpha = (alpha < 1.0) ? alpha : 1.0;
             }
@@ -766,11 +766,11 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                 alpha = 1.0;
             } else {
                 k = t - start_block + 1;
-                if (k > 3 * len / 4) {
+                if (k > 1 * len / 3) {
                     alpha = 1.0;
                 } else {
                     //alpha = p;
-                    alpha = p * k / len;
+                    alpha = 3 * p * k / len;
                 }
                 alpha = (alpha < 1.0) ? alpha : 1.0;
             }

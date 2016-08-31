@@ -1287,21 +1287,6 @@ void compute_w2(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     #else
         int i;
         for (i = rows - 1; i >= 0; --i) {
-            /*
-            DOUBLE x, y;
-            x = w[level][i] + alpha * bd[level][i];
-            y = w[level+1][i] + beta * bd[level][i];
-
-            if (fabs(x - y) > 0.0000000001) {
-                fprintf(stderr,"ERROR w2 level=%d: %lf %lf %lf %lf \n", level, x, y, alpha, beta);
-                fprintf(stderr,"                  :%lf %lf %lf %lf\n", old, ys, u, bd[level][i]);
-                fprintf(stderr,"                  :%lf\n", (x - y)/ bd[level][i]);
-                fflush(stderr);
-            }
-
-
-            w[level][i] = x;
-            */
             w[level][i] += alpha * bd[level][i];
         }
     #endif
