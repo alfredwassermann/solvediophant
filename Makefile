@@ -2,11 +2,13 @@ CC=gcc
 
 CFLAGS= -O3 -Wall \
         -funroll-all-loops    \
+		-flto \
         -march=native -mtune=native -msse -msse2 -msse3 -mssse3 -m64 \
         -pipe  \
         -fomit-frame-pointer -finline-functions  \
 		-ftree-vectorize \
 		-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4
+	#-ffinite-math-only -fno-trapping-math -fno-signaling-nans -fno-signed-zeros \
 	#-ftree-vectorizer-verbose=2
 	#-mveclibabi=svml
 	#-mfpmath=sse+387  # unstable
