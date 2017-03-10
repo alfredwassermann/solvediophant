@@ -221,6 +221,7 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
             }
         }
 
+    break;
         fprintf(stderr, "Dual\n");
         for (start_block = last - beta + 1; start_block > 0; --start_block) {
             end_block = start_block + beta - 1;
@@ -585,7 +586,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     int len, k;
     double alpha, radius;
     //DOUBLE *lambda_min;
-    int SCHNITT = 20;
+    int SCHNITT = 2000;
 
     c = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
     y = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
@@ -720,7 +721,7 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     DOUBLE *u_loc;
     int len, k;
     double alpha, radius;
-    int SCHNITT = 20;
+    int SCHNITT = 2000;
 
     //fprintf(stderr, "-----------\n");
     c = (DOUBLE*)calloc(s+1, sizeof(DOUBLE));
@@ -837,6 +838,25 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     }
     return (c_min);
 }
+
+/*
+void set_linear_pruning_const(DOUBLE *alpha, len, ) {
+    int i;
+    if (len <= SCHNITT) {
+        alpha = 1.0;
+    } else {
+        k = (end_block + 1 - t);
+        if (k > 6 * len / 9) {
+            alpha = 1.0;
+        } else {
+            //alpha = p;
+            alpha = 3 * p * k / len;
+        }
+        alpha = (alpha < 1.0) ? alpha : 1.0;
+    }
+
+}
+*/
 
 /*
     An estimate on gamma_1(L[low, up]), excluding up

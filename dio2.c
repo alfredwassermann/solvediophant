@@ -550,8 +550,8 @@ int solutiontest(lattice_t *lattice, int position) {
             mpz_abs(soltest_u,soltest_u);
             i++;
         }
-        mpz_out_str(NULL,10,soltest_u);
-        printf(" ");
+        mpz_out_str(stderr,10,soltest_u);
+        fprintf(stderr, " ");
         if (lattice->LLL_params.stop_after_solutions == 1) {
             mpz_out_str(fp,10,soltest_u);
             fprintf(fp," ");
@@ -561,11 +561,11 @@ int solutiontest(lattice_t *lattice, int position) {
         mpz_divexact(soltest_u, get_entry(lattice->basis, position, up), max_up);
         mpz_divexact(soltest_u, soltest_u, lattice->LLL_params.scalelastlinefactor);
         mpz_abs(soltest_u,soltest_u);
-        printf(" L = ");
-        mpz_out_str(NULL,10,soltest_u);
+        fprintf(stderr, " L = ");
+        mpz_out_str(stderr,10,soltest_u);
     }
-    printf(" !!\n");
-    fflush(stdout);
+    fprintf(stderr, " !!\n");
+    fflush(stderr);
 
     /* test if one solution is enough */
     if (lattice->LLL_params.stop_after_solutions == 1) {
@@ -651,8 +651,8 @@ int solutiontest_long(lattice_t *lattice, int position) {
             mpz_abs(soltest_u,soltest_u);
             i++;
         }
-        mpz_out_str(NULL,10,soltest_u);
-        printf(" ");
+        mpz_out_str(stderr,10,soltest_u);
+        fprintf(stderr, " ");
         if (lattice->LLL_params.stop_after_solutions == 1) {
             mpz_out_str(fp,10,soltest_u);
             fprintf(fp," ");
@@ -662,11 +662,11 @@ int solutiontest_long(lattice_t *lattice, int position) {
         mpz_divexact(soltest_u, get_entry(lattice->basis, position, up), max_up);
         mpz_divexact(soltest_u, soltest_u, lattice->LLL_params.scalelastlinefactor);
         mpz_abs(soltest_u,soltest_u);
-        printf(" L = ");
-        mpz_out_str(NULL,10,soltest_u);
+        fprintf(stderr, " L = ");
+        mpz_out_str(stderr, 10,soltest_u);
     }
-    printf(" ||\n");
-    fflush(stdout);
+    fprintf(stderr, " ||\n");
+    fflush(stderr);
 
     /* test if one solution is enough */
     if (lattice->LLL_params.stop_after_solutions == 1) {
