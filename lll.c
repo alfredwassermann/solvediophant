@@ -55,7 +55,8 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         theta = 0.50;
         eta = 0.52;
     } else if (bit_size > 55) {
-        theta = 0.1;
+        eta = 0.52;
+        theta = 0.3;
     } else if (bit_size > 30) {
         theta = 0.04;
     } else {
@@ -134,7 +135,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 mu_all_zero = FALSE;
 
                 if (cnt_tricol > 1000) {
-                    fprintf(stderr, "%d: %0.2lf, %lf %lf %lf\n\t %lf\n", j, mus,
+                    fprintf(stderr, "Possible tricol error: %d: eta=%0.2lf, theta=%0.2lf, %0.2lf, %lf %lf %lf\n\t %lf\n", j, eta, theta, mus,
                         fabs(R[k][j]), fabs(R[j][j]), fabs(R[k][k]),
                         eta * fabs(R[j][j]) + theta * fabs(R[k][k]));
                 }
@@ -562,7 +563,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 mu_all_zero = FALSE;
 
                 if (cnt_tricol > 1000) {
-                    fprintf(stderr, "%d: %0.2lf, %lf %lf %lf\n\t %lf\n", j, mus,
+                    fprintf(stderr, "%d: eta=%0.2lf, theta=%0.2lf, %0.2lf, %lf %lf %lf\n\t %lf\n", j, eta, theta, mus,
                         fabs(R[k][j]), fabs(R[j][j]), fabs(R[k][k]),
                         eta * fabs(R[j][j]) + theta * fabs(R[k][k]));
                 }
