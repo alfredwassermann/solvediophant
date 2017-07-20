@@ -1202,8 +1202,8 @@ side_step:
             us[level] = v[level] + delta[level];
         }
     } while (level<columns);
-afterloop:
 
+afterloop:
     /* final output */
     fprintf(stderr, "Prune_cs: %ld\n", cs_success);
     fprintf(stderr, "Prune_only_zeros: %ld of %ld\n", only_zeros_success, only_zeros_no);
