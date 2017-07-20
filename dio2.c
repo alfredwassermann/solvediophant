@@ -1040,7 +1040,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 #if 1
     for (i = columns - 1; i >= 0; i--) {
         if (fipo[i]<0.9) {
-            printf("DEL\n");
+            fprintf(stderr, "DEL\n");
             columns--;
         } else {
             break;
@@ -1094,12 +1094,12 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
 #if VERBOSE > -1
         if (loops % 100000000 ==0) {                 /*10000000*/
-            printf("%ld loops, solutions: %ld", loops, nosolutions);
+            fprintf(stderr, "%ld loops, solutions: %ld", loops, nosolutions);
 #if FINCKEPOHST
-            printf(", dual bounds: %ld ", dual_bound_success);
+            fprintf(stderr, ", dual bounds: %ld ", dual_bound_success);
 #endif
-            printf("\n");
-            fflush(stdout);
+            fprintf(stderr, "\n");
+            fflush(stderr);
         }
 #endif
         handle_signals(lattice, NULL);
@@ -1210,13 +1210,13 @@ afterloop:
     fprintf(stderr, "Prune_hoelder: %ld of %ld\n", hoelder_success, hoelder_no);
     fprintf(stderr, "Prune_hoelder interval: %ld\n", hoelder2_success);
 #if FINCKEPOHST
-    printf("Dual bounds: %ld\n", dual_bound_success);
+    fprintf(stderr, "Dual bounds: %ld\n", dual_bound_success);
 #endif
-    printf("Loops: %ld\n",loops);
+    fprintf(stderr, "Loops: %ld\n",loops);
 
     if ((lattice->LLL_params.stop_after_solutions <= nosolutions && lattice->LLL_params.stop_after_solutions > 0) ||
             (lattice->LLL_params.stop_after_loops <= loops && lattice->LLL_params.stop_after_loops > 0 )) {
-        printf("Stopped after number of solutions: %ld\n", nosolutions);
+        fprintf(stderr, "Stopped after number of solutions: %ld\n", nosolutions);
 
         if (lattice->LLL_params.silent)
             print_num_solutions(nosolutions);
@@ -1226,10 +1226,11 @@ afterloop:
             exit(9);
         }
     } else {
-        printf("Total number of solutions: %ld\n", nosolutions);
+        fprintf(stderr, "Total number of solutions: %ld\n", nosolutions);
     }
-    printf("\n");
+    fprintf(stderr, "\n");
     fflush(stdout);
+    fflush(stderr);
 
     /* free allocated memory for enumeration */
     free(us);
@@ -1326,12 +1327,12 @@ void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE 
 
         c[i] = scalarproductfp(bd[i], bd[i], rows);
         #if VERBOSE > 0
-            printf("%lf ",(double)c[i]);
+            fprintf(stderr, "%lf ",(double)c[i]);
         #endif
     }
     #if VERBOSE > 0
-        printf("\n\n");
-        fflush(stdout);
+        fprintf(stderr, "\n\n");
+        fflush(stderr);
     #endif
     return;
 }
@@ -1407,13 +1408,13 @@ void givens(lattice_t *lattice, int columns, int rows, DOUBLE **mu,
             mu[j][i] /= mu[i][i];
 
         #if VERBOSE > -1
-            printf("%6.3f ",(double)c[i]);
-            if (i>0 && i%15==0) printf("\n");
+            fprintf(stderr, "%6.3f ",(double)c[i]);
+            if (i>0 && i%15==0) fprintf(stderr, "\n");
         #endif
     }
     #if VERBOSE > -1
-        printf("\n\n");
-        fflush(stdout);
+        fprintf(stderr, "\n\n");
+        fflush(stderr);
     #endif
 
     return;
@@ -1639,7 +1640,7 @@ void stop_program_sig(int sig) {
     if (sig != SIGALRM)
        return;
 
-    printf("Stopped after SIGALRM, number of solutions: %ld\n", nosolutions);
+    fprintf(stderr, "Stopped after SIGALRM, number of solutions: %ld\n", nosolutions);
     if (!SILENT)
         print_num_solutions(nosolutions);
 
