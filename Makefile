@@ -19,7 +19,7 @@ CFLAGS= -O3 -Wall \
 
 #CFLAGS= -g -Wall
 
-VIMFLAGS=-c 'set printoptions=number:y' -c 'set printfont=Courier:h9'
+VIMFLAGS=-c 'set printoptions=number:y,left:2pc,right:2pc' -c 'set printfont=Courier:h9'
 #ASSEMBLERLIB=/usr/lib/openblas-base/libblas.a
 ASSEMBLERLIB=./OpenBLASsub/libopenblas.a
 #ASSEMBLERLIB=

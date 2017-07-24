@@ -832,6 +832,25 @@ long only_zeros_no, only_zeros_success, hoelder_no, hoelder_success;
 long hoelder2_success;
 long cs_success;
 
+typedef struct {
+    DOUBLE cs;
+    DOUBLE diff;
+    int num;
+    int pos;
+    DOUBLE us;
+    DOUBLE* w;
+} enum_node;
+
+typedef struct {
+    int pos;
+    int num;
+    enum_node* nodes;
+} enum_level;
+
+int cmpfunc (const void * a, const void * b) {
+   return ( ((enum_node*)a)->diff - ((enum_node*)a)->diff );
+}
+
 DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     /* local variables for |explicit_enumeration() */
     /*|__attribute((aligned(16)))|*/
@@ -864,6 +883,8 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     DOUBLE **dual_basis;
     DOUBLE *dual_bound;
 #endif
+
+    enum_level* enum_data;
 
     /* Vector to collect enumeration statistics */
     long nlow[1000];
@@ -1048,6 +1069,17 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     }
 #endif
 
+    /* New strategy */
+    enum_data = (enum_level*)calloc(columns+1, sizeof(enum_level));
+    for (i = 0; i <= columns; i++) {
+        enum_data[i].nodes = (enum_node*)calloc(2 * ((int)(fipo[i]) + 1), sizeof(enum_node));
+        for (j = 0; j < 2 * ((int)(fipo[i]) + 1); j++) {
+            enum_data[i].nodes[j].w = (DOUBLE*)calloc(rows, sizeof(DOUBLE));
+        }
+        enum_data[i].num = 0;
+        enum_data[i].pos = 0;
+    }
+
     /* initialize first-nonzero arrays */
     for (l = 0; l < rows; l++) {
         for (i = 0; i < columns; i++) if (mpz_sgn(get_entry(lattice->basis, i, l)) != 0) {
@@ -1107,13 +1139,13 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         /* compute new |cs| */
         olddum = dum[level];
         dum[level] = us[level] + y[level];
-        cs[level] = cs[level+1] + dum[level]*dum[level]*c[level];
+        cs[level] = cs[level+1] + dum[level] * dum[level] * c[level];
 
         if (cs[level] < Fd)  {
             /* Use (1, -1, 0, ...) as values in Hoelder pruning */
             if (fabs(dum[level]) > bd_1norm[level]) {
                 ++hoelder2_success;
-                goto step_back;
+                goto recurse;
             }
 
 #if FINCKEPOHST
@@ -1137,7 +1169,8 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
                                      bd, y, us, columns);
 
                 if (i < 0) {
-                    goto step_back;
+                    //goto step_back;
+                    goto recurse;
                 } else if (i > 0) {
                     goto side_step;
                 }
@@ -1146,7 +1179,8 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
                 if (prune(w[level], cs[level], rows, Fqeps)) {
                     ++hoelder_success;
                     if (eta[level] == 1) {
-                        goto step_back;
+                        //goto step_back;
+                        goto recurse;
                     }
                     eta[level] = 1;
                     delta[level] *= -1;
@@ -1154,12 +1188,22 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
                     us[level] = v[level] + delta[level];
                     isSideStep = TRUE;
                 } else {
-                    level--;
-                    delta[level] = eta[level] = 0;
-                    y[level] = compute_y(mu_trans,us, level, level_max);
-                    us[level] = v[level] = ROUND(-y[level]);
-                    d[level] = (v[level] > -y[level]) ? -1 : 1;
-                    isSideStep = FALSE;
+
+                    i = enum_data[level].num;
+                    enum_data[level].nodes[i].us = us[level];
+                    enum_data[level].nodes[i].cs = cs[level];
+                    for (j = 0; j < rows; j++) {
+                        enum_data[level].nodes[i].w[j] = w[level][j];
+                    }
+                    enum_data[level].nodes[i].diff = Fqeps * cblas_dasum(rows, w[level], 1) - cs[level];
+                    enum_data[level].num++;
+
+                    //level--;
+                    // delta[level] = eta[level] = 0;
+                    // y[level] = compute_y(mu_trans,us, level, level_max);
+                    // us[level] = v[level] = ROUND(-y[level]);
+                    // d[level] = (v[level] > -y[level]) ? -1 : 1;
+                    // isSideStep = FALSE;
                 }
             } else {
                 /* at $|level|=0$ */
@@ -1175,17 +1219,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
             }
         } else {
             cs_success++;
-step_back:
-            /* Up: we go to $|level|+1$. */
-            nlow[level]++;
-            level++;
-            if (level >= columns) {
-                // We are done, let's leave the loop.
-                break;
-            } else if (level > level_max) {
-                level_max = level;
-            }
-            isSideStep = TRUE;
 
 side_step:
             /*
@@ -1201,6 +1234,43 @@ side_step:
             }
             us[level] = v[level] + delta[level];
         }
+
+recurse:
+        qsort(enum_data[level].nodes, enum_data[level].num, sizeof(enum_node), cmpfunc);
+        fprintf(stderr, "level %d, recurse: %d\n", level, enum_data[level].num);
+        for (enum_data[level].pos = 0; enum_data[level].pos < enum_data[level].num; enum_data[level].pos++) {
+            us[level] = enum_data[level].nodes[enum_data[level].pos].us;
+            cs[level] = enum_data[level].nodes[enum_data[level].pos].cs;
+            //w[level] = enum_data[level].nodes[enum_data[level].pos].w;
+            for (j = 0; j < rows; j++) {
+                w[level][j] = enum_data[level].nodes[i].w[j];
+            }
+
+            level--;
+
+            delta[level] = eta[level] = 0;
+            enum_data[level].pos = 0;
+            y[level] = compute_y(mu_trans, us, level, level_max);
+            us[level] = v[level] = ROUND(-y[level]);
+            d[level] = (v[level] > -y[level]) ? -1 : 1;
+            isSideStep = FALSE;
+
+            level++;
+        }
+
+step_back:
+        /* Up: we go to $|level|+1$. */
+        nlow[level]++;
+        level++;
+        if (level >= columns) {
+            // We are done, let's leave the loop.
+            break;
+        } else if (level > level_max) {
+            level_max = level;
+        }
+        isSideStep = TRUE;
+
+
     } while (level<columns);
 
 afterloop:
