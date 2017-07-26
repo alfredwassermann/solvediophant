@@ -836,6 +836,8 @@ long cs_success;
 typedef struct {
     DOUBLE diff;
     DOUBLE cs;
+    DOUBLE l1;
+    DOUBLE y;
     int num;
     int pos;
     DOUBLE us;
@@ -1022,9 +1024,12 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
                     for (j = 0; j < rows; j++) {
                         enum_data[level].nodes[i].w[j] = zigzag->w[level][j];
                     }
+                    enum_data[level].nodes[i].l1 = cblas_dasum(rows, zigzag->w[level], 1);
+                    enum_data[level].nodes[i].y = zigzag->y[level];
                     enum_data[level].nodes[i].diff =
-                        -(Fqeps * cblas_dasum(rows, zigzag->w[level], 1) - zigzag->cs[level]);
+                        //-(Fqeps * enum_data[level].nodes[i].l1 - zigzag->cs[level]);
                         //cblas_dasum(rows, zigzag->w[level], 1);
+                        zigzag->cs[level];
                         //zigzag->cs[level] / cblas_dasum(rows, zigzag->w[level], 1);
                         //-(Fqeps *cblas_dasum(rows, zigzag->w[level], 1) - zigzag->cs[level])
                         //    / zigzag->cs[level];
@@ -1133,27 +1138,29 @@ if (0 && enum_data[level].num > 0) {
         }
 
         if (level == 0) {
+            // Solution found
             if (final_test(zigzag->w[0], rows, Fq, zigzag->us, lattice, bit_size) == 1) {
                 print_solution(lattice, zigzag->w[level], rows, Fq, zigzag->us, columns);
 
                 for (j = columns - 1 ; j >= 0; j--) {
-                    //if (enum_data[j].pos != 0) {
-                    //    fprintf(stderr, "%d\n", j);
-                    //}
-                    if (zigzag->us[j] != ROUND(-zigzag->y[j])) {
-                        fprintf(stderr, "%d: %0.lf %0.lf %d:\n",
+                    //if (1 || zigzag->us[j] != ROUND(-zigzag->y[j])) {
+                    if (enum_data[j].pos > 0) {
+                        fprintf(stderr, "================== ");
+                    }
+                        fprintf(stderr, "%d: %0.lf %0.lf %d of %d:\n",
                             j, zigzag->us[j], ROUND(-zigzag->y[j]),
-                            enum_data[j].pos
+                            enum_data[j].pos, enum_data[j].num
                         );
                         for (i = 0;
-                             i <= enum_data[j].pos;
+                             i <= enum_data[j].num - 1;
                              i++) {
-                            fprintf(stderr, "\t%lf\n",
-                                enum_data[j].nodes[i].diff
+                            fprintf(stderr, "\t%.0lf\t%lf\t%lf\t%lf\n",
+                                enum_data[j].nodes[i].us,
+                                enum_data[j].nodes[i].cs,
+                                enum_data[j].nodes[i].l1,
+                                enum_data[j].nodes[i].y+enum_data[j].nodes[i].us
                             );
                         }
-
-                    }
                 }
 
 
@@ -1549,14 +1556,23 @@ void compute_w2(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
 void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     #if BLAS
         cblas_dcopy(rows, w[level+1], 1, w[level], 1);
-        cblas_daxpy(rows, alpha, bd[level], 1, w[level], 1);
+        if (fabs(alpha) > 1E-14) {
+            cblas_daxpy(rows, alpha, bd[level], 1, w[level], 1);
+        }
     #else
         int i;
-
         i = rows - 1;
-        while (i >= 0) {
-            w[level][i] = w[level+1][i] + alpha * bd[level][i];
-            i--;
+
+        if (fabs(alpha) > 1E-14) {
+            while (i >= 0) {
+                w[level][i] = w[level+1][i] + alpha * bd[level][i];
+                i--;
+            }
+        } else {
+            while (i >= 0) {
+                w[level][i] = w[level+1][i];
+                i--;
+            }
         }
     #endif
 
