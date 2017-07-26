@@ -1090,6 +1090,7 @@ int recursion(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
                 int level, int rows, int columns, int bit_size, DOUBLE** mu_trans) {
 
     int j, i;
+    DOUBLE s;
 
     if (-1 == enumLevel(enum_data, zigzag, lattice,
             bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
@@ -1129,6 +1130,9 @@ if (0 && enum_data[level].num > 0) {
             enum_data[level].pos < enum_data[level].num;
             enum_data[level].pos++) {
 
+        // if ((level == 78 || level == 71 || level == 67) && enum_data[level].pos == 0) {
+        //     continue;
+        // }
         zigzag->us[level] = enum_data[level].nodes[enum_data[level].pos].us;
         zigzag->cs[level] = enum_data[level].nodes[enum_data[level].pos].cs;
 
@@ -1154,11 +1158,13 @@ if (0 && enum_data[level].num > 0) {
                         for (i = 0;
                              i <= enum_data[j].num - 1;
                              i++) {
-                            fprintf(stderr, "\t%.0lf\t%lf\t%lf\t%lf\n",
+                            s = enum_data[j].nodes[i].y + enum_data[j].nodes[i].us;
+                            fprintf(stderr, "\t%.0lf\t%lf\t%lf\t%lf\t dum=%lf\n",
                                 enum_data[j].nodes[i].us,
                                 enum_data[j].nodes[i].cs,
                                 enum_data[j].nodes[i].l1,
-                                enum_data[j].nodes[i].y+enum_data[j].nodes[i].us
+                                s * s * c[j],
+                                s
                             );
                         }
                 }
