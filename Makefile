@@ -32,14 +32,14 @@ GMPLIB=
 GMPINC=
 
 #all: solvediophant.dvi diophant.pdf solvediophant
-all: sd2
+all: sd3
 
 %.o: %.c %.h
 	$(CC) $(CFLAGS) -D$(BLAS) -c $< $(GMPINC)
 
 # With BLAS
-sd2: sd2.o dio2.o lgs.o lattice.o lll.o bkz.o
-	$(CC) $(CFLAGS) -o sd2 sd2.o dio2.o bkz.o lll.o lattice.o lgs.o $(ASSEMBLERLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
+sd3: sd2.o dio2.o lgs.o lattice.o lll.o bkz.o
+	$(CC) $(CFLAGS) -o sd3 sd2.o dio2.o bkz.o lll.o lattice.o lgs.o $(ASSEMBLERLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
 
 dio2.pdf: dio2.c
 	vim $(VIMFLAGS) -c 'hardcopy > dio2.ps' -c quit dio2.c
