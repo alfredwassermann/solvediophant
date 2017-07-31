@@ -1182,13 +1182,6 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
     int next_lds_k;
     DOUBLE s;
 
-    if (level >= lds_l) {
-        if (level == level_max) {
-            fprintf(stderr, "=============================================\n");
-        }
-        fprintf(stderr, "LDS %d %d\n", level, lds_k); fflush(stderr);
-    }
-
     if (-1 == enumLevel(enum_data, zigzag, lattice,
             bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
             level, rows, columns, bit_size)) {
@@ -1196,33 +1189,58 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
         return -1;
     }
 
-    if (lds_k == 0) {
-        start = 0;
-        if (level < lds_l) {
-            end = enum_data[level].num;
-        } else {
-            end = (1 <= enum_data[level].num) ? 1 : enum_data[level].num;
-        }
-        next_lds_k = 0;
-    } else if (lds_k == 1) {
-        start = 0;
-        end = (2 <= enum_data[level].num) ? 2 : enum_data[level].num;
-        next_lds_k = lds_k - 1;
-    } else {
-        start = 0;
-        end = (2 <= enum_data[level].num) ? 2 : enum_data[level].num;
-        next_lds_k = lds_k - 1;
-    }
-
     #if 0
-    if (level == level_max) {
-        start = 0;
-        end = (1 <= enum_data[level].num) ? 1 : enum_data[level].num;
-        next_lds_k = lds_k;
+    if (enum_data[level].num == 0) {
+        fprintf(stderr, "-----------\n"); fflush(stderr);
     }
     #endif
 
-    for (pos = start; pos < end; pos++) {
+    // if (lds_k == 0) {
+    //     start = 0;
+    //     if (level < lds_l) {
+    //         end = enum_data[level].num;
+    //     } else {
+    //         end = (1 <= enum_data[level].num) ? 1 : enum_data[level].num;
+    //     }
+    // } else if (lds_k == 1) {
+    //     start = 0;
+    //     end = (2 <= enum_data[level].num) ? 2 : enum_data[level].num; // min
+    // } else {
+    //     start = 0;
+    //     end = (2 <= enum_data[level].num) ? 2 : enum_data[level].num; // min
+    // }
+
+    start = 0;
+    if (level <= lds_l) {
+        end = enum_data[level].num;
+    } else {
+        if (level - lds_l <= lds_k) {   // depth <= k -> no left branch
+            start = 1;
+        }
+        if (lds_k > 0) {
+            end = (start + lds_k < enum_data[level].num) ? start + lds_k + 1 : enum_data[level].num;
+        } else {
+            // left-branches only
+            end = 1;
+        }
+    }
+
+    #if 0
+    if (level >= lds_l) {
+        if (level == level_max) {
+            fprintf(stderr, "=============================================\n");
+        }
+        fprintf(stderr, "LDS %d %d from %d to %d\n", level, lds_k, start, end); fflush(stderr);
+    }
+    #endif
+    #if 0
+    if (level < 25 && lds_k > 0) {
+        fprintf(stderr, "*");
+        fflush(stderr);
+    }
+    #endif
+
+    for (pos = start; pos < end && pos < enum_data[level].num; pos++) {
         enum_data[level].pos = pos;
 
         zigzag->us[level] = enum_data[level].nodes[pos].us;
@@ -1242,9 +1260,9 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
                     if (pos > 0) {
                         fprintf(stderr, "================== ");
                     }
-                        fprintf(stderr, "%d: %d of %d:\n",
+                        fprintf(stderr, "%d: %d of %d\n",
                             j, //zigzag->us[j], ROUND(-zigzag->y[j]),
-                            enum_data[j].pos, enum_data[j].num
+                            enum_data[j].pos, enum_data[j].num //, fabs( enum_data[j].nodes[0].us + zigzag->y[j])
                         );
                         for (i = 0; 0 && i <= enum_data[j].num - 1; i++) {
                             s = enum_data[j].nodes[i].y + enum_data[j].nodes[i].us;
@@ -1273,16 +1291,21 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
         zigzag->us[level] = zigzag->v[level] = ROUND(-zigzag->y[level]);
         zigzag->d[level] = (zigzag->v[level] > -zigzag->y[level]) ? -1 : 1;
 
-        if (lds_k > 0) {
+        next_lds_k = lds_k;
+        if (level > lds_l) {
+            // we are in ILDS mode
             if (pos == 0) {
+                // depth > k, left branch
                 next_lds_k = lds_k;
-            } else {
-                next_lds_k = lds_k - 1;
+            } else if (lds_k > 0) {
+                next_lds_k = (lds_k > pos) ? lds_k - pos : 0;
             }
         }
+
         result = lds(enum_data, zigzag, lattice,
                 bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
                 level, rows, columns, bit_size, mu_trans, next_lds_k, lds_l);
+
         if (result == -1) {
             return result;
         }
@@ -1307,7 +1330,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
     int level;
     //level_max;
-    int i, j, l;
+    int i, j, l, k;
     int result;
 
     // DOUBLE *y, *cs, *us;
@@ -1555,13 +1578,17 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
     /* the loop of the exhaustive enumeration */
     #if 1
-        for (i = 0; i <= 2; i++) {
+        //for (i = 0; i <= columns / 2; i++) {
+        for (k = 0; k <= columns; k++) {
+            fprintf(stderr, "lds_k=%d\n", k); fflush(stderr);
             result = lds(enum_data, &zigzag, lattice,
                 bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
                 level, rows, columns, bit_size, mu_trans,
-                i, columns - 15);
+                k, 0);
+                //k, columns - columns / 2);
+            //if (k == 1) break;
             if (result  == -1) {
-                fprintf(stderr, "solution for lds_k=%d\n\n", i);
+                fprintf(stderr, "solution for lds_k=%d\n\n", k);
                 break;
             }
         }
