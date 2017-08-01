@@ -1178,7 +1178,7 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
 
     int j, i;
     int result;
-    int start, end, pos;
+    int start, end, pos, do_left_branch, p;
     int next_lds_k;
     DOUBLE s;
 
@@ -1210,15 +1210,17 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
     //     end = (2 <= enum_data[level].num) ? 2 : enum_data[level].num; // min
     // }
 
-    start = 0;
+    start = 1;
+    do_left_branch = 1;
     if (level <= lds_l) {
         end = enum_data[level].num;
     } else {
         if (level - lds_l <= lds_k) {   // depth <= k -> no left branch
             start = 1;
+            do_left_branch = 0;
         }
         if (lds_k > 0) {
-            end = (start + lds_k < enum_data[level].num) ? start + lds_k + 1 : enum_data[level].num;
+            end = (lds_k < enum_data[level].num) ? lds_k + 1 : enum_data[level].num;
         } else {
             // left-branches only
             end = 1;
@@ -1240,14 +1242,20 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
     }
     #endif
 
-    for (pos = start; pos < end && pos < enum_data[level].num; pos++) {
-        enum_data[level].pos = pos;
+    // for (pos = start; pos < end && pos < enum_data[level].num; pos++) {
+    for (pos = start; pos <= enum_data[level].num; pos++) {
+        if (pos >= end &&
+            !(do_left_branch && pos == enum_data[level].num)) {
+                continue;
+            }
+        p = pos % enum_data[level].num;
+        enum_data[level].pos = p;
 
-        zigzag->us[level] = enum_data[level].nodes[pos].us;
-        zigzag->cs[level] = enum_data[level].nodes[pos].cs;
-        // zigzag->w[level] = enum_data[level].nodes[pos].w;
+        zigzag->us[level] = enum_data[level].nodes[p].us;
+        zigzag->cs[level] = enum_data[level].nodes[p].cs;
+        // zigzag->w[level] = enum_data[level].nodes[p].w;
         for (j = 0; j < rows; j++) {
-            zigzag->w[level][j] = enum_data[level].nodes[pos].w[j];
+            zigzag->w[level][j] = enum_data[level].nodes[p].w[j];
         }
 
         if (level == 0) {
@@ -1257,7 +1265,7 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
 
                 for (j = columns - 1 ; j >= 0; j--) {
                     //if (1 || zigzag->us[j] != ROUND(-zigzag->y[j])) {
-                    if (pos > 0) {
+                    if (p > 0) {
                         fprintf(stderr, "================== ");
                     }
                         fprintf(stderr, "%d: %d of %d\n",
@@ -1294,11 +1302,11 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
         next_lds_k = lds_k;
         if (level > lds_l) {
             // we are in ILDS mode
-            if (pos == 0) {
+            if (p == 0) {
                 // depth > k, left branch
                 next_lds_k = lds_k;
             } else if (lds_k > 0) {
-                next_lds_k = (lds_k > pos) ? lds_k - pos : 0;
+                next_lds_k = (lds_k > p) ? lds_k - p : 0;
             }
         }
 
