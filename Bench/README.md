@@ -15,4 +15,3 @@
     - No solution found, but there must be many
 * `qdesign_2_8_4_217_q2.txt`:
     - $2-(8,4,217)_2$ design, part of a large set for $N=3$
-    
