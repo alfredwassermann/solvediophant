@@ -933,6 +933,7 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
                 DOUBLE** bd, DOUBLE* c,
                 DOUBLE Fd, DOUBLE Fqeps, DOUBLE Fq,
                 DOUBLE* bd_1norm, DOUBLE* fipo,
+                int* first_nonzero_in_column, int* firstp,
                 int level, int rows, int columns, int bit_size) {
 
     DOUBLE olddum, stepWidth;
@@ -993,14 +994,15 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
 
             if (level >= 0) {
                 /* not at a leave */
-                // i = prune_only_zeros(w, level, rows, Fq, first_nonzero_in_column, firstp,
-                //                      bd, y, us, columns);
-                // if (i < 0) {
-                //    //goto step_back;
-                //    goto recurse;
-                // } else if (i > 0) {
-                //     goto side_step;
-                // }
+                i = prune_only_zeros(zigzag->w, level, rows, Fq, first_nonzero_in_column, firstp,
+                                      bd, zigzag->y, zigzag->us, columns);
+                if (i < 0) {
+                    //goto step_back;
+                    //goto recurse;
+                    break;
+                } else if (i > 0) {
+                     goto side_step;
+                }
 
                 //++hoelder_no;
                 if (prune(zigzag->w[level], zigzag->cs[level], rows, Fqeps)) {
@@ -1076,6 +1078,7 @@ int dfs(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
                 DOUBLE** bd, DOUBLE* c,
                 DOUBLE Fd, DOUBLE Fqeps, DOUBLE Fq,
                 DOUBLE* bd_1norm, DOUBLE* fipo,
+                int* first_nonzero_in_column, int* firstp,
                 int level, int rows, int columns, int bit_size, DOUBLE** mu_trans) {
 
     int j, i;
@@ -1083,6 +1086,7 @@ int dfs(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
 
     if (-1 == enumLevel(enum_data, zigzag, lattice,
             bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
+            first_nonzero_in_column, firstp,
             level, rows, columns, bit_size)) {
 
         return -1;
@@ -1123,22 +1127,22 @@ int dfs(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
                     if (enum_data[j].pos > 0) {
                         fprintf(stderr, "================== ");
                     }
-                        fprintf(stderr, "%d: %0.lf %0.lf %d of %d:\n",
-                            j, zigzag->us[j], ROUND(-zigzag->y[j]),
+                        fprintf(stderr, "%d: %d of %d:\n",
+                            j, //zigzag->us[j], ROUND(-zigzag->y[j]),
                             enum_data[j].pos, enum_data[j].num
                         );
-                        for (i = 0;
-                             i <= enum_data[j].num - 1;
-                             i++) {
-                            s = enum_data[j].nodes[i].y + enum_data[j].nodes[i].us;
-                            fprintf(stderr, "\t%.0lf\t%lf\t%lf\t%lf\t dum=%lf\n",
-                                enum_data[j].nodes[i].us,
-                                enum_data[j].nodes[i].cs,
-                                enum_data[j].nodes[i].l1,
-                                s * s * c[j],
-                                s
-                            );
-                        }
+                        // for (i = 0;
+                        //      i <= enum_data[j].num - 1;
+                        //      i++) {
+                        //     s = enum_data[j].nodes[i].y + enum_data[j].nodes[i].us;
+                        //     fprintf(stderr, "\t%.0lf\t%lf\t%lf\t%lf\t dum=%lf\n",
+                        //         enum_data[j].nodes[i].us,
+                        //         enum_data[j].nodes[i].cs,
+                        //         enum_data[j].nodes[i].l1,
+                        //         s * s * c[j],
+                        //         s
+                        //     );
+                        // }
                 }
 
                 if (lattice->LLL_params.stop_after_solutions > 0 &&
@@ -1158,6 +1162,7 @@ int dfs(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
 
         if (-1 == dfs(enum_data, zigzag, lattice,
                 bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
+                first_nonzero_in_column, firstp,
                 level, rows, columns, bit_size, mu_trans)) {
             return -1;
         }
@@ -1180,6 +1185,7 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
                 DOUBLE** bd, DOUBLE* c,
                 DOUBLE Fd, DOUBLE Fqeps, DOUBLE Fq,
                 DOUBLE* bd_1norm, DOUBLE* fipo,
+                int* first_nonzero_in_column, int* firstp,
                 int level, int rows, int columns, int bit_size, DOUBLE** mu_trans,
                 int lds_k, int lds_l) {
 
@@ -1192,6 +1198,7 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
 
     if (-1 == enumLevel(enum_data, zigzag, lattice,
             bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
+            first_nonzero_in_column, firstp,
             level, rows, columns, bit_size)) {
 
         return -1;
@@ -1229,6 +1236,7 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
         }
         if (lds_k > 0) {
             end = (lds_k < enum_data[level].num) ? lds_k + 1 : enum_data[level].num;
+            //end = (lds_k < 2) ? lds_k + 1 : 2;
         } else {
             // left-branches only
             end = 1;
@@ -1337,6 +1345,7 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
 
         height = lds(enum_data, zigzag, lattice,
                 bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
+                first_nonzero_in_column, firstp,
                 level, rows, columns, bit_size, mu_trans, next_lds_k, lds_l);
         if (height == -1) {
             return -1;
@@ -1617,12 +1626,13 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     cs_success = 0;
 
     /* the loop of the exhaustive enumeration */
-    #if 1
+    #if 0
         //for (i = 0; i <= columns / 2; i++) {
         for (k = 0; k <= columns; k++) {
             fprintf(stderr, "lds_k=%d\n", k); fflush(stderr);
             result = lds(enum_data, &zigzag, lattice,
                 bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
+                first_nonzero_in_column, firstp,
                 level, rows, columns, bit_size, mu_trans,
                 k, 0);
                 //k, columns - columns / 2);
@@ -1635,6 +1645,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     #else
         dfs(enum_data, &zigzag, lattice,
             bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
+            first_nonzero_in_column, firstp,
             level, rows, columns, bit_size, mu_trans);
     #endif
 

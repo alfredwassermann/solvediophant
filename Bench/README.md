@@ -15,3 +15,8 @@
     - No solution found, but there must be many
 * `qdesign_2_8_4_217_q2.txt`:
     - $2-(8,4,217)_2$ design, part of a large set for $N=3$
+* `arc_105_9_q13.txt`:
+    - non 0/1 problem
+    - at least one solution
+    - ./sd2 -bkz -beta30 -p18 Bencharc_105_9_q13.txt`
+    - First solution after 609 Mio loops, 38 sec
