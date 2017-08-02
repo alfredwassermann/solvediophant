@@ -20,3 +20,6 @@
     - at least one solution
     - ./sd2 -bkz -beta30 -p18 Bencharc_105_9_q13.txt`
     - First solution after 609 Mio loops, 38 sec
+    - ILDS early: 93 Mio loops, 8 sec
+* `arc_28_3_q17.txt`:
+    - non 0/1 problem
