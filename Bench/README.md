@@ -23,3 +23,7 @@
     - ILDS early: 93 Mio loops, 8 sec
 * `arc_28_3_q17.txt`:
     - non 0/1 problem
+    - `./sd2 -bkz -beta60 -p18 Bench/arc_28_3_q17.txt`
+    -  No solution after 4 min 40sec
+    - `./sd3 -bkz -beta60 -p18 Bench/arc_28_3_q17.txt`
+    - ILDS  early, threshold 1/6, 84 Mio loops, 14 sec
