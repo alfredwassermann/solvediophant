@@ -1204,27 +1204,6 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
         return -1;
     }
 
-    #if 0
-    if (enum_data[level].num == 0) {
-        fprintf(stderr, "-----------\n"); fflush(stderr);
-    }
-    #endif
-
-    // if (lds_k == 0) {
-    //     start = 0;
-    //     if (level < lds_l) {
-    //         end = enum_data[level].num;
-    //     } else {
-    //         end = (1 <= enum_data[level].num) ? 1 : enum_data[level].num;
-    //     }
-    // } else if (lds_k == 1) {
-    //     start = 0;
-    //     end = (2 <= enum_data[level].num) ? 2 : enum_data[level].num; // min
-    // } else {
-    //     start = 0;
-    //     end = (2 <= enum_data[level].num) ? 2 : enum_data[level].num; // min
-    // }
-
     start = 1;
     do_left_branch_last = 1;
     if (level <= lds_threshold) {
@@ -1232,7 +1211,8 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
         end = enum_data[level].num;
         do_left_branch_last = 0;
     } else {
-        if (level - lds_threshold <= lds_k) {   // depth <= k -> no left branch
+        if (level - lds_threshold <= lds_k) {
+            // depth <= k -> no left branch
             start = 1;
             do_left_branch_last = 0;
         }
@@ -1241,31 +1221,17 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
             //end = (lds_k < 2) ? lds_k + 1 : 2;
         } else {
             // left-branches only
-            end = 1;
             #if 0
             // BBS
             // lds_k == 0: start conventional backtracking
             start = 0;
             end = enum_data[level].num;
             do_left_branch_last = 0;
+            #else
+            end = 1;
             #endif
         }
     }
-
-    #if 0
-    if (level >= lds_threshold) {
-        if (level == level_max) {
-            fprintf(stderr, "=============================================\n");
-        }
-        fprintf(stderr, "LDS %d %d from %d to %d\n", level, lds_k, start, end); fflush(stderr);
-    }
-    #endif
-    #if 0
-    if (level < 25 && lds_k > 0) {
-        fprintf(stderr, "*");
-        fflush(stderr);
-    }
-    #endif
 
     // BBS
     count = 0;
@@ -1635,7 +1601,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
                 bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
                 first_nonzero_in_column, firstp,
                 level, rows, columns, bit_size, mu_trans,
-                k, 20, 2 * columns / 3);
+                k, 0, 1 * columns / 6);
                 //k, columns - columns / 2);
             //if (k == 1) break;
             if (result  == -1) {
