@@ -850,14 +850,6 @@ typedef struct {
     enum_node_t* nodes;
 } enum_level_t;
 
-int cmpfunc (const void* a, const void* b) {
-    DOUBLE ea = ((enum_node_t*)a)->diff;
-    DOUBLE eb = ((enum_node_t*)b)->diff;
-    //fprintf(stderr, "%lf %lf\n", ((enum_node_t*)a)->diff, ((enum_node_t*)b)->diff);
-
-    return (ea - eb);
-}
-
 void mysort(enum_node_t *data, int len) {
     enum_node_t swap;
     int i, j, pos;

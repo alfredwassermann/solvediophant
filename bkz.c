@@ -612,7 +612,6 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     }
     c_min *= improve_by;
 
-
     //t = t_max = end_block;
     for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
         t = t_max;
