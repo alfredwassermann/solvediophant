@@ -1587,6 +1587,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     /* the loop of the exhaustive enumeration */
     #if 1
         //for (i = 0; i <= columns / 2; i++) {
+        //for (k = 0; k <= 8/*columns*/; k++) {
         for (k = 0; k <= columns; k++) {
             fprintf(stderr, "lds_k=%d\n", k); fflush(stderr);
             result = lds(enum_data, &zigzag, lattice,
