@@ -681,7 +681,145 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
             }
             // next
             if (t == t_max) {
-                //fprintf(stderr, "%d %ld %ld u=%lf v=%ld, %ld\n", t, d[t], delta[t], u_loc[t], v[t], v[t] + delta[t]);
+                //fprintf(stderr, "%d %ld %ld u=%lf v=%ld, %ld\n",
+                //      t, d[t], delta[t], u_loc[t], v[t], v[t] + delta[t]);
+                u_loc[t] += 1;
+            } else {
+                if (t < t_max) delta[t] *= -1.0;
+                if (delta[t] * d[t] >= 0) delta[t] += d[t];
+                u_loc[t] = v[t] + delta[t];
+            }
+        }
+    }
+
+    free(c);
+    free(y);
+    free(delta);
+    free(d);
+    free(v);
+    free(u_loc);
+    //free(lambda_min);
+
+    if (!found_improvement) {
+        c_min = R[start_block][start_block];
+        c_min *= c_min;
+    }
+    return (c_min);
+}
+
+DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
+                    int start_block, int end_block, DOUBLE improve_by, DOUBLE p) {
+
+    //DOUBLE x;
+    DOUBLE *y, *c;
+    DOUBLE c_min;
+
+    int i, j;
+    int t, t_max;
+    int found_improvement = 0;
+
+    long *delta, *d, *v;
+    DOUBLE *u_loc;
+    int len, k;
+    double alpha, radius;
+    //DOUBLE *lambda_min;
+    int SCHNITT = 2000;
+
+    c = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    y = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    delta = (long*)calloc(s+1,sizeof(long));
+    d = (long*)calloc(s+1,sizeof(long));
+    v = (long*)calloc(s+1,sizeof(long));
+    u_loc = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    //lambda_min = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+
+    for (i = start_block; i <= end_block + 1; i++) {
+        c[i] = y[i] = 0.0;
+        u_loc[i] = 0.0;
+        v[i] = delta[i] = 0;
+        d[i] = 1;
+    }
+
+    if (end_block - start_block <= SCHNITT) {
+        c_min = set_prune_const(R, start_block, end_block + 1, PRUNE_NO, 1.0);
+    } else {
+        //Hoerners version of the Gaussian volume heuristics.
+        //hoerner(R, start_block, end_block + 1, p, eta);
+        c_min = set_prune_const(R, start_block, end_block + 1, PRUNE_BKZ, p);
+    }
+    c_min *= improve_by;
+
+    //t = t_max = end_block;
+    for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
+        t = t_max;
+        u_loc[t] = 1.0;
+        len = t_max + 1 - start_block;
+
+        while (t <= t_max) {
+            handle_signals(lattice, R);
+
+            /*
+                c[t] = ((u_loc[t] + y[t]) * R[t][t])^2 + c[t + 1]
+            */
+            c[t] = (u_loc[t] + y[t]) * R[t][t];
+            c[t] *= c[t];
+            c[t] += c[t + 1];
+
+            if (len <= SCHNITT) {
+                alpha = 1.0;
+            } else {
+                k = (end_block + 1 - t);
+                if (k > 6 * len / 9) {
+                    alpha = 1.0;
+                } else {
+                    //alpha = p;
+                    alpha = 3 * p * k / len;
+                }
+                alpha = (alpha < 1.0) ? alpha : 1.0;
+            }
+            //fprintf(stderr, "%d %d %d %lf\n", start_block, t, end_block, alpha);
+            radius = alpha * c_min;
+
+            if (c[t] < radius - EPSILON) {
+                if (t > start_block) {
+                    // forward
+                    t--;
+
+                    #if BLAS
+                        y[t] = cblas_ddot(t_max - t, &(u_loc[t+1]), 1, &(R[t+1][t]), lattice->num_rows);
+                    #else
+                        for (j = t + 1, y[t] = 0.0; j <= t_max; j++) {
+                            y[t] += u_loc[j] * R[j][t];
+                        }
+                    #endif
+                    y[t] /= R[t][t];
+
+                    u_loc[t] = v[t] = (long)(ROUND(-y[t]));
+                    delta[t] = 0;
+                    d[t] = (v[t] > -y[t]) ? -1 : 1;
+
+                    continue;
+                } else {
+                    // Found shorter vector
+                    c_min = c[t];
+                    for (i = start_block; i <= end_block; i++) {
+                        u[i] = (long)round(u_loc[i]);
+                        fprintf(stderr, "%ld ", u[i]);
+                    }
+                    fprintf(stderr, "\n");
+                    found_improvement = 1;
+                }
+            } else {
+                // back
+                t++;
+                if (t > t_max) {
+                    break;
+                }
+            }
+            // next
+            if (t == t_max) {
+                //fprintf(stderr, "%d %ld %ld u=%lf v=%ld, %ld\n",
+                //      t, d[t], delta[t], u_loc[t], v[t], v[t] + delta[t]);
                 u_loc[t] += 1;
             } else {
                 if (t < t_max) delta[t] *= -1.0;

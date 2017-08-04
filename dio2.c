@@ -847,6 +847,7 @@ typedef struct {
 typedef struct {
     int pos;
     int num;
+    int is_leave_count;
     enum_node_t* nodes;
 } enum_level_t;
 
@@ -1196,6 +1197,10 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
         return -1;
     }
 
+    if (enum_data[level].num == 0) {
+        enum_data[level].is_leave_count++;
+    }
+
     start = 1;
     do_left_branch_last = 1;
     if (level <= lds_threshold) {
@@ -1256,24 +1261,27 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
                 print_solution(lattice, zigzag->w[level], rows, Fq, zigzag->us, columns);
 
                 for (j = columns - 1 ; j >= 0; j--) {
-                    //if (1 || zigzag->us[j] != ROUND(-zigzag->y[j])) {
-                    if (enum_data[j].pos > 0) {
-                        fprintf(stderr, "================== ");
+                    if (j == lds_threshold) {
+                        fprintf(stderr, "-------------------------------------\n");
                     }
-                        fprintf(stderr, "%d: %d of %d\n",
-                            j, //zigzag->us[j], ROUND(-zigzag->y[j]),
-                            enum_data[j].pos, enum_data[j].num //, fabs( enum_data[j].nodes[0].us + zigzag->y[j])
-                        );
-                        for (i = 0; 0 && i <= enum_data[j].num - 1; i++) {
-                            s = enum_data[j].nodes[i].y + enum_data[j].nodes[i].us;
-                            fprintf(stderr, "\t%.0lf\t%lf\t%lf\t%lf\t dum=%lf\n",
-                                enum_data[j].nodes[i].us,
-                                enum_data[j].nodes[i].cs,
-                                enum_data[j].nodes[i].l1,
-                                s * s * c[j],
-                                s
-                            );
-                        }
+                    if (enum_data[j].pos > 0) {
+                        fprintf(stderr, "* ");
+                    }
+                    fprintf(stderr, "%d: %d of %d\t%d\n",
+                        j,
+                        enum_data[j].pos, enum_data[j].num,
+                        enum_data[j].is_leave_count
+                    );
+                    // for (i = 0; i <= enum_data[j].num - 1; i++) {
+                    //     s = enum_data[j].nodes[i].y + enum_data[j].nodes[i].us;
+                    //     fprintf(stderr, "\t%.0lf\t%lf\t%lf\t%lf\t dum=%lf\n",
+                    //         enum_data[j].nodes[i].us,
+                    //         enum_data[j].nodes[i].cs,
+                    //         enum_data[j].nodes[i].l1,
+                    //         s * s * c[j],
+                    //         s
+                    //     );
+                    // }
                 }
 
                 if (lattice->LLL_params.stop_after_solutions > 0 &&
@@ -1542,6 +1550,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         }
         enum_data[i].num = 0;
         enum_data[i].pos = 0;
+        enum_data[i].is_leave_count = 0;
     }
 
     /* initialize first-nonzero arrays */
