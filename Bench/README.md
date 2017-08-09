@@ -20,6 +20,7 @@
 - $2-(8,4,217)_2$ design, part of a large set for $N=3$
 - `./sd2 -bkz -beta30 -p18 Bench/qdesign_2_8_4_217_q2.txt`
 - No solution after several days
+- `./sd3 -bkz -beta40 -p18 Bench/qdesign_2_8_4_217_q2.txt`
 
 ### !!! `arc_105_9_q13.txt`:
 - non 0/1 problem
@@ -42,3 +43,5 @@
 - `./sd2 -bkz -beta60 -p18 Bench/arc_204_12_q19.txt`
 - First solution after 2456 Mio loops, 2min 26 sec
 - Small problem (39 cols), but first solution has 13 discrepancies
+- `./sd3 -bkz -beta30 -p18 Bench/arc_204_12_q19.txt`
+- ILDS early, threshold 1/6, 776 Mio loops, 1min 4 sec (11 discrepancies)

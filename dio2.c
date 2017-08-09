@@ -321,7 +321,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     } else {
         //shufflelattice(lattice);
 
-        #if 0
+        #if 1
         i = 0;
         do {
             lD = lDnew;
@@ -1204,17 +1204,21 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
     start = 1;
     do_left_branch_last = 1;
     if (level <= lds_threshold) {
+        // dfs branching
         start = 0;
         end = enum_data[level].num;
         do_left_branch_last = 0;
     } else {
+        // lds branching
         if (level - lds_threshold <= lds_k) {
             // depth <= k -> no left branch
             start = 1;
             do_left_branch_last = 0;
         }
         if (lds_k > 0) {
+            // Take all nodes per level:
             end = (lds_k < enum_data[level].num) ? lds_k + 1 : enum_data[level].num;
+            // Take only two nodes per level:
             //end = (lds_k < 2) ? lds_k + 1 : 2;
         } else {
             // left-branches only
@@ -1267,11 +1271,16 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
                     if (enum_data[j].pos > 0) {
                         fprintf(stderr, "* ");
                     }
-                    fprintf(stderr, "%d: %d of %d\t%d\n",
+                    fprintf(stderr, "%d: %d of %d\t%0.0lf\t%d",
                         j,
                         enum_data[j].pos, enum_data[j].num,
+                        zigzag->us[j],
                         enum_data[j].is_leave_count
                     );
+                    if (enum_data[j].pos > 0) {
+                        fprintf(stderr, "\t*");
+                    }
+                    fprintf(stderr, "\n");
                     // for (i = 0; i <= enum_data[j].num - 1; i++) {
                     //     s = enum_data[j].nodes[i].y + enum_data[j].nodes[i].us;
                     //     fprintf(stderr, "\t%.0lf\t%lf\t%lf\t%lf\t dum=%lf\n",

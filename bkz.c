@@ -87,13 +87,13 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
         end_block = start_block + beta - 1;
         end_block = (end_block < last) ? end_block : last;
 
-        new_cj = enumerate(lattice, R, u, s, start_block, end_block, delta, p);
+        new_cj = lds_enumerate(lattice, R, u, s, start_block, end_block, delta, p);
         h = (end_block + 1 < last) ? end_block + 1 : last;
 
         r_tt = R[start_block][start_block];
         r_tt *= r_tt;
         if (delta * r_tt > new_cj) {
-            fprintf(stderr, "enumerate successful %d %lf improvement: %lf\n",
+            fprintf(stderr, "lds enumerate successful %d %lf improvement: %lf\n",
                 start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
             fflush(stderr);
 
@@ -725,13 +725,24 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     //DOUBLE *lambda_min;
     int SCHNITT = 2000;
 
-    c = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
-    y = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
-    delta = (long*)calloc(s+1,sizeof(long));
-    d = (long*)calloc(s+1,sizeof(long));
-    v = (long*)calloc(s+1,sizeof(long));
-    u_loc = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
-    //lambda_min = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    int *pos;
+    DOUBLE *u_left;
+    int *lds_k;
+    int lds_k_start;
+    int lds_threshold;
+    int lds_k_max;
+
+    c = (DOUBLE*)calloc(s + 1, sizeof(DOUBLE));
+    y = (DOUBLE*)calloc(s + 1, sizeof(DOUBLE));
+    delta = (long*)calloc(s + 1, sizeof(long));
+    d = (long*)calloc(s + 1, sizeof(long));
+    v = (long*)calloc(s + 1, sizeof(long));
+    u_loc = (DOUBLE*)calloc(s + 1, sizeof(DOUBLE));
+    //lambda_min = (DOUBLE*)calloc(s + 1, sizeof(DOUBLE));
+
+    pos = (int*)calloc(s + 1, sizeof(int));
+    lds_k = (int*)calloc(s + 1, sizeof(int));
+    u_left = (DOUBLE*)calloc(s + 1, sizeof(DOUBLE));
 
     for (i = start_block; i <= end_block + 1; i++) {
         c[i] = y[i] = 0.0;
@@ -740,7 +751,7 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
         d[i] = 1;
     }
 
-    if (end_block - start_block <= SCHNITT) {
+    if (1||end_block - start_block <= SCHNITT) {
         c_min = set_prune_const(R, start_block, end_block + 1, PRUNE_NO, 1.0);
     } else {
         //Hoerners version of the Gaussian volume heuristics.
@@ -749,13 +760,30 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     }
     c_min *= improve_by;
 
-    //t = t_max = end_block;
-    for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
-        t = t_max;
-        u_loc[t] = 1.0;
+    t_max = end_block;
+    lds_threshold = start_block + 10;
+    lds_k_max = 3;
+//fprintf(stderr, "--------------- LDS ---------------------------\n");
+
+    for (t_max = start_block + 1; t_max <= end_block; t_max++) {
+        for (i = start_block; i <= end_block + 1; i++) {
+            c[i] = y[i] = 0.0;
+            u_loc[i] = 0.0;
+            v[i] = delta[i] = 0;
+            d[i] = 1;
+        }
+
+        u_loc[t_max] = 1.0;
         len = t_max + 1 - start_block;
+    for (lds_k_start = 0; lds_k_start < lds_k_max; lds_k_start++) {
+//fprintf(stderr, "LDS %d\n", lds_k_start);
+        t = t_max;
+
+
+        lds_k[t] = lds_k_start;
 
         while (t <= t_max) {
+//fprintf(stderr, "Level %d %d\n", start_block, t);
             handle_signals(lattice, R);
 
             /*
@@ -765,18 +793,19 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
             c[t] *= c[t];
             c[t] += c[t + 1];
 
-            if (len <= SCHNITT) {
-                alpha = 1.0;
-            } else {
-                k = (end_block + 1 - t);
-                if (k > 6 * len / 9) {
-                    alpha = 1.0;
-                } else {
-                    //alpha = p;
-                    alpha = 3 * p * k / len;
-                }
-                alpha = (alpha < 1.0) ? alpha : 1.0;
-            }
+            // if (len <= SCHNITT) {
+            //     alpha = 1.0;
+            // } else {
+            //     k = (end_block + 1 - t);
+            //     if (k > 6 * len / 9) {
+            //         alpha = 1.0;
+            //     } else {
+            //         //alpha = p;
+            //         alpha = 3 * p * k / len;
+            //     }
+            //     alpha = (alpha < 1.0) ? alpha : 1.0;
+            // }
+            alpha = 1.0;
             //fprintf(stderr, "%d %d %d %lf\n", start_block, t, end_block, alpha);
             radius = alpha * c_min;
 
@@ -798,7 +827,24 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                     delta[t] = 0;
                     d[t] = (v[t] > -y[t]) ? -1 : 1;
 
-                    continue;
+                    pos[t] = 0;
+                    u_left[t] = u_loc[t];
+
+                    if (t < lds_threshold) {
+                        // dfs
+                        continue;
+                    } else {
+                        if (lds_k[t + 1] > 1) {
+                            lds_k[t] = lds_k[t + 1] - 1;
+                        } else {
+                            lds_k[t] = 0;
+                        }
+                        if (lds_k[t] == 0) {
+                            continue;
+                        } else {
+                            // goto next
+                        }
+                    }
                 } else {
                     // Found shorter vector
                     c_min = c[t];
@@ -816,8 +862,24 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                     break;
                 }
             }
+
+            if (t >= lds_threshold) {
+                if (lds_k[t] == 0 || pos[t] > 1) {
+                    // lds_k == 0: only left branches
+                    t++;
+                    if (t > t_max) {
+                        break;
+                    }
+                } else {
+                    if (pos[t] == 1 && t - lds_threshold > lds_k) {
+                        u_loc[t] = u_left[t];
+                        lds_k[t] = lds_k[t + 1];
+                    }
+                }
+            }
+
             // next
-            if (t == t_max) {
+            if (0 && t == t_max) {
                 //fprintf(stderr, "%d %ld %ld u=%lf v=%ld, %ld\n",
                 //      t, d[t], delta[t], u_loc[t], v[t], v[t] + delta[t]);
                 u_loc[t] += 1;
@@ -826,7 +888,9 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                 if (delta[t] * d[t] >= 0) delta[t] += d[t];
                 u_loc[t] = v[t] + delta[t];
             }
+            pos[t]++;
         }
+    }
     }
 
     free(c);
