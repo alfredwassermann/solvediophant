@@ -59,7 +59,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
         return 0.0;
     }
 
-    fprintf(stderr, "\n######### BKZ ########\n");
+    fprintf(stderr, "\n######### BKZ %d ########\n", beta);
     u = (long*)calloc(s, sizeof(long));
     for (i = 0; i < s; i++) {
         u[i] = 0;
@@ -87,13 +87,14 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
         end_block = start_block + beta - 1;
         end_block = (end_block < last) ? end_block : last;
 
-        new_cj = lds_enumerate(lattice, R, u, s, start_block, end_block, delta, p);
+        //new_cj = lds_enumerate(lattice, R, u, s, start_block, end_block, delta, p);
+        new_cj = enumerate(lattice, R, u, s, start_block, end_block, delta, p);
         h = (end_block + 1 < last) ? end_block + 1 : last;
 
         r_tt = R[start_block][start_block];
         r_tt *= r_tt;
         if (delta * r_tt > new_cj) {
-            fprintf(stderr, "lds enumerate successful %d %lf improvement: %lf\n",
+            fprintf(stderr, "enumerate successful %d %lf improvement: %lf\n",
                 start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
             fflush(stderr);
 

@@ -61,6 +61,7 @@ static FILE* fp;
 long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *restart_filename) {
 
     int i, j;
+    int block_size;
     DOUBLE lD, lDnew;
     coeff_t *swap_vec;
 
@@ -322,8 +323,9 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         //shufflelattice(lattice);
 
         #if 1
-        i = 0;
-        do {
+        for (block_size = 4; block_size <= lattice->LLL_params.bkz.beta; block_size += 2) {
+          i = 0;
+          do {
             lD = lDnew;
 
             //shufflelattice(lattice);
@@ -345,12 +347,13 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             #endif
 
             lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
-                        lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
+                        block_size/*lattice->LLL_params.bkz.beta*/, lattice->LLL_params.bkz.p,
                         solutiontest, solutiontest_long);
             fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
 
             i++;
-        } while (i < 1 && fabs(lDnew - lD) > 0.01);
+          } while (i < 1 && fabs(lDnew - lD) > 0.1);
+        }
         #else
             lDnew = self_dual_bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
                     lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
@@ -1612,7 +1615,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
                 bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
                 first_nonzero_in_column, firstp,
                 level, rows, columns, bit_size, mu_trans,
-                k, 0, 1 * columns / 6);
+                k, 0, 0 * columns / 6);
                 //k, columns - columns / 2);
             //if (k == 1) break;
             if (result  == -1) {
