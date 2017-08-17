@@ -930,7 +930,7 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
                 DOUBLE Fd, DOUBLE Fqeps, DOUBLE Fq,
                 DOUBLE* bd_1norm, DOUBLE* fipo,
                 int* first_nonzero_in_column, int* firstp,
-                int level, int rows, int columns, int bit_size) {
+                int level, int rows, int columns, int bit_size, int max_steps) {
 
     DOUBLE olddum, stepWidth;
     int i, j, isSideStep;
@@ -997,7 +997,7 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
                     //goto recurse;
                     break;
                 } else if (i > 0) {
-                     goto side_step;
+                    goto side_step;
                 }
 
                 //++hoelder_no;
@@ -1032,6 +1032,10 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
                         //-(Fqeps *cblas_dasum(rows, zigzag->w[level], 1) - zigzag->cs[level])
                         //    / zigzag->cs[level];
                     enum_data[level].num++;
+
+                    if (max_steps >= 0 && enum_data[level].num >= max_steps) {
+                        return 0;
+                    }
 
                     if (enum_data[level].num > 128) {
                         fprintf(stderr, "enum_data to small! Exit\n");
@@ -1083,7 +1087,7 @@ int dfs(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
     if (-1 == enumLevel(enum_data, zigzag, lattice,
             bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
             first_nonzero_in_column, firstp,
-            level, rows, columns, bit_size)) {
+            level, rows, columns, bit_size, -1)) {
 
         return -1;
     }
@@ -1191,11 +1195,17 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
     int next_lds_k;
     DOUBLE s;
     int height, max_height, count;
+    int max_steps;
+
+    max_steps = -1;
+    if (level > lds_threshold && lds_k == 0) {
+        max_steps = 1;
+    }
 
     if (-1 == enumLevel(enum_data, zigzag, lattice,
             bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
             first_nonzero_in_column, firstp,
-            level, rows, columns, bit_size)) {
+            level, rows, columns, bit_size, max_steps)) {
 
         return -1;
     }

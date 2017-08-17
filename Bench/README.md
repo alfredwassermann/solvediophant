@@ -22,10 +22,12 @@
 - No solution after several days
 - `./sd3 -c1000 -bkz -beta60 -p18 Bench/qdesign_2_8_4_217_q2.txt`
 - solved with progressive BKZ, ILDS early, threshold 1/6: lds_k = 0, 380 Mio loops, ca 30 min
-- solved with progressive BKZ, ILDS early, threshold 0: lds_k = 2, 5.2 Mio loops, 
+- solved with progressive BKZ, ILDS early, threshold 0: lds_k = 2, ~~5.2 Mio loops~~, 812199 loops 
+- solved with sd2 using dump from progressive BKZ in 380 Mio loops
 
 ### `qdesign_2_8_4_217_q2_LS_prob2.txt`:
 - $2-(8,4,217)_2$ design, 2nd part of a large set for $N=3$, group <singer^5, frob>
+- It may have no solution
 - `./sd2 -bkz -beta30 -p18 Bench/qdesign_2_8_4_217_q2_LS_prob2.txt`
 - No solution after several days
 - `./sd3 -c1000 -bkz -beta60 -p18 Bench/qdesign_2_8_4_217_q2_LS_prob2.txt`
