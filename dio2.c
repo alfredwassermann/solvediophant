@@ -1149,24 +1149,25 @@ int dfs(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
                     return -1; //goto afterloop;
             }
             continue;
-        }
+        } else {
 
-        level--;
+            level--;
 
-        zigzag->delta[level] = zigzag->eta[level] = 0;
-        enum_data[level].pos = 0;
-        zigzag->y[level] = compute_y(mu_trans, zigzag->us, level, level_max);
-        zigzag->us[level] = zigzag->v[level] = ROUND(-zigzag->y[level]);
-        zigzag->d[level] = (zigzag->v[level] > -zigzag->y[level]) ? -1 : 1;
+            zigzag->delta[level] = zigzag->eta[level] = 0;
+            enum_data[level].pos = 0;
+            zigzag->y[level] = compute_y(mu_trans, zigzag->us, level, level_max);
+            zigzag->us[level] = zigzag->v[level] = ROUND(-zigzag->y[level]);
+            zigzag->d[level] = (zigzag->v[level] > -zigzag->y[level]) ? -1 : 1;
 
-        if (-1 == dfs(enum_data, zigzag, lattice,
+            if (-1 == dfs(enum_data, zigzag, lattice,
                 bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
                 first_nonzero_in_column, firstp,
                 level, rows, columns, bit_size, mu_trans)) {
-            return -1;
-        }
+                return -1;
+            }
 
-        level++;
+            level++;
+        }
     }
 
     level++;
