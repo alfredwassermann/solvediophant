@@ -1043,7 +1043,6 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
                         exit(1);
                     }
 
-
                     isSideStep = TRUE;
                     goto side_step;
                 }
@@ -1198,7 +1197,7 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
     int max_steps;
 
     max_steps = -1;
-    if (level > lds_threshold && lds_k == 0) {
+    if (level >= lds_threshold && lds_k == 0) {
         max_steps = 1;
     }
 
@@ -1216,14 +1215,14 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
 
     start = 1;
     do_left_branch_last = 1;
-    if (level <= lds_threshold) {
+    if (level < lds_threshold) {
         // dfs branching
         start = 0;
         end = enum_data[level].num;
         do_left_branch_last = 0;
     } else {
         // lds branching
-        if (level - lds_threshold <= lds_k) {
+        if (level - lds_threshold < lds_k) {
             // depth <= k -> no left branch
             start = 1;
             do_left_branch_last = 0;
@@ -1322,7 +1321,7 @@ int lds(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
         zigzag->d[level] = (zigzag->v[level] > -zigzag->y[level]) ? -1 : 1;
 
         next_lds_k = lds_k;
-        if (level > lds_threshold) {
+        if (level >= lds_threshold) {
             // we are in ILDS mode
             if (p == 0) {
                 // depth > k, left branch
@@ -1619,7 +1618,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     #if 1
         //for (i = 0; i <= columns / 2; i++) {
         //for (k = 0; k <= 8/*columns*/; k++) {
-        for (k = 0; k <= columns; k++) {
+        for (k = 0; k <= 2*columns; k++) {
             fprintf(stderr, "lds_k=%d\n", k); fflush(stderr);
             result = lds(enum_data, &zigzag, lattice,
                 bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
