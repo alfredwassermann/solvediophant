@@ -975,7 +975,7 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
 
             #if FINCKEPOHST
             if (fabs(zigzag->us[level]) > fipo[level]) {
-                //dual_bound_success++;
+                dual_bound_success++;
                 isSideStep = FALSE;
                 goto side_step;
             }
@@ -1002,7 +1002,7 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* zigzag, lattice_t* lattice,
 
                 //++hoelder_no;
                 if (prune(zigzag->w[level], zigzag->cs[level], rows, Fqeps)) {
-                    //++hoelder_success;
+                    ++hoelder_success;
                     if (zigzag->eta[level] == 1) {
                         //goto step_back;
                         //goto recurse;
@@ -1615,7 +1615,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     cs_success = 0;
 
     /* the loop of the exhaustive enumeration */
-    #if 1
+    #if 0
         //for (i = 0; i <= columns / 2; i++) {
         //for (k = 0; k <= 8/*columns*/; k++) {
         for (k = 0; k <= 2*columns; k++) {
