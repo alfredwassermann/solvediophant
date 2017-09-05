@@ -961,6 +961,7 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
         #endif
 
         handle_signals(lattice, NULL);
+        printf("Level %d\n", level);
 
         goto_back = FALSE;
         is_good = TRUE;
@@ -1084,7 +1085,7 @@ int dfs(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
     #endif
 
     for (ed->pos = 0; ed->pos < ed->num; ed->pos++) {
-
+        printf("run l=%d (%d of %d)\n", level, ed->pos, ed->num);
         z->us[level] = ed->nodes[ed->pos].us;
         z->cs[level] = ed->nodes[ed->pos].cs;
 
