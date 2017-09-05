@@ -1217,12 +1217,6 @@ int lds(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
                 print_solution(lattice, z->w[level], rows, Fq, z->us, columns);
 
                 for (j = columns - 1 ; j >= 0; j--) {
-                    if (j == lds_threshold) {
-                        fprintf(stderr, "-------------------------------------\n");
-                    }
-                    if (enum_data[j].pos > 0) {
-                        fprintf(stderr, "* ");
-                    }
                     fprintf(stderr, "%d: %d of %d\t%0.0lf\t%d",
                         j,
                         enum_data[j].pos, enum_data[j].num,
@@ -1243,49 +1237,51 @@ int lds(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
                     //         s
                     //     );
                     // }
+                    if (j == lds_threshold) {
+                        fprintf(stderr, "-------------------------------------\n");
+                    }
                 }
 
                 if (lattice->LLL_params.stop_after_solutions > 0 &&
                     lattice->LLL_params.stop_after_solutions <= num_solutions)
-                    return -1; //goto afterloop;
+                    return -1;
             }
-            continue;
-        }
+        } else {
+            level--;
 
-        level--;
-
-        z->delta[level] = z->eta[level] = 0;
-        ed->pos = 0;
-        z->y[level] = compute_y(mu_trans, z->us, level, level_max);
-        z->us[level] = z->v[level] = ROUND(-z->y[level]);
-        z->d[level] = (z->v[level] > -z->y[level]) ? -1 : 1;
-
-        next_lds_k = lds_k;
-        if (level >= lds_threshold) {
-            // we are in ILDS mode
-            if (p == 0) {
-                // depth > k, left branch
-                next_lds_k = lds_k;
-            } else if (lds_k > 0) {
-                next_lds_k = (lds_k > p) ? lds_k - p : 0;
+            z->delta[level] = z->eta[level] = 0;
+            //enum_data[level].pos = 0;
+            z->y[level] = compute_y(mu_trans, z->us, level, level_max);
+            z->us[level] = z->v[level] = ROUND(-z->y[level]);
+            z->d[level] = (z->v[level] > -z->y[level]) ? -1 : 1;
+            
+            next_lds_k = lds_k;
+            if (level >= lds_threshold) {
+                // we are in ILDS mode
+                if (p == 0) {
+                    // depth > k, left branch
+                    next_lds_k = lds_k;
+                } else if (lds_k > 0) {
+                    next_lds_k = (lds_k > p) ? lds_k - p : 0;
+                }
             }
+            
+            height = lds(enum_data, z, lattice,
+                    bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
+                    first_nonzero_in_column, firstp,
+                    level, rows, columns, bit_size, mu_trans, next_lds_k, lds_l, lds_threshold);
+
+                    if (height == -1) {
+                return -1;
+            }
+            if (height + 1 > max_height) max_height = height + 1;
+            if (height >= lds_l) {
+                count++;
+            }
+            
+            level++;
         }
 
-        height = lds(enum_data, z, lattice,
-                bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
-                first_nonzero_in_column, firstp,
-                level, rows, columns, bit_size, mu_trans, next_lds_k, lds_l, lds_threshold);
-        if (height == -1) {
-            return -1;
-        }
-
-        if (height + 1 > max_height) max_height = height + 1;
-
-        if (height >= lds_l) {
-            count++;
-        }
-
-        level++;
     }
 
     level++;
