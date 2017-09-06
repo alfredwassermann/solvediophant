@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
 
         } else if (strncmp(argv[i],"-scalelastline", 14) == 0) {
             strcpy(suffix, argv[i] + 14);
-            mpz_set_str(lattice.LLL_params.scalelastlinefactor,suffix,10);
+            mpz_set_str(lattice.LLL_params.scalelastlinefactor, suffix, 10);
 
         } else if (strncmp(argv[i],"-i", 2) == 0) {
             strcpy(suffix, argv[i] + 2);
@@ -205,9 +205,9 @@ int main(int argc, char *argv[]) {
         lattice.LLL_params.iterate_no = 1;
     }
     if (lattice.LLL_params.iterate == 0 &&
-            (lattice.LLL_params.bkz.beta == -1 || lattice.LLL_params.bkz.p == -1)) {
+            (lattice.LLL_params.bkz.beta == -1 /*|| lattice.LLL_params.bkz.p == -1 */)) {
         fprintf(stderr,"You have chosen bkz reduction. You also have to specify the parameters");
-        fprintf(stderr," -beta* -p*\n");
+        fprintf(stderr," -beta* [-p*]\n");
         exit(1);
     }
     if (mpz_cmp_si(lattice.matrix_factor, 0) <= 0) {
@@ -222,8 +222,8 @@ int main(int argc, char *argv[]) {
     }
     if (mpz_cmp_si(lattice.LLL_params.scalelastlinefactor, 0) <= 0) {
         fprintf(stderr,"You did not supply the options -scalelastline*. ");
-        fprintf(stderr,"It is set to 1.\n");
-        mpz_set_si(lattice.LLL_params.scalelastlinefactor, 1);
+        fprintf(stderr,"It is set to 10000.\n");
+        mpz_set_si(lattice.LLL_params.scalelastlinefactor, 10000);
     }
 
     inputfile_name = argv[argc-1];

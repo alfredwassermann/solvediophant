@@ -528,7 +528,8 @@ int solutiontest(lattice_t *lattice, int position) {
 
 
     mpz_set_si(upfac,1);
-    mpz_divexact(soltest_s, get_entry(lattice->basis, position, lattice->num_rows-1), lattice->LLL_params.scalelastlinefactor);
+    //mpz_divexact(soltest_s, get_entry(lattice->basis, position, lattice->num_rows - 1), lattice->LLL_params.scalelastlinefactor);
+    mpz_set(soltest_s, get_entry(lattice->basis, position, lattice->num_rows - 1));
 
     /* write a solution with blanks */
     i = low;
@@ -537,36 +538,36 @@ int solutiontest(lattice_t *lattice, int position) {
 
     for (j = 0; j < end; j++) {
         if (original_columns[j] == 0) {
-            mpz_set_si(soltest_u,0);
+            mpz_set_si(soltest_u, 0);
         } else {
             if (!iszeroone) {
-                if (mpz_cmp_si(upperbounds[i-low],0) != 0) {
-                    mpz_divexact(soltest_upfac,upperbounds_max,upperbounds[i-low]);
+                if (mpz_cmp_si(upperbounds[i-low], 0) != 0) {
+                    mpz_divexact(soltest_upfac, upperbounds_max, upperbounds[i - low]);
                 } else {
-                    mpz_set(soltest_upfac,upperbounds_max);
+                    mpz_set(soltest_upfac, upperbounds_max);
                 }
             }
-            mpz_set(soltest_u,get_entry(lattice->basis, position, i));
-            mpz_sub(soltest_u,soltest_u,soltest_s);
-            mpz_divexact(soltest_u,soltest_u,max_norm_initial);
-            mpz_divexact(soltest_u,soltest_u,soltest_upfac);
-            mpz_divexact_ui(soltest_u,soltest_u,denom);
-            mpz_abs(soltest_u,soltest_u);
+            mpz_set(soltest_u, get_entry(lattice->basis, position, i));
+            mpz_sub(soltest_u, soltest_u, soltest_s);
+            mpz_divexact(soltest_u, soltest_u, max_norm_initial);
+            mpz_divexact(soltest_u, soltest_u, soltest_upfac);
+            mpz_divexact_ui(soltest_u, soltest_u, denom);
+            mpz_abs(soltest_u, soltest_u);
             i++;
         }
-        mpz_out_str(stderr,10,soltest_u);
+        mpz_out_str(stderr, 10, soltest_u);
         fprintf(stderr, " ");
         if (lattice->LLL_params.stop_after_solutions == 1) {
-            mpz_out_str(fp,10,soltest_u);
+            mpz_out_str(fp, 10, soltest_u);
             fprintf(fp," ");
         }
     }
     if (free_RHS) {
         mpz_divexact(soltest_u, get_entry(lattice->basis, position, up), max_up);
-        mpz_divexact(soltest_u, soltest_u, lattice->LLL_params.scalelastlinefactor);
-        mpz_abs(soltest_u,soltest_u);
+        // mpz_divexact(soltest_u, soltest_u, lattice->LLL_params.scalelastlinefactor);
+        mpz_abs(soltest_u, soltest_u);
         fprintf(stderr, " L = ");
-        mpz_out_str(stderr,10,soltest_u);
+        mpz_out_str(stderr, 10, soltest_u);
     }
     fprintf(stderr, " !!\n");
     fflush(stderr);
@@ -629,7 +630,8 @@ int solutiontest_long(lattice_t *lattice, int position) {
     }
 
     mpz_set_si(upfac,1);
-    mpz_divexact(soltest_s, get_entry(lattice->basis, position, lattice->num_rows-1), lattice->LLL_params.scalelastlinefactor);
+    // mpz_divexact(soltest_s, get_entry(lattice->basis, position, lattice->num_rows-1), lattice->LLL_params.scalelastlinefactor);
+    mpz_set(soltest_s, get_entry(lattice->basis, position, lattice->num_rows - 1));
 
     /* write a solution with blanks */
     i = low;
@@ -664,8 +666,8 @@ int solutiontest_long(lattice_t *lattice, int position) {
     }
     if (free_RHS) {
         mpz_divexact(soltest_u, get_entry(lattice->basis, position, up), max_up);
-        mpz_divexact(soltest_u, soltest_u, lattice->LLL_params.scalelastlinefactor);
-        mpz_abs(soltest_u,soltest_u);
+        // mpz_divexact(soltest_u, soltest_u, lattice->LLL_params.scalelastlinefactor);
+        mpz_abs(soltest_u, soltest_u);
         fprintf(stderr, " L = ");
         mpz_out_str(stderr, 10,soltest_u);
     }
