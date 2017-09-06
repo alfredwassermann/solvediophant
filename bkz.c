@@ -157,8 +157,6 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
     return lD;
 }
 
-
-
 void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t hv) {
     coeff_t **b = lattice->basis;
     coeff_t *swapvl;
@@ -286,82 +284,6 @@ void insert_vector_long(lattice_t *lattice, long *u, int start, int end, int z) 
             lattice->swap_long[j] = 0;
         }
 
-    #endif
-}
-
-void dual_insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t hv) {
-    coeff_t **b = lattice->basis;
-    coeff_t *swapvl;
-    int i, j, g;
-    long q, ui;
-
-    /* build new basis */
-    for (j = 1; j <= z; j++) {
-        mpz_set_si(lattice->swap[j].c, 0);
-    }
-
-    // Store new linear combination in lattice->swap
-    for (i = start; i <= end; i++) {
-        if (u[i] != 0) for (j = 1; j <= z; j++) {
-            if (u[i] > 0) {
-                mpz_addmul_ui(lattice->swap[j].c, b[i][j].c, u[i]);
-            } else {
-                mpz_submul_ui(lattice->swap[j].c, b[i][j].c, -u[i]);
-            }
-        }
-    }
-    coeffinit(lattice->swap, z);
-
-    #if 0
-        swapvl = b[lattice->num_cols];
-        for (i = lattice->num_cols; i > start; i--)
-            b[i] = b[i - 1];
-        b[start] = lattice->swap;
-        lattice->swap = swapvl;
-        lattice->num_cols++;
-    #else
-        g = start;
-        while (u[g] == 0) g++;
-        i = g + 1;
-        while (labs(u[g]) > 1) {
-            while (u[i] == 0) i++;
-            q = (long)ROUND((1.0 * u[g]) / u[i]);
-            ui = u[i];
-            u[i] = u[g] - q*u[i];
-            u[g] = ui;
-
-            // (b[g], b[i]) = (b[g] * q + b[i], b[g])
-            for (j = 1; j <= z; j++) {
-                mpz_set(hv, b[g][j].c);
-                mpz_mul_si(b[g][j].c, b[g][j].c, (long)q);
-                mpz_add(b[g][j].c, b[g][j].c, b[i][j].c);
-                mpz_set(b[i][j].c, hv);
-            }
-            coeffinit(b[g], z);
-            coeffinit(b[i], z);
-        }
-
-        // (b[g], b[g+1], ... , b[end]) -> (b[g+1], ... , b[end], b[g])
-        swapvl = b[g];
-        for (i = g; i < end; i++) {
-            b[i] = b[i + 1];
-        }
-        b[end] = lattice->swap;
-        coeffinit(b[end], z);
-
-        lattice->swap = swapvl;
-        for (j = 1; j <= z; j++)
-            mpz_set_si(lattice->swap[j].c, 0);
-        coeffinit(lattice->swap, z);
-
-        #if 0
-        for (j = 0; j < z; j++) {
-            mpz_out_str(stderr, 10, get_entry(lattice->basis, start, j));
-            fprintf(stderr," ");
-        }
-        fprintf(stderr, "\n");
-        fflush(stderr);
-        #endif
     #endif
 }
 
@@ -561,7 +483,7 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     t_max = end_block;
     lds_threshold = start_block + 10;
     lds_k_max = 3;
-//fprintf(stderr, "--------------- LDS ---------------------------\n");
+    //fprintf(stderr, "--------------- LDS ---------------------------\n");
 
     for (t_max = start_block + 1; t_max <= end_block; t_max++) {
         for (i = start_block; i <= end_block + 1; i++) {
@@ -574,14 +496,14 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
         u_loc[t_max] = 1.0;
         len = t_max + 1 - start_block;
     for (lds_k_start = 0; lds_k_start < lds_k_max; lds_k_start++) {
-//fprintf(stderr, "LDS %d\n", lds_k_start);
+        //fprintf(stderr, "LDS %d\n", lds_k_start);
         t = t_max;
 
 
         lds_k[t] = lds_k_start;
 
         while (t <= t_max) {
-//fprintf(stderr, "Level %d %d\n", start_block, t);
+
             handle_signals(lattice, R);
 
             /*
@@ -705,7 +627,6 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     }
     return (c_min);
 }
-
 
 /*
 void set_linear_pruning_const(DOUBLE *alpha, len, ) {
