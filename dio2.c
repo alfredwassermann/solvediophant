@@ -323,7 +323,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         //shufflelattice(lattice);
 
         #if 1
-        for (block_size = 4; block_size <= lattice->LLL_params.bkz.beta; block_size += 2) {
+        for (block_size = 4; block_size <= lattice->LLL_params.bkz.beta; block_size += 4) {
           i = 0;
           do {
             lD = lDnew;
@@ -1550,7 +1550,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     #if TRUE
         //for (i = 0; i <= columns / 2; i++) {
         //for (k = 0; k <= 8/*columns*/; k++) {
-        for (k = 0; k <= columns; k++) {
+        for (k = 0; k <= 13; k++) {
             fprintf(stderr, "lds_k=%d\n", k); fflush(stderr);
             result = lds(enum_data, &zigzag, lattice,
                 bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
