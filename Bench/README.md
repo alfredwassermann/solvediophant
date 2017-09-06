@@ -15,7 +15,7 @@
 ### `KM_C11Id2X_t3_k4.txt`:
 - `./sd2 -c10000 -bkz -beta30 -p18 Bench/KM_C11Id2X_t3_k4.txt`
 - No solution found, but there must be many
-- `sd3 -c10000 -bkz -beta40 -p18 KM_C11Id2X_t3_k4.txt`
+- `./sd3 -c10000 -bkz -beta40 -p18 Bench/KM_C11Id2X_t3_k4.txt`
 - Progressive BKZ, ILDS early: First solution after 1min5sec, 400k Loops, lds_k=2
 
 ### `qdesign_2_8_4_217_q2.txt`:

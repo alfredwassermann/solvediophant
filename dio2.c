@@ -295,7 +295,6 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         //print_lattice(lattice);
     }
 
-
     #if 0
         printf("After second reduction\n");
         print_lattice();
@@ -322,43 +321,14 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     } else {
         //shufflelattice(lattice);
 
-        #if 1
         for (block_size = 4; block_size <= lattice->LLL_params.bkz.beta; block_size += 4) {
-          i = 0;
-          do {
             lD = lDnew;
-
             //shufflelattice(lattice);
-            #if 0
-            if (i % 2 == 0) {
-                lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
-                        lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
-                        solutiontest, solutiontest_long);
-                fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
-
-                dump_lattice(lattice);
-            } else {
-                lDnew = dual_bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
-                            lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
-                            solutiontest);
-                fprintf(stderr, "Dual BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
-            }
-            fflush(stderr);
-            #endif
-
             lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
-                        block_size/*lattice->LLL_params.bkz.beta*/, lattice->LLL_params.bkz.p,
+                        block_size, lattice->LLL_params.bkz.p,
                         solutiontest, solutiontest_long);
             fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
-
-            i++;
-          } while (i < 1 && fabs(lDnew - lD) > 0.1);
         }
-        #else
-            lDnew = self_dual_bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
-                    lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
-                    solutiontest);
-        #endif
     }
     fprintf(stderr, "Third reduction successful\n"); fflush(stderr);
 
