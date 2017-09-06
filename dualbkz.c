@@ -13,6 +13,7 @@
 #include "datastruct.h"
 #include "lattice.h"
 #include "lll.h"
+#include "bkz.h"
 #include "dualbkz.h"
 
 DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,

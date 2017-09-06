@@ -38,8 +38,8 @@ all: sd3
 	$(CC) $(CFLAGS) -D$(BLAS) -c $< $(GMPINC)
 
 # With BLAS
-sd3: sd2.o dio2.o lgs.o lattice.o lll.o bkz.o
-	$(CC) $(CFLAGS) -o sd3 sd2.o dio2.o bkz.o lll.o lattice.o lgs.o $(ASSEMBLERLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
+sd3: sd2.o dio2.o lgs.o lattice.o lll.o bkz.o dualbkz.o
+	$(CC) $(CFLAGS) -o sd3 sd2.o dio2.o bkz.o dualbkz.o lll.o lattice.o lgs.o $(ASSEMBLERLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
 
 dio2.pdf: dio2.c
 	vim $(VIMFLAGS) -c 'hardcopy > dio2.ps' -c quit dio2.c

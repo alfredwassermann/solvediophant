@@ -14,6 +14,7 @@
 #include "lattice.h"
 #include "lll.h"
 #include "bkz.h"
+#include "dualbkz.h"
 #include "dio2.h"
 
 #if defined(USEBLAS)
@@ -327,23 +328,6 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             lD = lDnew;
 
             //shufflelattice(lattice);
-            #if 0
-            if (i % 2 == 0) {
-                lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
-                        lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
-                        solutiontest, solutiontest_long);
-                fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
-
-                dump_lattice(lattice);
-            } else {
-                lDnew = dual_bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
-                            lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
-                            solutiontest);
-                fprintf(stderr, "Dual BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
-            }
-            fflush(stderr);
-            #endif
-
             lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
                         lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
                         solutiontest, solutiontest_long);
@@ -351,7 +335,8 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 
             i++;
         } while (i < 1 && fabs(lDnew - lD) > 0.01);
-        #else
+        #endif
+        #if 1
             lDnew = self_dual_bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
                     lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
                     solutiontest);
