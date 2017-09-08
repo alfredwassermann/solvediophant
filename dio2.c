@@ -1517,10 +1517,10 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     cs_success = 0;
 
     /* the loop of the exhaustive enumeration */
-    #if TRUE
+    if (lattice->LLL_params.exhaustive_enum.lds == 1) {
         //for (i = 0; i <= columns / 2; i++) {
         //for (k = 0; k <= 8/*columns*/; k++) {
-        for (k = 0; k <= 13; k++) {
+        for (k = 0; k < lattice->LLL_params.exhaustive_enum.lds_k_max; k++) {
             fprintf(stderr, "lds_k=%d\n", k); fflush(stderr);
             result = lds(enum_data, &zigzag, lattice,
                 bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
@@ -1534,14 +1534,14 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
                 break;
             }
         }
-    #else
+    } else {
         while (level < columns) {
             level = dfs(enum_data, &zigzag, lattice,
                 bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
                 first_nonzero_in_column, firstp,
                 level, rows, columns, bit_size, mu_trans);
         }
-    #endif
+    }
 
 //afterloop:
     /* final output */

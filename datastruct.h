@@ -17,15 +17,22 @@ typedef struct {
     mpz_t scalelastlinefactor;
     int iterate;
     int iterate_no;
-    struct Bkz {
-        int beta;
-        DOUBLE p;
-    } bkz;
 
     int silent;
     long stop_after_solutions;
     long stop_after_loops;
     int print_ntl;
+
+    struct Bkz {
+        int beta;
+        DOUBLE p;
+    } bkz;
+
+    struct Exhaustive_enum {
+        int lds;
+        int lds_k_max;
+    } exhaustive_enum;
+    
 } lll_params_t;
 
 typedef struct {

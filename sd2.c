@@ -109,6 +109,9 @@ int main(int argc, char *argv[]) {
      * Init structs lattice and LLL_params
      */
     lattice.LLL_params.iterate = lattice.LLL_params.bkz.beta = lattice.LLL_params.bkz.p = -1;
+    lattice.LLL_params.exhaustive_enum.lds = -1;
+    lattice.LLL_params.exhaustive_enum.lds_k_max = 10;
+
     mpz_init(lattice.LLL_params.scalelastlinefactor);
     mpz_init(lattice.matrix_factor);
     mpz_init(lattice.max_norm);
@@ -148,6 +151,11 @@ int main(int argc, char *argv[]) {
             strcpy(suffix, argv[i] + 2);
             lattice.LLL_params.bkz.p = atof(suffix);
 
+        } else if (strncmp(argv[i],"-lds", 4) == 0) {
+            strcpy(suffix, argv[i] + 4);
+            lattice.LLL_params.exhaustive_enum.lds = 1;
+            lattice.LLL_params.exhaustive_enum.lds_k_max = atoi(suffix);
+
         } else if (strncmp(argv[i],"-time", 5) == 0) {
             strcpy(suffix, argv[i] + 5);
             maxruntime = atoi(suffix);
@@ -180,7 +188,7 @@ int main(int argc, char *argv[]) {
         } else if (strcmp(argv[i],"-?") == 0 || strcmp(argv[i],"-h") == 0) {
             fprintf(stderr,"\nsd2 --- multiple precision version --- \n");
             fprintf(stderr,"sd2");
-            fprintf(stderr," -iterate*|(-bkz -beta* -p*) [-c*] [-maxnorm*] [-scalelastline*] [-time*(sec)] [-silent] [-o*] [-restart*] [-printntl]");
+            fprintf(stderr," -iterate*|(-bkz -beta* -p*) [-c*] [-maxnorm*] [-scalelastline*] [-lds*] [-time*(sec)] [-silent] [-o*] [-restart*] [-printntl]");
             fprintf(stderr," inputfile\n");
             fprintf(stderr," Print lattice: kill -10 PID\n");
             fprintf(stderr," Dump lattice: kill -12 PID\n");
@@ -224,6 +232,13 @@ int main(int argc, char *argv[]) {
         fprintf(stderr,"You did not supply the options -scalelastline*. ");
         fprintf(stderr,"It is set to 10000.\n");
         mpz_set_si(lattice.LLL_params.scalelastlinefactor, 10000);
+    }
+
+    if (lattice.LLL_params.exhaustive_enum.lds < 0) {
+        fprintf(stderr,"Enumeration type is 'dfs'\n");
+    } else {
+        fprintf(stderr,"Enumeration type is 'lds'. ");
+        fprintf(stderr,"lds_k_max = %d\n", lattice.LLL_params.exhaustive_enum.lds_k_max);
     }
 
     inputfile_name = argv[argc-1];
