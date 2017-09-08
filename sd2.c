@@ -233,7 +233,7 @@ int main(int argc, char *argv[]) {
     if (mpz_cmp_si(lattice.LLL_params.scalelastlinefactor, 0) <= 0) {
         fprintf(stderr,"You did not supply the options -scalelastline*. ");
         fprintf(stderr,"It is set to 10000.\n");
-        mpz_set_si(lattice.LLL_params.scalelastlinefactor, 10000);
+        mpz_set_si(lattice.LLL_params.scalelastlinefactor, 1000);
     }
 
     if (lattice.LLL_params.exhaustive_enum.lds < 0) {

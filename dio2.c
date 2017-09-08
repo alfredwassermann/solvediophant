@@ -338,13 +338,16 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     dump_lattice(lattice);
 
     /* undo scaling of last rows */
-    for (i = 0; i < lattice->num_cols; i++)
+    for (i = 0; i < lattice->num_cols; i++) {
         mpz_divexact(lattice->basis[i][lattice->num_rows].c, lattice->basis[i][lattice->num_rows].c, lastlines_factor);
-    if (free_RHS)
-        for (i = 0; i < lattice->num_cols; i++)
+    }
+    if (free_RHS) {
+        for (i = 0; i < lattice->num_cols; i++) {
             mpz_divexact(lattice->basis[i][lattice->num_rows-1].c,
                 lattice->basis[i][lattice->num_rows-1].c,
                 lastlines_factor);
+        }
+    }
     #endif // Third reduction
     #else
     read_NTL_lattice();
@@ -360,7 +363,6 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
      * explicit enumeration
      */
     fprintf(stderr, "\n"); fflush(stderr);
-    print_lattice(lattice);
     num_solutions = explicit_enumeration(lattice, lattice->num_cols, lattice->num_rows);
 
     /**
@@ -1290,7 +1292,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
     DOUBLE Fd, Fq, Fqeps;
     DOUBLE tmp;
-    // coeff_t *swap_vec;
+    coeff_t *swap_vec;
 
     int isSideStep = FALSE;
     DOUBLE stepWidth = 0.0;
@@ -1366,9 +1368,20 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     fprintf(stderr, "Max bit size: %d\n", bit_size);
     fflush(stderr);
 
-#if 0
-    @<sort lattice columns@>;
+#if 1
+    //@<sort lattice columns@>;
+    for (j = columns - 1; j > 0; j--) {
+        for (l = j - 1; l >= 0;  l--) {
+            if (mpz_cmpabs(get_entry(lattice->basis,l,rows-1),get_entry(lattice->basis,j,rows-1))>0) {
+                swap_vec = lattice->basis[l];
+                for (i=l+1;i<=j;i++) lattice[i-1] = lattice[i];
+                lattice->basis[j] = swap_vec;
+            }
+        }
+    }
+
 #endif
+    print_lattice(lattice);
 
     /* set the simple pruning bounds */
     Fq = (DOUBLE)mpz_get_d(lattice->max_norm);
