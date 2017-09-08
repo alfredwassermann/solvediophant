@@ -154,7 +154,9 @@ int main(int argc, char *argv[]) {
         } else if (strncmp(argv[i],"-lds", 4) == 0) {
             strcpy(suffix, argv[i] + 4);
             lattice.LLL_params.exhaustive_enum.lds = 1;
-            lattice.LLL_params.exhaustive_enum.lds_k_max = atoi(suffix);
+            if (strlen(suffix) > 0) {
+                lattice.LLL_params.exhaustive_enum.lds_k_max = atoi(suffix);
+            }
 
         } else if (strncmp(argv[i],"-time", 5) == 0) {
             strcpy(suffix, argv[i] + 5);

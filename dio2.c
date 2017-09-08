@@ -360,6 +360,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
      * explicit enumeration
      */
     fprintf(stderr, "\n"); fflush(stderr);
+    print_lattice(lattice);
     num_solutions = explicit_enumeration(lattice, lattice->num_cols, lattice->num_rows);
 
     /**
