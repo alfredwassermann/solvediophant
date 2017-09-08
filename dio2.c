@@ -107,11 +107,12 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
      */
     lattice->basis = (coeff_t**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(coeff_t*));
     lattice->basis_long = (long**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(long*));
-    for (j = 0; j < lattice->num_cols/* + ADDITIONAL_COLS*/; j++) {
+    for (j = 0; j < lattice->num_cols + ADDITIONAL_COLS; j++) {
         lattice->basis[j] = (coeff_t*)calloc(lattice->num_rows + 1, sizeof(coeff_t));
         lattice->basis_long[j] = (long*)calloc(lattice->num_rows, sizeof(long));
-        for (i = 0; i <= lattice->num_rows; i++)
+        for (i = 0; i <= lattice->num_rows; i++) {
             mpz_init(lattice->basis[j][i].c);
+        }
     }
     lattice->swap = (coeff_t*)calloc(lattice->num_rows + 1, sizeof(coeff_t));
     lattice->swap_long = (long*)calloc(lattice->num_rows + 1, sizeof(long));
@@ -147,8 +148,9 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
                 mpz_lcm(upperbounds_max, upperbounds_max, upperbounds[i]);
             }
         }
-        if (mpz_cmp_si(upperbounds_max, 1) > 0)
+        if (mpz_cmp_si(upperbounds_max, 1) > 0) {
             iszeroone = 0;
+        }
 
         fprintf(stderr,"upper bounds found. Max=");
         fflush(stderr);
@@ -203,6 +205,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     if (lattice->LLL_params.silent) fprintf(fp,"SILENT\n");
     fflush(fp);
 
+
     #if 0
     printf("Before scaling\n");
     print_lattice(lattice);
@@ -234,7 +237,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 
     #if 0
     printf("After scaling\n");
-    print_lattice();
+    print_lattice(lattice);
     #endif
 
     #if 1 // Do reduction
@@ -262,7 +265,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 
         #if 0
             printf("After first reduction\n");
-            print_lattice();
+            print_lattice(lattice);
         #endif
         /**
          * cut the lattice
@@ -297,7 +300,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 
     #if 0
         printf("After second reduction\n");
-        print_lattice();
+        print_lattice(lattice);
     #endif
 
     #if 1  // Third reduction
@@ -314,7 +317,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     /**
      * third reduction
      */
-    fprintf(stderr, "\n"); fflush(stderr);
+    //fprintf(stderr, "\n"); fflush(stderr);
 
     if (lattice->LLL_params.iterate) {
         iteratedlll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.iterate_no, LLLCONST_HIGH, POT_LLL);

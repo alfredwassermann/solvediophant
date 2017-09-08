@@ -336,7 +336,7 @@ int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k,
         // |R[k]|
         if (bit_size < 27) {
             for (j = k, norm = 0.0; j < z; ++j) {
-                norm += x * x;
+                norm += R[k][j] * R[k][j];
             }
         } else {
             // Use zeta for stability
@@ -758,7 +758,7 @@ int householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int 
         // |R[k]|
         if (bit_size < 27) {
             for (j = k, norm = 0.0; j < z; ++j) {
-                norm += x * x;
+                norm += R[k][j] * R[k][j];
             }
         } else {
             // Use zeta for stability
