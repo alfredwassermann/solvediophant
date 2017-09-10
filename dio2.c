@@ -1459,9 +1459,9 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
             fipo[i] = dum1;
         }
 
-#if VERBOSE > -1
-        fprintf(stderr, "%0.3lf ", fipo[i]);
-#endif
+        #if VERBOSE > -1
+            fprintf(stderr, "%0.3lf ", fipo[i]);
+        #endif
     }
 
     for (i = columns - 2; i >= 0; --i) {
@@ -1472,10 +1472,10 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         dual_bound[i] = tmp * Fq * (1.0 + EPSILON);
     }
 
-#if VERBOSE > -1
-    fprintf(stderr, "\n\n");
-    fflush(stderr);
-#endif
+    #if VERBOSE > -1
+        fprintf(stderr, "\n\n");
+        fflush(stderr);
+    #endif
 
 #endif
 
