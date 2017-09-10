@@ -135,9 +135,11 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 mu_all_zero = FALSE;
 
                 if (cnt_tricol > 1000) {
-                    fprintf(stderr, "Possible tricol error: %d: eta=%0.2lf, theta=%0.2lf, %0.2lf, %lf %lf %lf\n\t %lf\n", j, eta, theta, mus,
-                        fabs(R[k][j]), fabs(R[j][j]), fabs(R[k][k]),
+                    fprintf(stderr, "Possible tricol error: %d: eta=%0.2lf, theta=%0.2lf, %0.2lf, %lf %lf %lf\n\t %lf\n", 
+                        j, eta, theta, mus,
+                        R[k][j], R[j][j], R[k][k],
                         eta * fabs(R[j][j]) + theta * fabs(R[k][k]));
+                    //exit(1);
                 }
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
                 size_reduction(b, R, musvl, mus, k, j);
@@ -426,7 +428,7 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
     #if BLAS
         cblas_daxpy(j, 1.0, mu[j], 1, mu[k], 1);
     #else
-        for(i = 0; i < j; i++) mu[k][i] += mu[j][i];
+        for (i = 0; i < j; i++) mu[k][i] += mu[j][i];
     #endif
         break;
 
@@ -447,7 +449,7 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
     #if BLAS
         cblas_daxpy(j, -mus, mu[j], 1, mu[k], 1);
     #else
-        for (i = 0; i < j; i++) mu[k][i] -= mu[j][i]*mus;
+        for (i = 0; i < j; i++) mu[k][i] -= mu[j][i] * mus;
     #endif
 
     }
@@ -506,7 +508,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
         fprintf(stderr, ", delta=%0.3lf", delta);
         fprintf(stderr, ", eta=%0.3lf", eta);
-        fprintf(stderr, ", max bits: %d\n", bit_size);
+        fprintf(stderr, ", max bits: %d\n", Pobit_size);
     #endif
 
     /* Test for trivial cases. */
@@ -810,7 +812,7 @@ void size_reduction_long(long **b, DOUBLE  **mu, long musl, double mus, int k, i
     #if BLAS
         cblas_daxpy(j, -mus, mu[j], 1, mu[k], 1);
     #else
-        for (i = 0; i < j; i++) mu[k][i] -= mu[j][i]*mus;
+        for (i = 0; i < j; i++) mu[k][i] -= mu[j][i] * mus;
     #endif
 }
 

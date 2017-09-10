@@ -1372,16 +1372,15 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     //@<sort lattice columns@>;
     for (j = columns - 1; j > 0; j--) {
         for (l = j - 1; l >= 0;  l--) {
-            if (mpz_cmpabs(get_entry(lattice->basis,l,rows-1),get_entry(lattice->basis,j,rows-1))>0) {
+            if (mpz_cmpabs(get_entry(lattice->basis, l, rows - 1), get_entry(lattice->basis, j, rows - 1)) > 0) {
                 swap_vec = lattice->basis[l];
-                for (i=l+1;i<=j;i++) lattice[i-1] = lattice[i];
+                for (i = l + 1; i <= j; i++) lattice->basis[i - 1] = lattice->basis[i];
                 lattice->basis[j] = swap_vec;
             }
         }
     }
-
-#endif
     print_lattice(lattice);
+#endif
 
     /* set the simple pruning bounds */
     Fq = (DOUBLE)mpz_get_d(lattice->max_norm);
