@@ -23,12 +23,12 @@ typedef struct {
     long stop_after_loops;
     int print_ntl;
 
-    struct Bkz {
+    struct _bkz {
         int beta;
         DOUBLE p;
     } bkz;
 
-    struct Exhaustive_enum {
+    struct _exhaustive_enum {
         int lds;
         int lds_k_max;
     } exhaustive_enum;
