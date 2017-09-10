@@ -1299,9 +1299,9 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     DOUBLE old_coeff;
 
     #if defined(FINCKEPOHST)
-    DOUBLE *fipo;
-    DOUBLE **dual_basis;
-    DOUBLE *dual_bound;
+        DOUBLE *fipo;
+        DOUBLE **dual_basis;
+        DOUBLE *dual_bound;
     #endif
 
 
@@ -1368,8 +1368,8 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     fprintf(stderr, "Max bit size: %d\n", bit_size);
     fflush(stderr);
 
-#if 1
-    //@<sort lattice columns@>;
+    // Move basis columns which have a nonzero entry in the last row to the end.
+    // For lds this is mandatory.
     for (j = columns - 1; j > 0; j--) {
         for (l = j - 1; l >= 0;  l--) {
             if (mpz_cmpabs(get_entry(lattice->basis, l, rows - 1), get_entry(lattice->basis, j, rows - 1)) > 0) {
@@ -1380,24 +1380,23 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         }
     }
     print_lattice(lattice);
-#endif
 
     /* set the simple pruning bounds */
     Fq = (DOUBLE)mpz_get_d(lattice->max_norm);
     Fd = (rows*Fq*Fq) * (1.0 + EPSILON);
-    Fqeps = (1.0 + EPSILON) * Fq;        /* Used in prune() */
-#if VERBOSE > 0
-    fprintf(stderr, "Fq: %f\n", (double)Fq);
-    fprintf(stderr, "Fd: %f\n", (double)Fd);
-    fflush(stderr);
-#endif
+    Fqeps = (1.0 + EPSILON) * Fq;        // Used in prune()
+    #if VERBOSE > 0
+        fprintf(stderr, "Fq: %f\n", (double)Fq);
+        fprintf(stderr, "Fd: %f\n", (double)Fd);
+        fflush(stderr);
+    #endif
 
     /* orthogonalize the basis */
-#if GIVENS
-    givens(lattice, columns, rows, mu, bd, c);
-#else
-    gramschmidt(lattice, columns, rows, mu, bd, c);
-#endif
+    #if GIVENS
+        givens(lattice, columns, rows, mu, bd, c);
+    #else
+        gramschmidt(lattice, columns, rows, mu, bd, c);
+    #endif
 
     /* compute $mu^\top$, the transpose of $mu$. */
     for (i = 0; i < columns; i++)
@@ -1462,21 +1461,23 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
 #endif
 
-    /* Remove trailing unnecessary columns. That means, columns
-       whose corresponding Finke-Pohst bounds are equal to 0
-       can be removed.
-       This is important for the Selfdual Bent Functions Problems
+    /* Remove trailing unnecessary columns. 
+     * 
+     *  COntradiction to sorting columns, see above!
+     * That means, columns whose corresponding Finke-Pohst bounds 
+     * are equal to 0 can be removed.
+     * This is important for the Selfdual Bent Functions Problems
      */
-#if 1
+    #if 1
     for (i = columns - 1; i >= 0; i--) {
-        if (fipo[i]<0.9) {
+        if (fipo[i] < 0.9) {
             fprintf(stderr, "DEL\n");
             columns--;
         } else {
             break;
         }
     }
-#endif
+    #endif
 
     /* New strategy */
     enum_data = (enum_level_t*)calloc(columns+1, sizeof(enum_level_t));

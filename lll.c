@@ -741,7 +741,6 @@ void size_reduction_long(long **b, DOUBLE  **mu, long musl, double mus, int k, i
     #endif
 }
 
-
 void check_precision(coeff_t *b, DOUBLE *R, int z, int k) {
     int j;
     mpz_t b_norm;
