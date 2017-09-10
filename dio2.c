@@ -798,14 +798,12 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
 /**
  * Exhaustive enumeration
 */
-#define FINCKEPOHST 1
 
 /**
  * Globals for enumeration
  */
-#if FINCKEPOHST
-    DOUBLE **muinv;
-#endif
+DOUBLE **muinv;
+
 /*|mpz_t *upb,*lowb;|*/
 long dual_bound_success;
 DOUBLE dum1, dum2;
@@ -928,9 +926,7 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
         if (z->loops % 100000000 ==0) {                 /*10000000*/
             fprintf(stderr, "%ld loops, solutions: %ld",
                 z->loops, num_solutions);
-            #if FINCKEPOHST
-                fprintf(stderr, ", dual bounds: %ld ", dual_bound_success);
-            #endif
+            fprintf(stderr, ", dual bounds: %ld ", dual_bound_success);
             fprintf(stderr, "\n");
             fflush(stderr);
         }
@@ -952,12 +948,10 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
             /* Use (1, -1, 0, ...) as values in Hoelder pruning */
             goto_back = TRUE;
             ++hoelder2_success;
-        #if FINCKEPOHST
         } else if (fabs(z->us[level]) > fipo[level]) {
             dual_bound_success++;
             isSideStep = FALSE;
             is_good = FALSE;
-        #endif
         } else {
             // if (isSideStep) {
             //     stepWidth = z->coeff[level] - old_coeff;
@@ -1316,12 +1310,9 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     DOUBLE stepWidth = 0.0;
     DOUBLE old_coeff;
 
-    #if defined(FINCKEPOHST)
-        DOUBLE *fipo;
-        DOUBLE **dual_basis;
-        DOUBLE *dual_bound;
-    #endif
-
+    DOUBLE *fipo;
+    DOUBLE **dual_basis;
+    DOUBLE *dual_bound;
 
     /* Vector to collect enumeration statistics */
     long nlow[1000];
@@ -1354,7 +1345,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         mu_trans[i]=(DOUBLE*)calloc(columns+1, sizeof(DOUBLE));
     }
 
-#if FINCKEPOHST
     fipo = (DOUBLE*)calloc(columns+1, sizeof(DOUBLE));
     muinv = (DOUBLE**)calloc(columns, sizeof(DOUBLE*));
     for(i = 0; i < columns; ++i)
@@ -1365,8 +1355,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         dual_basis[i] = (DOUBLE*)calloc(rows, sizeof(DOUBLE));
     }
     dual_bound = (DOUBLE*)calloc(columns+1, sizeof(DOUBLE));
-
-#endif
 
     bit_size = get_bit_size(lattice);
 
@@ -1430,7 +1418,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         bd_1norm[i] *= Fqeps / c[i];
     }
 
-#if FINCKEPOHST
     /* determine Fincke-Pohst bounds */
     dual_bound_success = 0;
     inverse(mu, muinv, columns);
@@ -1476,8 +1463,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         fprintf(stderr, "\n\n");
         fflush(stderr);
     #endif
-
-#endif
 
     /* Remove trailing unnecessary columns. 
      * 
@@ -1573,9 +1558,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     fprintf(stderr, "Prune_only_zeros: %ld of %ld\n", only_zeros_success, only_zeros_no);
     fprintf(stderr, "Prune_hoelder: %ld of %ld\n", hoelder_success, hoelder_no);
     fprintf(stderr, "Prune_hoelder interval: %ld\n", hoelder2_success);
-#if FINCKEPOHST
     fprintf(stderr, "Dual bounds: %ld\n", dual_bound_success);
-#endif
     fprintf(stderr, "Loops: %ld\n", zigzag.loops);
 
     if ((lattice->LLL_params.stop_after_solutions <= num_solutions &&
@@ -1616,7 +1599,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     // free(w);
     // free(original_columns);
 
-#if FINCKEPOHST
     // free(fipo);
     // for (l = 0; l < columns; l++) free(muinv[l]);
     // free(muinv);
@@ -1624,7 +1606,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     // for (l = 0; l <= columns; l++) free(dual_basis[l]);
     // free(dual_basis);
     // free(dual_bound);
-#endif
 
     // lllfree(mu, c, N, bd, columns);
     // for (l = 0; l < columns; l++) free(mu_trans[l]);
