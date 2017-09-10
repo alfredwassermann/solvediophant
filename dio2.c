@@ -883,6 +883,24 @@ void allocateZigzag(zigzag_t *zigzag, int columns, int rows, int level) {
     zigzag->loops = 0;
 }
 
+void allocateEnum_data(enum_level_t** enum_data, DOUBLE *fipo, int columns, int rows) {
+    int i, j; 
+    long k;
+    
+    (*enum_data) = (enum_level_t*)calloc(columns + 1, sizeof(enum_level_t));
+    for (i = 0; i <= columns; i++) {
+        k = 2 * ((long)(fipo[i]) + 1);
+        if (k > 128) k = 128;
+        (*enum_data)[i].nodes = (enum_node_t*)calloc(k, sizeof(enum_node_t));
+        for (j = 0; j < k; j++) {
+            (*enum_data)[i].nodes[j].w = (DOUBLE*)calloc(rows, sizeof(DOUBLE));
+        }
+        (*enum_data)[i].num = 0;
+        (*enum_data)[i].pos = 0;
+        (*enum_data)[i].is_leave_count = 0;
+    }
+}
+
 int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
                 DOUBLE** bd, DOUBLE* c,
                 DOUBLE Fd, DOUBLE Fqeps, DOUBLE Fq,
@@ -1417,10 +1435,10 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     dual_bound_success = 0;
     inverse(mu, muinv, columns);
 
-#if VERBOSE > -1
-    fprintf(stderr, "Dual bounds:\n");
-    fflush(stderr);
-#endif
+    #if VERBOSE > -1
+        fprintf(stderr, "Dual bounds:\n");
+        fflush(stderr);
+    #endif
 
     /* Symmetric Fincke-Pohst */
     for (i = 0; i < columns; i++) {
@@ -1480,18 +1498,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     #endif
 
     /* New strategy */
-    enum_data = (enum_level_t*)calloc(columns+1, sizeof(enum_level_t));
-    for (i = 0; i <= columns; i++) {
-        k = 2 * ((int)(fipo[i]) + 1);
-        if (k > 128) k = 128;
-        enum_data[i].nodes = (enum_node_t*)calloc(k, sizeof(enum_node_t));
-        for (j = 0; j < k; j++) {
-            enum_data[i].nodes[j].w = (DOUBLE*)calloc(rows, sizeof(DOUBLE));
-        }
-        enum_data[i].num = 0;
-        enum_data[i].pos = 0;
-        enum_data[i].is_leave_count = 0;
-    }
+    allocateEnum_data(&enum_data, fipo, columns, rows);
 
     /* initialize first-nonzero arrays */
     for (l = 0; l < rows; l++) {
