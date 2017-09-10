@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
         } else if (strcmp(argv[i],"-?") == 0 || strcmp(argv[i],"-h") == 0) {
             fprintf(stderr,"\nsd2 --- multiple precision version --- \n");
             fprintf(stderr,"sd2");
-            fprintf(stderr," -iterate*|(-bkz -beta* -p*) [-c*] [-maxnorm*] [-scalelastline*] [-lds*] [-time*(sec)] [-silent] [-o*] [-restart*] [-printntl]");
+            fprintf(stderr," -iterate*|(-bkz -beta*) [-c*] [-maxnorm*] [-scalelastline*] [-lds*] [-time*(sec)] [-silent] [-o*] [-restart*] [-printntl]");
             fprintf(stderr," inputfile\n");
             fprintf(stderr," Print lattice: kill -10 PID\n");
             fprintf(stderr," Dump lattice: kill -12 PID\n");

@@ -157,7 +157,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             goto start_tricol;
         }
 
-        if (1) {
+        if (0) {
             check_precision(b[k], R[k], z, k);
         }
 
