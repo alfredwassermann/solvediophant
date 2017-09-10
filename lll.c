@@ -157,7 +157,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             goto start_tricol;
         }
 
-        if (0) {
+        if (1) {
             check_precision(b[k], R[k], z, k);
         }
 
@@ -292,87 +292,95 @@ int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k,
             R[k][j] = (DOUBLE)mpz_get_d(b[l][j+1].c);
         }
 
-    #if BLAS
         // Compute R[k]
         for (i = 0; i < k; ++i) {
-            w = cblas_ddot(z - i, &(R[k][i]), 1, &(H[i][i]), 1);
+            #if BLAS
+                w = cblas_ddot(z - i, &(R[k][i]), 1, &(H[i][i]), 1);
+            #else
+                for (j = i, w = 0.0; j < z; ++j) {
+                    w += R[k][j] * H[i][j];
+                }
+            #endif
+            
             w_beta = w * beta[i];
-            cblas_daxpy(z - i, -w_beta, &(H[i][i]), 1, &(R[k][i]), 1);
-        }
-        // |R[k]|
-        if (bit_size < 27) {
-            norm = cblas_dnrm2(z - k, &(R[k][k]), 1);
-        } else {
-            j = cblas_idamax(z - k, &(R[k][k]), 1);
-            zeta = fabs(R[k][k + j]);
-            cblas_dscal(z - k, 1 / zeta, &(R[k][k]), 1);
-            norm = zeta * cblas_dnrm2(z - k, &(R[k][k]), 1);
-            cblas_dscal(z - k, zeta, &(R[k][k]), 1);
-        }
-
-        // H[k] = R[k] / |R[k]|
-        cblas_dcopy(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
-        cblas_dscal(z - k, 1 / norm, &(H[k][k]), 1);
-
-        H[k][k] += (R[k][k] >= -eps) ? 1.0 : -1.0;
-        beta[k] = 1.0 / (1.0 + fabs(R[k][k]) / norm);
-
-        // w = <R[k], H[k]>
-        w = cblas_ddot(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
-        w_beta = w * beta[k];
-
-        // R[k] -= w * beta * H[k]
-        cblas_daxpy(z - k, -w_beta, &(H[k][k]), 1, &(R[k][k]), 1);
-    #else
-        // Compute R[k]
-        for (i = 0; i < k; ++i) {
-            for (j = i, w = 0.0; j < z; ++j) {
-                w += R[k][j] * H[i][j];
-            }
-            w_beta = w * beta[i];
-            for (j = i; j < z; ++j) {
-                R[k][j] -= w_beta * H[i][j];
-            }
+            
+            #if BLAS
+                cblas_daxpy(z - i, -w_beta, &(H[i][i]), 1, &(R[k][i]), 1);
+            #else
+                for (j = i; j < z; ++j) {
+                    R[k][j] -= w_beta * H[i][j];
+                }
+            #endif
         }
 
         // |R[k]|
         if (bit_size < 27) {
-            for (j = k, norm = 0.0; j < z; ++j) {
-                norm += R[k][j] * R[k][j];
-            }
+            #if BLAS
+                norm = cblas_dnrm2(z - k, &(R[k][k]), 1);
+            #else
+                for (j = k, norm = 0.0; j < z; ++j) {
+                    norm += R[k][j] * R[k][j];
+                }
+                norm = SQRT(norm);
+            #endif
         } else {
             // Use zeta for stability
-            for (j = k, zeta = 0.0; j < z; ++j) {
-                if (fabs(R[k][j]) > zeta) {
-                    zeta = fabs(R[k][j]);
+            #if BLAS
+                j = cblas_idamax(z - k, &(R[k][k]), 1);
+                zeta = fabs(R[k][k + j]);
+            #else
+                for (j = k, zeta = 0.0; j < z; ++j) {
+                    if (fabs(R[k][j]) > zeta) {
+                        zeta = fabs(R[k][j]);
+                    }
                 }
-            }
-            for (j = k, norm = 0.0; j < z; ++j) {
-                x = R[k][j] / zeta;
-                norm += x * x;
-            }
-            norm = zeta * SQRT(norm);
+            #endif
+            
+            #if BLAS
+                cblas_dscal(z - k, 1 / zeta, &(R[k][k]), 1);
+                norm = zeta * cblas_dnrm2(z - k, &(R[k][k]), 1);
+                cblas_dscal(z - k, zeta, &(R[k][k]), 1);
+            #else
+                for (j = k, norm = 0.0; j < z; ++j) {
+                    x = R[k][j] / zeta;
+                    norm += x * x;
+                }
+                norm = zeta * SQRT(norm);
+            #endif
         }
 
         // H[k] = R[k] / |R[k]|
-        for (j = k; j < z; ++j) {
-            H[k][j] = R[k][j] / norm;
-        }
-
+        #if BLAS
+            cblas_dcopy(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
+            cblas_dscal(z - k, 1 / norm, &(H[k][k]), 1);
+        #else
+            for (j = k; j < z; ++j) {
+                H[k][j] = R[k][j] / norm;
+            }
+        #endif
+        
         H[k][k] += (R[k][k] >= -eps) ? 1.0 : -1.0;
         beta[k] = 1.0 / (1.0 + fabs(R[k][k]) / norm);
 
         // w = <R[k], H[k]>
-        for (j = k, w = 0.0; j < z; ++j) {
-            w += R[k][j] * H[k][j];
-        }
+        #if BLAS
+            w = cblas_ddot(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
+        #else
+            for (j = k, w = 0.0; j < z; ++j) {
+                w += R[k][j] * H[k][j];
+            }
+        #endif
+        w_beta = w * beta[k];
 
         // R[k] -= w * beta * H[k]
-        w_beta = w * beta[k];
-        for (j = k; j < z; ++j) {
-            R[k][j] -= w_beta * H[k][j];
-        }
-    #endif
+        #if BLAS
+            cblas_daxpy(z - k, -w_beta, &(H[k][k]), 1, &(R[k][k]), 1);
+        #else
+            for (j = k; j < z; ++j) {
+                R[k][j] -= w_beta * H[k][j];
+            }
+        #endif
+
         if (l == k || R[k][k] * R[k][k] < min_val) {
             min_val = R[k][k] * R[k][k];
             min_idx = l;
@@ -762,6 +770,7 @@ int householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int 
             for (j = k, norm = 0.0; j < z; ++j) {
                 norm += R[k][j] * R[k][j];
             }
+            norm = SQRT(norm);
         } else {
             // Use zeta for stability
             for (j = k, zeta = 0.0; j < z; ++j) {
