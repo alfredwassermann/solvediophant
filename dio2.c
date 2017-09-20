@@ -1097,14 +1097,14 @@ int dfs(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
     }
 
     #if TRUE
-    level++;
-    if (level > level_max) {
-        // If we reach a new level_max, a side step ahs to be done
-        // in order to initialise z->us
-        level_max = level;
-        z->delta[level] += z->d[level] * ((z->delta[level] * z->d[level] >= 0) ? 1: -1);
-        z->us[level] = z->v[level] + z->delta[level];
-    }
+        level++;
+        if (level > level_max) {
+            // If we reach a new level_max, a side step ahs to be done
+            // in order to initialise z->us
+            level_max = level;
+            z->delta[level] += z->d[level] * ((z->delta[level] * z->d[level] >= 0) ? 1: -1);
+            z->us[level] = z->v[level] + z->delta[level];
+        }
     #endif
     return level;
 }
@@ -1376,16 +1376,18 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
     // Move basis columns which have a nonzero entry in the last row to the end.
     // For lds this is mandatory.
-    for (j = columns - 1; j > 0; j--) {
-        for (l = j - 1; l >= 0;  l--) {
-            if (mpz_cmpabs(get_entry(lattice->basis, l, rows - 1), get_entry(lattice->basis, j, rows - 1)) > 0) {
-                swap_vec = lattice->basis[l];
-                for (i = l + 1; i <= j; i++) lattice->basis[i - 1] = lattice->basis[i];
-                lattice->basis[j] = swap_vec;
+    if (lattice->LLL_params.exhaustive_enum.lds == 1) {
+        for (j = columns - 1; j > 0; j--) {
+            for (l = j - 1; l >= 0;  l--) {
+                if (mpz_cmpabs(get_entry(lattice->basis, l, rows - 1), get_entry(lattice->basis, j, rows - 1)) > 0) {
+                    swap_vec = lattice->basis[l];
+                    for (i = l + 1; i <= j; i++) lattice->basis[i - 1] = lattice->basis[i];
+                    lattice->basis[j] = swap_vec;
+                }
             }
         }
+        //print_lattice(lattice);
     }
-    print_lattice(lattice);
 
     /* set the simple pruning bounds */
     Fq = (DOUBLE)mpz_get_d(lattice->max_norm);
@@ -1466,7 +1468,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
     /* Remove trailing unnecessary columns. 
      * 
-     *  COntradiction to sorting columns, see above!
+     * Contradiction to sorting columns, see above!
      * That means, columns whose corresponding Finke-Pohst bounds 
      * are equal to 0 can be removed.
      * This is important for the Selfdual Bent Functions Problems
@@ -1544,7 +1546,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
             }
         }
     } else {
-        while (level < columns) {
+        while (0 <= level && level < columns) {
             level = dfs(enum_data, &zigzag, lattice,
                 bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
                 first_nonzero_in_column, firstp,
