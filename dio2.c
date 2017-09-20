@@ -1385,7 +1385,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
             }
         }
     }
-    print_lattice(lattice);
 
     /* set the simple pruning bounds */
     Fq = (DOUBLE)mpz_get_d(lattice->max_norm);

@@ -94,16 +94,20 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
         r_tt = R[start_block][start_block];
         r_tt *= r_tt;
         if (delta * r_tt > new_cj) {
-            fprintf(stderr, "enumerate successful %d %lf improvement: %lf\n",
-                start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
+            fprintf(stderr, "enum %d successful %d %lf improvement: %lf\n",
+                beta, start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
             fflush(stderr);
 
             /* successful enumeration */
+            #if 1
             if (bit_size < 32) {
+                fprintf(stderr, "long insert\n");
                 insert_vector_long(lattice, u, start_block, end_block, z);
             } else {
+                fprintf(stderr, "mpz insert\n");
                 insert_vector(lattice, u, start_block, end_block, z, hv);
             }
+            #endif
             /*
             i = householder_column_long(lattice->basis_long, R, H, h_beta, start_block, start_block + 1, z, bit_size);
             new_cj2 = R[i][i] * R[i][i];
@@ -334,6 +338,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
 
     //t = t_max = end_block;
     for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
+    //for (t_max = end_block - 1; t_max <= end_block; t_max ++) {
         t = t_max;
         u_loc[t] = 1.0;
         len = t_max + 1 - start_block;
