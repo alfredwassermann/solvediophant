@@ -1620,7 +1620,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
 DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max) {
     #if BLAS
-        return cblas_ddot(level_max-level, &(us[level+1]), 1, &(mu_trans[level][level+1]), 1);
+        return cblas_ddot(level_max - level, &(us[level+1]), 1, &(mu_trans[level][level+1]), 1);
     #else
         int i;
         DOUBLE sum;
