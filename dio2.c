@@ -953,12 +953,12 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
             isSideStep = FALSE;
             is_good = FALSE;
         } else {
-            // if (isSideStep) {
-            //     stepWidth = z->coeff[level] - old_coeff;
-            //     compute_w2(z->w, bd, stepWidth, level, rows);
-            // } else {
+            if (isSideStep) {
+                stepWidth = z->coeff[level] - old_coeff;
+                compute_w2(z->w, bd, stepWidth, level, rows);
+            } else {
                 compute_w(z->w, bd, z->coeff[level], level, rows);
-            // }
+            }
             if (level > 0) {
                 i = prune_only_zeros(z->w, level, rows, Fq, first_nonzero_in_column, firstp,
                                       bd, z->y, z->us, columns);
@@ -1537,9 +1537,8 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
                 bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
                 first_nonzero_in_column, firstp,
                 level, rows, columns, bit_size, mu_trans,
-                k, 0, 0 * columns / 6);
-                //k, columns - columns / 2);
-            //if (k == 1) break;
+                k, 0, 0);
+
             if (result  == -1) {
                 fprintf(stderr, "solution for lds_k=%d\n\n", k);
                 break;
@@ -1554,7 +1553,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         }
     }
 
-//afterloop:
     /* final output */
     fprintf(stderr, "Prune_cs: %ld\n", cs_success);
     fprintf(stderr, "Prune_only_zeros: %ld of %ld\n", only_zeros_success, only_zeros_no);
