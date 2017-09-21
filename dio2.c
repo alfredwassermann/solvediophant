@@ -986,12 +986,16 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
             return 0;
         } else if (is_good) {
             i = ed->num;
+
             ed->nodes[i].us = z->us[level];
             ed->nodes[i].cs = z->cs[level];
-            for (j = 0; j < rows; j++) {
-                ed->nodes[i].w[j] = z->w[level][j];
-            }
-            // ed->nodes[i].l1 = cblas_dasum(rows, z->w[level], 1);
+            #if 1
+                memcpy(ed->nodes[i].w, z->w[level], sizeof(DOUBLE)*rows);
+            #else
+                for (j = 0; j < rows; j++) {
+                    ed->nodes[i].w[j] = z->w[level][j];
+                }
+            #endif
             ed->nodes[i].y = z->y[level];
 
             ed->num++;
