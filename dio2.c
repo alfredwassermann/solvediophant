@@ -1807,7 +1807,7 @@ int final_test(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice, i
         i--;
     } while (i>=0);
 
-    // If the involved numbers are to big,
+    // If the involved numbers are too big,
     // an exact test is done.
     if (bit_size < 27) {
         return 1;
