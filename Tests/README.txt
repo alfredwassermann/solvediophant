@@ -24,3 +24,6 @@ non 0/1 problem, 104 solutions
 solvediophant does not find solutions (at least in the first 5 minutes)
 but there are many
 
+* 4-arcs.txt
+32705 solution. sd3: 19 sec
+

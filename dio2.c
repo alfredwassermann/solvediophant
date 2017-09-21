@@ -33,6 +33,7 @@
 mpz_t max_norm_initial;
 mpz_t max_up;
 mpz_t dummy;
+int MAX_DUAL_BOUNDS = 512;
 
 long nom, denom;
 mpz_t lastlines_factor;
@@ -882,13 +883,13 @@ void allocateZigzag(zigzag_t *zigzag, int columns, int rows, int level) {
 }
 
 void allocateEnum_data(enum_level_t** enum_data, DOUBLE *fipo, int columns, int rows) {
-    int i, j; 
+    int i, j;
     long k;
-    
+
     (*enum_data) = (enum_level_t*)calloc(columns + 1, sizeof(enum_level_t));
     for (i = 0; i <= columns; i++) {
         k = 2 * ((long)(fipo[i]) + 1);
-        if (k > 128) k = 128;
+        k = (k > MAX_DUAL_BOUNDS) ? MAX_DUAL_BOUNDS : k;
         (*enum_data)[i].nodes = (enum_node_t*)calloc(k, sizeof(enum_node_t));
         for (j = 0; j < k; j++) {
             (*enum_data)[i].nodes[j].w = (DOUBLE*)calloc(rows, sizeof(DOUBLE));
@@ -911,7 +912,6 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
     int goto_back;
     int is_good;
     enum_level_t* ed = &(enum_data[level]);
-
     ed->num = 0;
     isSideStep = FALSE;
     do {
@@ -953,7 +953,7 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
             isSideStep = FALSE;
             is_good = FALSE;
         } else {
-            if (isSideStep) {
+            if (FALSE && isSideStep) {
                 stepWidth = z->coeff[level] - old_coeff;
                 compute_w2(z->w, bd, stepWidth, level, rows);
             } else {
@@ -1003,8 +1003,9 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
                 return 0;
             }
 
-            if (ed->num > 128) {
-                fprintf(stderr, "enum_data to small! Exit\n");
+            if (ed->num >= MAX_DUAL_BOUNDS) {
+                // We have allocated enough memory. This is not necessary
+                fprintf(stderr, "enum_data too small! Exit\n");
                 fflush(stderr);
                 exit(1);
             }
@@ -1046,7 +1047,7 @@ int dfs(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
             bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
             first_nonzero_in_column, firstp,
             level, rows, columns, bit_size, -1)) {
-        
+
         return -1;
     }
 
@@ -1531,6 +1532,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     hoelder_no = hoelder_success = hoelder2_success = 0;
     cs_success = 0;
 
+    fprintf(stderr, "Start enumeration at level=%d\n", level); fflush(stderr);
     /* the loop of the exhaustive enumeration */
     if (lattice->LLL_params.exhaustive_enum.lds == 1) {
         //for (i = 0; i <= columns / 2; i++) {
