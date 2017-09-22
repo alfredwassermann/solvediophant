@@ -911,6 +911,7 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
     int i, j, isSideStep;
     int goto_back;
     int is_good;
+
     enum_level_t* ed = &(enum_data[level]);
     ed->num = 0;
     isSideStep = FALSE;
@@ -950,10 +951,9 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
             ++hoelder2_success;
         } else if (fabs(z->us[level]) > fipo[level]) {
             dual_bound_success++;
-            isSideStep = FALSE;
             is_good = FALSE;
         } else {
-            if (FALSE && isSideStep) {
+            if (isSideStep) {
                 stepWidth = z->coeff[level] - old_coeff;
                 compute_w2(z->w, bd, stepWidth, level, rows);
             } else {
@@ -976,7 +976,7 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
                         z->delta[level] *= -1;
                         if (z->delta[level] * z->d[level] >= 0) z->delta[level] += z->d[level];
                         z->us[level] = z->v[level] + z->delta[level];
-                        isSideStep = FALSE;
+                        isSideStep = TRUE;
                         continue;
                     }
                 }
@@ -1009,6 +1009,9 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
                 fflush(stderr);
                 exit(1);
             }
+            isSideStep = TRUE;
+        } else {
+            isSideStep = FALSE;
         }
 
         /*
@@ -1024,7 +1027,6 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
             z->delta[level] += z->d[level] * ((z->delta[level] * z->d[level] >= 0) ? 1: -1);
         }
         z->us[level] = z->v[level] + z->delta[level];
-        isSideStep = TRUE;
     } while (TRUE);
 
     return 0;
@@ -1309,7 +1311,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     DOUBLE tmp;
     coeff_t *swap_vec;
 
-    int isSideStep = FALSE;
     DOUBLE stepWidth = 0.0;
     DOUBLE old_coeff;
 
