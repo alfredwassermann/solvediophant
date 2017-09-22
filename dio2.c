@@ -953,7 +953,7 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
             isSideStep = FALSE;
             is_good = FALSE;
         } else {
-            if (FALSE && isSideStep) {
+            if (TRUE && isSideStep) {
                 stepWidth = z->coeff[level] - old_coeff;
                 compute_w2(z->w, bd, stepWidth, level, rows);
             } else {
@@ -1004,7 +1004,6 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
             }
 
             if (ed->num >= MAX_DUAL_BOUNDS) {
-                // We have allocated enough memory. This is not necessary
                 fprintf(stderr, "enum_data too small! Exit\n");
                 fflush(stderr);
                 exit(1);
