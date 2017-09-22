@@ -953,7 +953,7 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
             isSideStep = FALSE;
             is_good = FALSE;
         } else {
-            if (TRUE && isSideStep) {
+            if (FALSE && isSideStep) {
                 stepWidth = z->coeff[level] - old_coeff;
                 compute_w2(z->w, bd, stepWidth, level, rows);
             } else {
@@ -976,6 +976,7 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
                         z->delta[level] *= -1;
                         if (z->delta[level] * z->d[level] >= 0) z->delta[level] += z->d[level];
                         z->us[level] = z->v[level] + z->delta[level];
+                        isSideStep = FALSE;
                         continue;
                     }
                 }
@@ -1008,8 +1009,6 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
                 fflush(stderr);
                 exit(1);
             }
-
-            isSideStep = TRUE;
         }
 
         /*
