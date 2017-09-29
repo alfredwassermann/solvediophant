@@ -36,6 +36,28 @@ typedef struct {
 } lll_params_t;
 
 typedef struct {
+    DOUBLE *bd_1norm;
+    int *first_nonzero, *first_nonzero_in_column, *firstp;
+    int bit_size;
+
+    DOUBLE *N;
+    DOUBLE *c;
+    DOUBLE **bd; 
+    DOUBLE **mu, **mu_trans;
+
+    DOUBLE Fd, Fq, Fqeps;
+    DOUBLE tmp;
+    coeff_t *swap_vec;
+
+    DOUBLE stepWidth; // = 0.0;
+    DOUBLE old_coeff;
+
+    DOUBLE *fipo;
+    DOUBLE **dual_basis;
+    DOUBLE *dual_bound;
+} lattice_decomp_t;
+
+typedef struct {
     int num_rows;
     int num_cols;
     coeff_t **basis;
@@ -50,7 +72,10 @@ typedef struct {
 
     int work_on_long;
 
+    lattice_decomp_t *decomp;
+    
     lll_params_t LLL_params;
+    
 } lattice_t;
 
 #define ADDITIONAL_COLS 1

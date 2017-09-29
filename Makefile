@@ -22,10 +22,10 @@ CFLAGS= -O3 -Wall \
 VIMFLAGS=-c 'set printoptions=number:y,left:2pc,right:2pc' -c 'set printfont=Courier:h9'
 #ASSEMBLERLIB=/usr/lib/openblas-base/libblas.a
 
-BLAS=USEBLAS
-ASSEMBLERLIB=./OpenBLASsub/libopenblas.a
-#BLAS=NOBLAS
-#ASSEMBLERLIB=
+#BLAS=USEBLAS
+#ASSEMBLERLIB=./OpenBLASsub/libopenblas.a
+BLAS=NOBLAS
+ASSEMBLERLIB=
 
 #GMPLIB=-L../gmp-4.2.1/bin/lib
 #GMPINC=-I../gmp-4.2.1/bin/include
