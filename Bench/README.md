@@ -62,4 +62,5 @@
 - 0/1 problem
 - dfs: First solution after several weeks (according to Vedran and Mario)
 - `../sd3 -bkz -beta60 -lds10 4_18_9_56.txt`
-- Solution after several hours, lds_k = 6
+- Solution after 103 min, 12551 Mio loops, lds_k = 5
+
