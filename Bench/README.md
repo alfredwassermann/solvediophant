@@ -57,3 +57,9 @@
 - Small problem (39 cols), but first solution has 13 discrepancies
 - `./sd3 -bkz -beta30 -p18 Bench/arc_204_12_q19.txt`
 - ILDS early, threshold 1/6, 776 Mio loops, 1min 4 sec (11 discrepancies)
+
+### `4_18_9_56.txt:
+- 0/1 problem
+- dfs: First solution after several weeks (according to Vedran and Mario)
+- `../sd3 -bkz -beta60 -lds10 4_18_9_56.txt`
+- Solution after several hours, lds_k = 6
