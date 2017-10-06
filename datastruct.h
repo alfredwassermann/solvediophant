@@ -6,13 +6,17 @@
 #define DOUBLE double
 
 /**
- * Definition of the lattice data structures
-*/
+ * @name coeff_t
+ * Optimize sparse integer vector operations
+ */
 typedef struct {
     mpz_t c;
     int p;
 } coeff_t;
 
+/**
+ *  @name lll_params_t
+ */
 typedef struct {
     mpz_t scalelastlinefactor;
     int iterate;
@@ -35,6 +39,10 @@ typedef struct {
     
 } lll_params_t;
 
+/**
+ * @name decomp_t
+ * Helper arrays for Gram-Schmidt dcomposition and others
+ */
 typedef struct {
     DOUBLE *bd_1norm;
     int *first_nonzero, *first_nonzero_in_column, *firstp;
@@ -55,8 +63,11 @@ typedef struct {
     DOUBLE *fipo;
     DOUBLE **dual_basis;
     DOUBLE *dual_bound;
-} lattice_decomp_t;
+} decomp_t;
 
+/**
+ * @name lattice_t
+ */
 typedef struct {
     int num_rows;
     int num_cols;
@@ -72,12 +83,15 @@ typedef struct {
 
     int work_on_long;
 
-    lattice_decomp_t *decomp;
+    decomp_t *decomp;
     
     lll_params_t LLL_params;
     
 } lattice_t;
 
+/**
+ * Needed for swaping in bkz, see also dio2.c
+ */
 #define ADDITIONAL_COLS 1
 
 #endif

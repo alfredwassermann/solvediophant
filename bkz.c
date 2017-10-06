@@ -596,7 +596,7 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                         break;
                     }
                 } else {
-                    if (pos[t] == 1 && t - lds_threshold > lds_k) {
+                    if (pos[t] == 1 && t - lds_threshold > lds_k[t]) {
                         u_loc[t] = u_left[t];
                         lds_k[t] = lds_k[t + 1];
                     }
