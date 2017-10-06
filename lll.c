@@ -12,8 +12,8 @@
 #endif
 
 #if BLAS
-    #include "OpenBLASsub/common.h"
-    #include "OpenBLASsub/cblas.h"
+    #include "common.h"
+    #include "cblas.h"
 #endif
 
 /**

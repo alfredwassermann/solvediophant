@@ -22,10 +22,12 @@ CFLAGS= -O3 -Wall \
 VIMFLAGS=-c 'set printoptions=number:y,left:2pc,right:2pc' -c 'set printfont=Courier:h9'
 #ASSEMBLERLIB=/usr/lib/openblas-base/libblas.a
 
-#BLAS=USEBLAS
-#ASSEMBLERLIB=./OpenBLASsub/libopenblas.a
-BLAS=NOBLAS
-ASSEMBLERLIB=
+BLAS=USEBLAS
+BLASINC=./OpenBLASsub/
+BLASLIB=-L./OpenBLASsub/ -lopenblas -lpthread
+#BLAS=NOBLAS
+#BLASINC=
+#BLASLIB=
 
 #GMPLIB=-L../gmp-4.2.1/bin/lib
 #GMPINC=-I../gmp-4.2.1/bin/include
@@ -36,13 +38,16 @@ GMPINC=
 all: sd3
 
 %.o: %.c %.h
-	$(CC) $(CFLAGS) -D$(BLAS) -c $< $(GMPINC)
+	$(CC) $(CFLAGS) -D$(BLAS) -I$(BLASINC) -c $< $(GMPINC)
 
 # With BLAS
 #sd3: sd2.o dio2.o lgs.o lattice.o lll.o bkz.o dualbkz.o
-#	$(CC) $(CFLAGS) -o sd3 sd2.o dio2.o bkz.o dualbkz.o lll.o lattice.o lgs.o $(ASSEMBLERLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
+#	$(CC) $(CFLAGS) -o sd3 sd2.o dio2.o bkz.o dualbkz.o lll.o lattice.o lgs.o $(BLASLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
 sd3: sd2.o dio2.o lgs.o lattice.o lll.o bkz.o
-	$(CC) $(CFLAGS) -o sd3 sd2.o dio2.o bkz.o lll.o lattice.o lgs.o $(ASSEMBLERLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
+	$(CC) $(CFLAGS) -o sd3 sd2.o dio2.o bkz.o lll.o lattice.o lgs.o  \
+	-lm -static \
+	$(BLASLIB) \
+	-lgmp $(GMPLIB) $(GMPINC)
 
 dio2.pdf: dio2.c
 	vim $(VIMFLAGS) -c 'hardcopy > dio2.ps' -c quit dio2.c
