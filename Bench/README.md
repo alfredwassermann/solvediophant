@@ -60,7 +60,9 @@
 
 ### `4_18_9_56.txt:
 - 0/1 problem
-- dfs: First solution after several weeks (according to Vedran and Mario)
+- `../sd3 -bkz -beta60 -dfs 4_18_9_56.txt`
+- Solution after 353 min, 100354  Mio loops
+- Old version: first solution after several weeks (according to Vedran and Mario)
 - `../sd3 -bkz -beta60 -lds10 4_18_9_56.txt`
 - Solution after 103 min, 12551 Mio loops, lds_k = 5
 
