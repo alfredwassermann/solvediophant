@@ -236,6 +236,9 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
     int i, j;
     int lgs_rows = LGS->num_rows;
     int lgs_cols = LGS->num_cols;
+    mpz_t upfac;
+
+    mpz_init(upfac);
 
     // Set the lattice dimensions
     lattice->num_rows = lgs_rows + lgs_cols + 1;
@@ -289,7 +292,7 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
     } else {
         // Initialize the upper bounds with 1
         lattice->upperbounds = (mpz_t*)calloc(lgs_cols, sizeof(mpz_t));
-        for (i = 0; i < lgs_cols; i++) {}
+        for (i = 0; i < lgs_cols; i++) {
             mpz_init_set_si(lattice->upperbounds[i], 1);
         }
 
@@ -317,7 +320,7 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
         lattice->no_original_cols = LGS->num_cols;
     }
 
-    original_cols = (int*)calloc(LGS->num_original_cols, sizeof(int));
+    lattice->original_cols = (int*)calloc(LGS->num_original_cols, sizeof(int));
     if (LGS->original_cols != NULL) {
         for (i = 0; i < lattice->no_original_cols; i++) {
             lattice->original_cols[i] = LGS->original_cols[i];
@@ -333,17 +336,17 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
     lattice->nom = 1;
     lattice->denom = 2;
     // Append the other (diagonal) parts of lattice
-    for (j = LGS_rows; j < lattice->num_rows; j++) {
-        mpz_mul_si(lattice->basis[j-system_rows][j + 1].c, lattice->max_norm, lattice->denom);
+    for (j = lattice->lgs_rows; j < lattice->num_rows; j++) {
+        mpz_mul_si(lattice->basis[j - lattice->lgs_rows][j + 1].c, lattice->max_norm, lattice->denom);
         mpz_mul_si(lattice->basis[lattice->num_cols - 1][j + 1].c, lattice->max_norm, lattice->nom);
     }
-    mpz_set(lattice->basis[system_columns + free_RHS][lattice->num_rows].c, lattice->max_norm);
+    mpz_set(lattice->basis[lattice->lgs_cols + lattice->free_RHS][lattice->num_rows].c, lattice->max_norm);
 
     if (lattice->free_RHS) {
-        mpz_set_si(lattice->basis[system_columns][lattice->num_rows - 1].c, 1);
-        mpz_set_si(lattice->basis[system_columns + 1][lattice->num_rows - 1].c, 0);
+        mpz_set_si(lattice->basis[lattice->lgs_cols][lattice->num_rows - 1].c, 1);
+        mpz_set_si(lattice->basis[lattice->lgs_cols + 1][lattice->num_rows - 1].c, 0);
     }
-    mpz_set(lattice->basis[system_columns + free_RHS][lattice->num_rows].c, lattice->max_norm);
+    mpz_set(lattice->basis[lattice->lgs_cols + lattice->free_RHS][lattice->num_rows].c, lattice->max_norm);
     for (i = 0; i < lattice->num_cols; i++) {
         coeffinit(lattice->basis[i], lattice->num_rows);
     }
@@ -362,9 +365,9 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
                 mpz_mul(upfac, lattice->upperbounds_max, lattice->upperbounds_max);
                 mpz_mul_si(upfac, upfac, 10000);
             }
-            mult_by(lattice->basis, j, j + system_rows, upfac);
+            mult_by(lattice->basis, j, j + lattice->lgs_rows, upfac);
             mult_by(lattice->basis,
-                        system_columns + lattice->free_RHS, j + system_rows,
+                        lattice->lgs_cols + lattice->free_RHS, j + lattice->lgs_rows,
                         lattice->upperbounds_max);
         }
         mpz_set(lattice->max_up, lattice->upperbounds_max);
@@ -372,12 +375,12 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
 
         if (lattice->free_RHS) {
             mult_by(lattice->basis,
-                    system_columns, lattice->num_rows - 2,
+                    lattice->lgs_cols, lattice->num_rows - 2,
                     lattice->max_up);
         }
 
         mult_by(lattice->basis,
-                    system_columns + free_RHS, lattice->num_rows - 1,
+                    lattice->lgs_cols + lattice->free_RHS, lattice->num_rows - 1,
                     lattice->max_up);
     }
 
