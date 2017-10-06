@@ -175,7 +175,6 @@ int get_bit_size(lattice_t *lattice) {
     return log2_max;
 }
 
-
 /**
  * LLL-subroutines
  */
@@ -231,6 +230,157 @@ DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n) {
         for (i = n - 1; i >= 0; i--) r += v[i] * w[i];
         return r;
     #endif
+}
+
+void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
+    int i, j;
+    int lgs_rows = LGS->num_rows;
+    int lgs_cols = LGS->num_cols;
+
+    // Set the lattice dimensions
+    lattice->num_rows = lgs_rows + lgs_cols + 1;
+    lattice->num_cols = lgs_cols + 1;
+    lattice->num_boundedvars = LGS->num_boundedvars;
+    lattice->lgs_rows = lgs_rows;
+    lattice->lgs_cols = lgs_cols;
+
+    if (lattice->free_RHS) {
+        lattice->num_rows++;
+        lattice->num_cols++;
+        fprintf(stderr,"The RHS is free !\n");
+    } else {
+        fprintf(stderr,"The RHS is fixed !\n");
+    }
+
+    // Allocate memory for the gmp basis and the long basis
+    lattice->basis = (coeff_t**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(coeff_t*));
+    lattice->basis_long = (long**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(long*));
+    for (j = 0; j < lattice->num_cols + ADDITIONAL_COLS; j++) {
+        lattice->basis_long[j] = (long*)calloc(lattice->num_rows, sizeof(long));
+        lattice->basis[j] = (coeff_t*)calloc(lattice->num_rows + 1, sizeof(coeff_t));
+        for (i = 0; i <= lattice->num_rows; i++) {
+            mpz_init(lattice->basis[j][i].c);
+        }
+    }
+
+    // Allocate memory for swap vector
+    lattice->swap = (coeff_t*)calloc(lattice->num_rows + 1, sizeof(coeff_t));
+    lattice->swap_long = (long*)calloc(lattice->num_rows + 1, sizeof(long));
+    for (i = 0; i <= lattice->num_rows; i++) {
+        mpz_init(lattice->swap[i].c);
+    }
+    lattice->work_on_long = FALSE;
+
+    // Copy the linear system to the basis.
+    // Thereby, multiply the entries by a large (enough) factor.
+    for (j = 0; j < lgs_rows; j++) {
+        for (i = 0; i < lgs_cols; i++) {
+            mpz_mul(lattice->basis[i][j+1].c, LGS->matrix[j][i], lattice->matrix_factor);
+        }
+        mpz_mul(lattice->basis[lgs_cols][j+1].c, LGS->rhs[j], lattice->matrix_factor);
+    }
+
+    // Handle upper bounds
+    mpz_init_set_si(lattice->upperbounds_max, 1);
+
+    lattice->is_zero_one = TRUE;
+    if (LGS->upperbounds == NULL) {
+        fprintf(stderr, "No upper bounds: assume 0/1 variables \n"); fflush(stderr);
+    } else {
+        // Initialize the upper bounds with 1
+        lattice->upperbounds = (mpz_t*)calloc(lgs_cols, sizeof(mpz_t));
+        for (i = 0; i < lgs_cols; i++) {}
+            mpz_init_set_si(lattice->upperbounds[i], 1);
+        }
+
+        // Copy the upper bounds from the LGS and determine upperbounds_max,
+        // which is the lcm of the non-zero upper bounds
+        for (i = 0; i < lattice->num_boundedvars; i++) {
+            mpz_set(lattice->upperbounds[i], LGS->upperbounds[i]);
+            if (mpz_sgn(lattice->upperbounds[i]) != 0) {
+                mpz_lcm(lattice->upperbounds_max, lattice->upperbounds_max, lattice->upperbounds[i]);
+            }
+        }
+        if (mpz_cmp_si(lattice->upperbounds_max, 1) > 0) {
+            lattice->is_zero_one = FALSE;
+        }
+
+        fprintf(stderr, "upper bounds found. Max=");
+        mpz_out_str(stderr, 10, lattice->upperbounds_max);
+        fprintf(stderr, "\n");
+    }
+
+    // Handle preselected columns
+    if (LGS->original_cols != NULL) {
+        lattice->no_original_cols = LGS->num_original_cols;
+    } else {
+        lattice->no_original_cols = LGS->num_cols;
+    }
+
+    original_cols = (int*)calloc(LGS->num_original_cols, sizeof(int));
+    if (LGS->original_cols != NULL) {
+        for (i = 0; i < lattice->no_original_cols; i++) {
+            lattice->original_cols[i] = LGS->original_cols[i];
+        }
+    } else {
+        for (i = 0; i < lattice->no_original_cols; i++) {
+            lattice->original_cols[i] = 1;
+        }
+        fprintf(stderr, "No preselected columns \n");
+    }
+    fflush(stderr);
+
+    lattice->nom = 1;
+    lattice->denom = 2;
+    // Append the other (diagonal) parts of lattice
+    for (j = LGS_rows; j < lattice->num_rows; j++) {
+        mpz_mul_si(lattice->basis[j-system_rows][j + 1].c, lattice->max_norm, lattice->denom);
+        mpz_mul_si(lattice->basis[lattice->num_cols - 1][j + 1].c, lattice->max_norm, lattice->nom);
+    }
+    mpz_set(lattice->basis[system_columns + free_RHS][lattice->num_rows].c, lattice->max_norm);
+
+    if (lattice->free_RHS) {
+        mpz_set_si(lattice->basis[system_columns][lattice->num_rows - 1].c, 1);
+        mpz_set_si(lattice->basis[system_columns + 1][lattice->num_rows - 1].c, 0);
+    }
+    mpz_set(lattice->basis[system_columns + free_RHS][lattice->num_rows].c, lattice->max_norm);
+    for (i = 0; i < lattice->num_cols; i++) {
+        coeffinit(lattice->basis[i], lattice->num_rows);
+    }
+    coeffinit(lattice->swap, lattice->num_rows);
+
+    // Multiply the diagonal entries and
+    // the last columns to ensure the upper bounds on the variables
+    mpz_init_set(lattice->max_norm_initial, lattice->max_norm);
+    mpz_init_set_si(lattice->max_up, 1);
+
+    if (!lattice->is_zero_one){
+        for (j = 0; j < lattice->num_boundedvars; j++) {
+            if (mpz_sgn(lattice->upperbounds[j]) != 0) {
+                mpz_divexact(upfac, lattice->upperbounds_max, lattice->upperbounds[j]);
+            } else {
+                mpz_mul(upfac, lattice->upperbounds_max, lattice->upperbounds_max);
+                mpz_mul_si(upfac, upfac, 10000);
+            }
+            mult_by(lattice->basis, j, j + system_rows, upfac);
+            mult_by(lattice->basis,
+                        system_columns + lattice->free_RHS, j + system_rows,
+                        lattice->upperbounds_max);
+        }
+        mpz_set(lattice->max_up, lattice->upperbounds_max);
+        mpz_mul(lattice->max_norm, lattice->max_norm, lattice->max_up);
+
+        if (lattice->free_RHS) {
+            mult_by(lattice->basis,
+                    system_columns, lattice->num_rows - 2,
+                    lattice->max_up);
+        }
+
+        mult_by(lattice->basis,
+                    system_columns + free_RHS, lattice->num_rows - 1,
+                    lattice->max_up);
+    }
+
 }
 
 int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z) {

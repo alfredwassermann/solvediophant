@@ -71,6 +71,15 @@ typedef struct {
 typedef struct {
     int num_rows;
     int num_cols;
+    int lgs_rows;
+    int lgs_cols;
+
+    int num_boundedvars;
+    int is_zero_one; // true, if 0/1 variables
+    int work_on_long;
+    int free_RHS;
+    int cut_after;
+
     coeff_t **basis;
     long **basis_long;
     coeff_t *swap;
@@ -78,10 +87,18 @@ typedef struct {
 
     mpz_t matrix_factor;
     mpz_t max_norm;
-    int cut_after;
-    int free_RHS;
+    mpz_t max_norm_initial;
 
-    int work_on_long;
+    mpz_t *upperbounds;
+    mpz_t upperbounds_max;
+    //mpz_t upfac;
+    mpz_t max_up;
+
+    int *original_cols;
+    int no_original_cols;
+
+    long nom;
+    long denom;
 
     decomp_t *decomp;
     

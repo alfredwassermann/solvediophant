@@ -31,7 +31,7 @@ extern void givens(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBL
 extern void inverse(DOUBLE **mu, DOUBLE **muinv, int columns);
 extern int final_test(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice, int bit_size);
 extern int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps);
-extern int prune_only_zeros(DOUBLE **w, int level, int rows, DOUBLE Fq,
+extern int prune_only_zeros(lattice_t *lattice, DOUBLE **w, int level, int rows, DOUBLE Fq,
                      int *first_nonzero_in_column, int *firstp,
                      DOUBLE **bd, DOUBLE *y, DOUBLE *us, int columns);
 
