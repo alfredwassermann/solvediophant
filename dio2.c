@@ -69,7 +69,6 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     #endif
 
     lgs_to_lattice(LGS, lattice);
-    printf("TEST %lf\n", lattice->decomp.bd[0][0]);
 
     /**
      * open solution file
@@ -265,6 +264,7 @@ void print_num_solutions(long num_solutions) {
 
 int cutlattice(lattice_t *lattice) {
     int j, i, flag;
+    int m;
 
     /**
      * delete unnecessary columns
@@ -317,6 +317,16 @@ int cutlattice(lattice_t *lattice) {
     }
     lattice->num_rows -= lattice->lgs_rows;
     lattice->num_rows -= (lattice->lgs_cols - lattice->num_boundedvars);
+
+    // New start positions for the vectors in mu and bd.
+    // This is necessary for BLAS access to it.
+    for (i = 1; i < lattice->num_cols; i++) {
+        lattice->decomp.mu[i] = (DOUBLE*)(lattice->decomp.mu[0] + i * lattice->num_rows);
+    }
+    m = (lattice->num_rows > lattice->num_cols) ? lattice->num_rows : lattice->num_cols;
+    for (i = 1; i < m; i++) {
+        lattice->decomp.bd[i] = (DOUBLE*)(lattice->decomp.bd[0] + i * lattice->num_rows);
+    }
 
     for (j = 0; j < lattice->num_cols; j++) {
         coeffinit(lattice->basis[j],lattice->num_rows);

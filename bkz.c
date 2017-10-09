@@ -38,7 +38,6 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
     DOUBLE **H = lattice->decomp.H;
     DOUBLE r_tt;
     DOUBLE new_cj;
-    //DOUBLE new_cj2;
     DOUBLE lD;
 
     static mpz_t hv;
@@ -48,6 +47,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
     int bit_size = get_bit_size(lattice);
 
     long *u;
+    int bit_size_threshold = 32;
 
     int j;
     for (i = 0; i < lattice->num_cols; i++) {
@@ -78,7 +78,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
         u[i] = 0;
     }
 
-    if (bit_size < 32) {
+    if (bit_size < bit_size_threshold) {
         copy_lattice_to_long(lattice);
         lllH_long(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest_long);
     } else {
@@ -96,6 +96,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
     start_block = zaehler = -1;
     //start_block = 0;
     while (zaehler < last) {
+
         start_block++;
         if (start_block == last) {
             start_block = 0;
@@ -104,23 +105,47 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
             //lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size);
         }
 
+        // printf("-------------------------------------------------\n");
+        // printf("start %d\n", start_block);
+        // print_lattice(lattice);
+
+        // for (i = 0; i < lattice->num_cols; i++) {
+        //     for (j = 0; j < lattice->num_rows; j++) {
+        //         printf("%lf ", lattice->decomp.H[i][j]);
+        //     }
+        //     printf("\n");
+        // }
+
+        // for (i = 0; i < lattice->num_cols; i++) {
+        //     for (j = 0; j < lattice->num_cols; j++) {
+        //         printf("%lf ", lattice->decomp.mu[i][j]);
+        //     }
+        //     printf("\n");
+        // }
+
+        // fflush(stdout);
+
         end_block = start_block + beta - 1;
         end_block = (end_block < last) ? end_block : last;
 
-        //new_cj = lds_enumerate(lattice, R, u, s, start_block, end_block, delta, p);
-        new_cj = enumerate(lattice, R, u, s, start_block, end_block, delta, p);
+        #if FALSE
+            new_cj = lds_enumerate(lattice, R, u, s, start_block, end_block, delta, p);
+        #else
+            new_cj = enumerate(lattice, R, u, s, start_block, end_block, delta, p);
+        #endif
         h = (end_block + 1 < last) ? end_block + 1 : last;
 
         r_tt = R[start_block][start_block];
         r_tt *= r_tt;
         if (delta * r_tt > new_cj) {
+            //fprintf(stderr, "R: %lf %lf\n", r_tt, new_cj);
             fprintf(stderr, "enum %d successful %d %lf improvement: %lf\n",
                 beta, start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
             fflush(stderr);
 
             /* successful enumeration */
             #if 1
-            if (bit_size < 32) {
+            if (bit_size < bit_size_threshold) {
                 fprintf(stderr, "long insert\n");
                 insert_vector_long(lattice, u, start_block, end_block, z);
             } else {
@@ -128,6 +153,10 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
                 insert_vector(lattice, u, start_block, end_block, z, hv);
             }
             #endif
+
+            // printf("after insert\n");
+            // print_lattice(lattice);
+            // fflush(stdout);
             /*
             i = householder_column_long(lattice->basis_long, R, H, h_beta, start_block, start_block + 1, z, bit_size);
             new_cj2 = R[i][i] * R[i][i];
@@ -137,7 +166,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
             }
             */
 
-            if (bit_size < 32) {
+            if (bit_size < bit_size_threshold) {
                 lllH_long(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size, solutiontest_long);
             } else {
                 lllH(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size, solutiontest);
@@ -153,7 +182,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
             //fprintf(stderr, "enumerate: no improvement %d\n", zaehler);
             //fflush(stderr);
             if (h > 0) {
-                if (bit_size < 32) {
+                if (bit_size < bit_size_threshold) {
                     lllH_long(lattice, R, h_beta, H, h - 1,  h - 1, h + 1, z, 0.0, CLASSIC_LLL, bit_size, solutiontest_long);
                 } else {
                     lllH(lattice, R, h_beta, H, h - 1, h - 1, h + 1, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
@@ -163,7 +192,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
             zaehler++;
         }
     } /* end of |while| */
-    if (bit_size < 32) {
+    if (bit_size < bit_size_threshold) {
         copy_lattice_to_mpz(lattice);
     }
 
@@ -355,14 +384,19 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     }
     c_min *= improve_by;
 
-    //t = t_max = end_block;
-    for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
-    //for (t_max = end_block - 1; t_max <= end_block; t_max ++) {
-        t = t_max;
+    //for (t_max = start_block + 1; t_max <= end_block; t_max ++) {
+        t = t_max = start_block + 1;
+        for (i = start_block; i <= end_block + 1; i++) {
+            c[i] = y[i] = 0.0;
+            u_loc[i] = 0.0;
+            v[i] = delta[i] = 0;
+            d[i] = 1;
+        }
+        //t = t_max;
         u_loc[t] = 1.0;
         len = t_max + 1 - start_block;
 
-        while (t <= t_max) {
+        while (t <= end_block) {
             handle_signals(lattice, R);
 
             /*
@@ -420,7 +454,8 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                 // back
                 t++;
                 if (t > t_max) {
-                    break;
+                    t_max = t;
+                    //break;
                 }
             }
             // next
@@ -434,7 +469,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                 u_loc[t] = v[t] + delta[t];
             }
         }
-    }
+    //}
 
     free(c);
     free(y);
