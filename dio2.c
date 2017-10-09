@@ -815,7 +815,7 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
             /* Use (1, -1, 0, ...) as values in Hoelder pruning */
             goto_back = TRUE;
             ++hoelder2_success;
-        } else if (fabs(z->us[level]) > fipo[level]) {
+        } else if (fabs(z->us[level] + 1) > fipo[level]) {
             dual_bound_success++;
             is_good = FALSE;
         } else {
@@ -1164,17 +1164,19 @@ int lds(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
 
 void init_dualbounds(lattice_t *lattice, DOUBLE *fipo) {
     DOUBLE **muinv;
-    DOUBLE tmp, dum1;
+    DOUBLE entry;
+    DOUBLE norm_1, norm_2;
+
     int i, j, l;
     int cols = lattice->num_cols;
     int rows = lattice->num_rows;
 
     muinv = (DOUBLE**)calloc(cols, sizeof(DOUBLE*));
-    for(i = 0; i < cols; ++i)
+    for(i = 0; i < cols; ++i) {
         muinv[i] = (DOUBLE*)calloc(rows, sizeof(DOUBLE));
+    }
 
-
-    /* determine Fincke-Pohst bounds */
+    /* determine inverse of mu */
     inverse(lattice->decomp.mu, muinv, cols);
 
     #if VERBOSE > -1
@@ -1184,22 +1186,23 @@ void init_dualbounds(lattice_t *lattice, DOUBLE *fipo) {
 
     /* Symmetric Fincke-Pohst */
     for (i = 0; i < cols; i++) {
-        dum1 = 0.0;
-        fipo[i] = 0.0;
+        norm_1 = norm_2 = 0.0;
         for (j = 0; j < rows; j++) {
-            tmp = 0.0;
+            entry = 0.0;
             for (l = i; l < cols; l++) {
-                tmp += muinv[i][l] * lattice->decomp.bd[l][j] / lattice->decomp.c[l];
+                entry += muinv[i][l] * lattice->decomp.bd[l][j] / lattice->decomp.c[l];
             }
-            //dual_basis[i][j] = tmp;
-            fipo[i] += tmp * tmp;
-            dum1 += fabs(tmp);
+            #if TRUE
+            for (l = cols - 1; l < cols; l++) {
+                entry += muinv[cols - 1][l] * lattice->decomp.bd[l][j] / lattice->decomp.c[l];
+            }
+            #endif
+            norm_2 += entry * entry;
+            norm_1 += fabs(entry);
         }
-        fipo[i] = SQRT(fipo[i] * lattice->decomp.Fd);
-        dum1 =  fabs(dum1 * lattice->decomp.Fq) * (1.0 + EPSILON);
-        if (dum1 < fipo[i]) {
-            fipo[i] = dum1;
-        }
+        norm_2 = SQRT(norm_2 * lattice->decomp.Fd);
+        norm_1 =  fabs(norm_1 * lattice->decomp.Fq) * (1.0 + EPSILON);
+        fipo[i] = (norm_1 < norm_2) ? norm_1 : norm_2;
 
         #if VERBOSE > -1
             fprintf(stderr, "%0.3lf ", fipo[i]);
