@@ -232,28 +232,8 @@ DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n) {
     #endif
 }
 
-void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
+void allocate_basis (lattice_t *lattice) {
     int i, j;
-    int lgs_rows = LGS->num_rows;
-    int lgs_cols = LGS->num_cols;
-    mpz_t upfac;
-
-    mpz_init(upfac);
-
-    // Set the lattice dimensions
-    lattice->num_rows = lgs_rows + lgs_cols + 1;
-    lattice->num_cols = lgs_cols + 1;
-    lattice->num_boundedvars = LGS->num_boundedvars;
-    lattice->lgs_rows = lgs_rows;
-    lattice->lgs_cols = lgs_cols;
-
-    if (lattice->free_RHS) {
-        lattice->num_rows++;
-        lattice->num_cols++;
-        fprintf(stderr,"The RHS is free !\n");
-    } else {
-        fprintf(stderr,"The RHS is fixed !\n");
-    }
 
     // Allocate memory for the gmp basis and the long basis
     lattice->basis = (coeff_t**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(coeff_t*));
@@ -272,16 +252,12 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
     for (i = 0; i <= lattice->num_rows; i++) {
         mpz_init(lattice->swap[i].c);
     }
-    lattice->work_on_long = FALSE;
 
-    // Copy the linear system to the basis.
-    // Thereby, multiply the entries by a large (enough) factor.
-    for (j = 0; j < lgs_rows; j++) {
-        for (i = 0; i < lgs_cols; i++) {
-            mpz_mul(lattice->basis[i][j+1].c, LGS->matrix[j][i], lattice->matrix_factor);
-        }
-        mpz_mul(lattice->basis[lgs_cols][j+1].c, LGS->rhs[j], lattice->matrix_factor);
-    }
+}
+
+void handle_upperbounds(lgs_t *LGS, lattice_t *lattice) {
+    int i;
+    int lgs_cols = LGS->num_cols;
 
     // Handle upper bounds
     mpz_init_set_si(lattice->upperbounds_max, 1);
@@ -295,8 +271,7 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
         for (i = 0; i < lgs_cols; i++) {
             mpz_init_set_si(lattice->upperbounds[i], 1);
         }
-
-        // Copy the upper bounds from the LGS and determine upperbounds_max,
+            // Copy the upper bounds from the LGS and determine upperbounds_max,
         // which is the lcm of the non-zero upper bounds
         for (i = 0; i < lattice->num_boundedvars; i++) {
             mpz_set(lattice->upperbounds[i], LGS->upperbounds[i]);
@@ -307,12 +282,14 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
         if (mpz_cmp_si(lattice->upperbounds_max, 1) > 0) {
             lattice->is_zero_one = FALSE;
         }
-
         fprintf(stderr, "upper bounds found. Max=");
         mpz_out_str(stderr, 10, lattice->upperbounds_max);
         fprintf(stderr, "\n");
     }
+}
 
+void handle_preselection(lgs_t *LGS, lattice_t *lattice) {
+    int i;
     // Handle preselected columns
     if (LGS->original_cols != NULL) {
         lattice->no_original_cols = LGS->num_original_cols;
@@ -333,8 +310,14 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
     }
     fflush(stderr);
 
-    lattice->nom = 1;
-    lattice->denom = 2;
+}
+
+void init_diagonal_part(lgs_t *LGS, lattice_t *lattice) {
+    int j;
+    mpz_t upfac;
+    
+    mpz_init(upfac);
+
     // Append the other (diagonal) parts of lattice
     for (j = lattice->lgs_rows; j < lattice->num_rows; j++) {
         mpz_mul_si(lattice->basis[j - lattice->lgs_rows][j + 1].c, lattice->max_norm, lattice->denom);
@@ -347,10 +330,6 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
         mpz_set_si(lattice->basis[lattice->lgs_cols + 1][lattice->num_rows - 1].c, 0);
     }
     mpz_set(lattice->basis[lattice->lgs_cols + lattice->free_RHS][lattice->num_rows].c, lattice->max_norm);
-    for (i = 0; i < lattice->num_cols; i++) {
-        coeffinit(lattice->basis[i], lattice->num_rows);
-    }
-    coeffinit(lattice->swap, lattice->num_rows);
 
     // Multiply the diagonal entries and
     // the last columns to ensure the upper bounds on the variables
@@ -383,42 +362,100 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
                     lattice->lgs_cols + lattice->free_RHS, lattice->num_rows - 1,
                     lattice->max_up);
     }
-
 }
 
-int lllalloc(DOUBLE ***mu, DOUBLE **c, DOUBLE **N,  DOUBLE ***bs, int s, int z) {
+void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
+    int i, j;
+    int lgs_rows = LGS->num_rows;
+    int lgs_cols = LGS->num_cols;
+
+    // Set the lattice dimensions
+    lattice->num_rows = lgs_rows + lgs_cols + 1;
+    lattice->num_cols = lgs_cols + 1;
+    lattice->num_boundedvars = LGS->num_boundedvars;
+    lattice->lgs_rows = lgs_rows;
+    lattice->lgs_cols = lgs_cols;
+
+    if (lattice->free_RHS) {
+        lattice->num_rows++;
+        lattice->num_cols++;
+        fprintf(stderr,"The RHS is free !\n");
+    } else {
+        fprintf(stderr,"The RHS is fixed !\n");
+    }
+
+    allocate_basis(lattice);
+    lattice->work_on_long = FALSE;
+
+    // Copy the linear system to the basis.
+    // Thereby, multiply the entries by a large (enough) factor.
+    for (j = 0; j < lgs_rows; j++) {
+        for (i = 0; i < lgs_cols; i++) {
+            mpz_mul(lattice->basis[i][j+1].c, LGS->matrix[j][i], lattice->matrix_factor);
+        }
+        mpz_mul(lattice->basis[lgs_cols][j+1].c, LGS->rhs[j], lattice->matrix_factor);
+    }
+
+    handle_upperbounds(LGS, lattice);
+    handle_preselection(LGS, lattice);
+
+    lattice->nom = 1;
+    lattice->denom = 2;
+
+    init_diagonal_part(LGS, lattice);
+
+    // Init sparse structure
+    for (i = 0; i < lattice->num_cols; i++) {
+        coeffinit(lattice->basis[i], lattice->num_rows);
+    }
+    coeffinit(lattice->swap, lattice->num_rows);
+
+    decomp_alloc(lattice);
+}
+
+int decomp_alloc(lattice_t *lattice) {
     int i, m;
+    int cols = lattice->num_cols;
+    int rows = lattice->num_rows;
+    decomp_t *d = &(lattice->decomp);
 
-    if ((z < 1) || (s < 1)) return 0;
+    if ((rows < 1) || (cols < 1)) return 0;
 
-    (*c) = (DOUBLE*)calloc(s, sizeof(DOUBLE));
-    (*N) = (DOUBLE*)calloc(s, sizeof(DOUBLE));
+    d->c = (DOUBLE*)calloc(cols, sizeof(DOUBLE));
+    d->N = (DOUBLE*)calloc(cols, sizeof(DOUBLE));
 
     // Use contiguous memory for BLAS
-    (*mu) = (DOUBLE**)calloc(s, sizeof(DOUBLE*));
-    (*mu)[0] = (DOUBLE*)calloc(s * z, sizeof(DOUBLE));
-    for (i = 1; i < s; i++) {
-        (*mu)[i] = (DOUBLE*)((*mu)[0] + i * z); //
+    d->mu = (DOUBLE**)calloc(cols, sizeof(DOUBLE*));
+    d->mu[0] = (DOUBLE*)calloc(cols * rows, sizeof(DOUBLE));
+    for (i = 1; i < cols; i++) {
+        d->mu[i] = (DOUBLE*)(d->mu[0] + i * rows);
     }
 
-    m = (z > s) ? z : s;
-    (*bs) = (DOUBLE**)calloc(m,sizeof(DOUBLE*));
-    (*bs)[0] = (DOUBLE*)calloc(z * m, sizeof(DOUBLE));
+    m = (rows > cols) ? rows : cols;
+    d->bd = (DOUBLE**)calloc(m, sizeof(DOUBLE*));
+    d->bd[0] = (DOUBLE*)calloc(rows * m, sizeof(DOUBLE));
     for (i = 1; i < m; i++) {
-        (*bs)[i] = (DOUBLE*)((*bs)[0] + i * z);
+        d->bd[i] = (DOUBLE*)(d->bd[0] + i * rows);
     }
+
+    // R, H and h_beta are only pointers to already existing arrays
+    d->R = d->mu;
+    d->H = d->bd;
+    d->h_beta = d->c;
 
     return 1;
 }
 
-int lllfree(DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs, int s) {
-    free(bs[0]);
-    free(bs);
+int decomp_free(lattice_t *lattice) {
+    decomp_t d = lattice->decomp;
 
-    free(mu[0]);
-    free(mu);
-    free(N);
-    free(c);
+    free(d.bd[0]);
+    free(d.bd);
+
+    free(d.mu[0]);
+    free(d.mu);
+    free(d.N);
+    free(d.c);
 
     return 1;
 }

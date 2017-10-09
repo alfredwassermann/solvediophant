@@ -18,8 +18,11 @@
 
 DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
                      int (*solutiontest)(lattice_t *lattice, int k)) {
-    DOUBLE **R, *h_beta, *N;
-    DOUBLE **H;
+    DOUBLE **R = lattice->decomp.R;
+    DOUBLE *beta = lattice->decomp.c;
+    DOUBLE *N = lattice->decomp.N;
+    DOUBLE **H = lattice->decomp.H;
+
     DOUBLE r_tt;
     DOUBLE new_cj;
     DOUBLE lD;
@@ -51,7 +54,7 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
         u[i] = 0;
     }
 
-    lllalloc(&R, &h_beta, &N, &H, s, z);
+    //decomp_alloc(&R, &h_beta, &N, &H, s, z);
 
     while (1) {
         fprintf(stderr, "Start tour #no %d\n", zaehler);
@@ -117,7 +120,7 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
     fflush(stderr);
     #endif
 
-    lllfree(R, h_beta, N, H, s);
+    //lllfree(R, h_beta, N, H, s);
     free(u);
     mpz_clear(hv);
 
@@ -126,8 +129,11 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
 
 DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
                 int (*solutiontest)(lattice_t *lattice, int k)) {
-    DOUBLE **R, *h_beta, *N;
-    DOUBLE **H;
+    DOUBLE **R = lattice->decomp.R;
+    DOUBLE *beta = lattice->decomp.c;
+    DOUBLE *N = lattice->decomp.N;
+    DOUBLE **H = lattice->decomp.H;
+
     DOUBLE r_tt;
     DOUBLE new_cj, new_cj2;
     DOUBLE lD;
@@ -159,7 +165,7 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
         u[i] = 0;
     }
 
-    lllalloc(&R, &h_beta, &N, &H, s, z);
+    //decomp_alloc(&R, &h_beta, &N, &H, s, z);
     lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
 
     zaehler = -1;
@@ -214,7 +220,7 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
     fflush(stderr);
     #endif
 
-    lllfree(R, h_beta, N, H, s);
+    //lllfree(R, h_beta, N, H, s);
     free(u);
     mpz_clear(hv);
 

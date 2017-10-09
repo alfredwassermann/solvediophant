@@ -68,8 +68,8 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         //openblas_set_num_threads(8);
     #endif
 
-
     lgs_to_lattice(LGS, lattice);
+    printf("TEST %lf\n", lattice->decomp.bd[0][0]);
 
     /**
      * open solution file
@@ -102,7 +102,6 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
      */
     mpz_set_ui(lastlines_factor, 1);
     fprintf(stderr, "\n"); fflush(stderr);
-
     if (!restart) {
         lll(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_LOW, CLASSIC_LLL);
 
@@ -521,32 +520,32 @@ int solutiontest_long(lattice_t *lattice, int position) {
  * LLL variants
  */
 void lll(lattice_t *lattice, int s, int z, DOUBLE quality, int reduction_type) {
-    DOUBLE **R;
-    DOUBLE *beta;
-    DOUBLE *N;
-    DOUBLE **H;
+    DOUBLE **R = lattice->decomp.R;
+    DOUBLE *beta = lattice->decomp.c;
+    //DOUBLE *N = lattice->decomp.N;
+    DOUBLE **H = lattice->decomp.H;
     int r, bit_size;
 
-    lllalloc(&R, &beta, &N, &H, s, z);
+    //decomp_alloc(lattice); //&R, &beta, &N, &H, s, z);
     bit_size = get_bit_size(lattice);
     r = lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest);
-    lllfree(R, beta, N, H, s);
+    //lllfree(R, beta, N, H, s);
 
     return;
 }
 
 DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE quality, int reduction_type) {
-    DOUBLE **R;
-    DOUBLE *beta;
-    DOUBLE *N;
-    DOUBLE **H;
-    int r, l, i, j, runs;
+    DOUBLE **R = lattice->decomp.R;
+    DOUBLE *beta = lattice->decomp.c;
+    //DOUBLE *N = lattice->decomp.N;
+    DOUBLE **H = lattice->decomp.H;
+    int r, i, j, runs;
     int bit_size;
     coeff_t *swapvl;
     long *swap;
     DOUBLE lD;
 
-    lllalloc(&R, &beta, &N, &H, s, z);
+    //decomp_alloc(&R, &beta, &N, &H, s, z);
 
     bit_size = get_bit_size(lattice);
 
@@ -599,21 +598,22 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
     if (bit_size < 32) {
         copy_lattice_to_mpz(lattice);
     }
-    lllfree(R, beta, N, H, s);
+    //lllfree(R, beta, N, H, s);
 
     return lD;
 }
 
 DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE quality, int reduction_type) {
-    DOUBLE **R;
-    DOUBLE *beta;
-    DOUBLE *N;
-    DOUBLE **H;
+    DOUBLE **R = lattice->decomp.R;
+    DOUBLE *beta = lattice->decomp.c;
+    //DOUBLE *N = lattice->decomp.N;
+    DOUBLE **H = lattice->decomp.H;
+
     DOUBLE lD;
     int start = 0, up, size, bit_size;
     coeff_t **basis_org;
 
-    lllalloc(&R, &beta, &N, &H, s, z);
+    //decomp_alloc(&R, &beta, &N, &H, s, z);
     bit_size = get_bit_size(lattice);
 
     //r = lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size);
@@ -645,7 +645,7 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
     lD = log_potential(R, s, z);
     fprintf(stderr, "   log(D)= %f\n", lD);
     fflush(stderr);
-    lllfree(R, beta, N, H, s);
+    //lllfree(R, beta, N, H, s);
 
     return lD;
 }
@@ -657,8 +657,6 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
 /**
  * Globals for enumeration
  */
-DOUBLE **muinv;
-
 /*|mpz_t *upb,*lowb;|*/
 long dual_bound_success;
 DOUBLE dum1, dum2;
@@ -755,16 +753,20 @@ void allocateEnum_data(enum_level_t** enum_data, DOUBLE *fipo, int columns, int 
 }
 
 int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
-                DOUBLE** bd, DOUBLE* c,
-                DOUBLE Fd, DOUBLE Fqeps, DOUBLE Fq,
                 DOUBLE* bd_1norm, DOUBLE* fipo,
                 int* first_nonzero_in_column, int* firstp,
                 int level, int rows, int columns, int bit_size, int max_steps) {
 
     DOUBLE old_coeff, stepWidth;
-    int i, j, isSideStep;
+    int i, isSideStep;
     int goto_back;
     int is_good;
+
+    DOUBLE** bd = lattice->decomp.bd;
+    DOUBLE* c = lattice->decomp.c;
+    DOUBLE Fd = lattice->decomp.Fd;
+    DOUBLE Fqeps = lattice->decomp.Fqeps;
+    DOUBLE Fq = lattice->decomp.Fq;
 
     enum_level_t* ed = &(enum_data[level]);
     ed->num = 0;
@@ -887,18 +889,19 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
 }
 
 int dfs(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
-                DOUBLE** bd, DOUBLE* c,
-                DOUBLE Fd, DOUBLE Fqeps, DOUBLE Fq,
+                // DOUBLE** bd, DOUBLE* c,
+                //DOUBLE Fd, DOUBLE Fqeps, DOUBLE Fq,
                 DOUBLE* bd_1norm, DOUBLE* fipo,
                 int* first_nonzero_in_column, int* firstp,
                 int level, int rows, int columns, int bit_size, DOUBLE** mu_trans) {
 
-    int j, i;
-    DOUBLE s;
+    int j;
+    //DOUBLE s;
     enum_level_t* ed = &(enum_data[level]);
 
     if (-1 == enumLevel(enum_data, z, lattice,
-            bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
+            //bd, c, Fd, Fqeps, Fq,
+            bd_1norm, fipo,
             first_nonzero_in_column, firstp,
             level, rows, columns, bit_size, -1)) {
 
@@ -916,8 +919,8 @@ int dfs(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
 
         if (level == 0) {
             // Solution found
-            if (final_test(z->w[0], rows, Fq, z->us, lattice, bit_size) == 1) {
-                print_solution(lattice, z->w[level], rows, Fq, z->us, columns);
+            if (final_test(z->w[0], rows, lattice->decomp.Fq, z->us, lattice, bit_size) == 1) {
+                print_solution(lattice, z->w[level], rows, lattice->decomp.Fq, z->us, columns);
 
                 for (j = columns - 1 ; FALSE && j >= 0; j--) {
                     //if (1 || z->us[j] != ROUND(-z->y[j])) {
@@ -945,7 +948,8 @@ int dfs(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
             z->d[level] = (z->v[level] > -z->y[level]) ? -1 : 1;
 
             if (-1 == dfs(enum_data, z, lattice,
-                bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
+                //bd, c, Fd, Fqeps, Fq,
+                bd_1norm, fipo,
                 first_nonzero_in_column, firstp,
                 level, rows, columns, bit_size, mu_trans)) {
                 return -1;
@@ -969,21 +973,23 @@ int dfs(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
 }
 
 int lds(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
-                DOUBLE** bd, DOUBLE* c,
-                DOUBLE Fd, DOUBLE Fqeps, DOUBLE Fq,
                 DOUBLE* bd_1norm, DOUBLE* fipo,
                 int* first_nonzero_in_column, int* firstp,
                 int level, int rows, int columns, int bit_size, DOUBLE** mu_trans,
                 int lds_k, int lds_l, int lds_threshold) {
 
-    int j, i;
-    int result;
+    int j;
+    //int result;
     int start, end, pos, do_left_branch_last, p;
     int next_lds_k;
-    DOUBLE s;
     int height, max_height, count;
     int max_steps;
     enum_level_t* ed = &(enum_data[level]);
+    // DOUBLE** bd,
+    // DOUBLE* c,
+    // DOUBLE Fd,
+    // DOUBLE Fqeps,
+    // DOUBLE Fq,
 
     max_steps = -1;
     if (level >= lds_threshold && lds_k == 0) {
@@ -991,7 +997,8 @@ int lds(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
     }
 
     if (-1 == enumLevel(enum_data, z, lattice,
-            bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
+            //bd, c, Fd, Fqeps, Fq,
+            bd_1norm, fipo,
             first_nonzero_in_column, firstp,
             level, rows, columns, bit_size, max_steps)) {
 
@@ -1062,8 +1069,8 @@ int lds(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
 
         if (level == 0) {
             // Solution found
-            if (final_test(z->w[0], rows, Fq, z->us, lattice, bit_size) == 1) {
-                print_solution(lattice, z->w[level], rows, Fq, z->us, columns);
+            if (final_test(z->w[0], rows, lattice->decomp.Fq, z->us, lattice, bit_size) == 1) {
+                print_solution(lattice, z->w[level], rows, lattice->decomp.Fq, z->us, columns);
 
                 for (j = columns - 1 ; j >= 0; j--) {
                     fprintf(stderr, "%d: %d of %d\t%0.0lf\t%d",
@@ -1116,7 +1123,8 @@ int lds(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
             }
             
             height = lds(enum_data, z, lattice,
-                    bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
+                    //bd, c, Fd, Fqeps, Fq,
+                    bd_1norm, fipo,
                     first_nonzero_in_column, firstp,
                     level, rows, columns, bit_size, mu_trans, next_lds_k, lds_l, lds_threshold);
 
@@ -1144,6 +1152,64 @@ int lds(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
     return max_height;
 }
 
+void init_dualbounds(lattice_t *lattice, DOUBLE *fipo) {
+    DOUBLE **muinv;
+    DOUBLE tmp, dum1;
+    int i, j, l;
+    int cols = lattice->num_cols;
+    int rows = lattice->num_rows;
+
+    muinv = (DOUBLE**)calloc(cols, sizeof(DOUBLE*));
+    for(i = 0; i < cols; ++i)
+        muinv[i] = (DOUBLE*)calloc(rows, sizeof(DOUBLE));
+
+
+    /* determine Fincke-Pohst bounds */
+    inverse(lattice->decomp.mu, muinv, cols);
+
+    #if VERBOSE > -1
+        fprintf(stderr, "Dual bounds:\n");
+        fflush(stderr);
+    #endif
+
+    /* Symmetric Fincke-Pohst */
+    for (i = 0; i < cols; i++) {
+        dum1 = 0.0;
+        fipo[i] = 0.0;
+        for (j = 0; j < rows; j++) {
+            tmp = 0.0;
+            for (l = i; l < cols; l++) {
+                tmp += muinv[i][l] * lattice->decomp.bd[l][j] / lattice->decomp.c[l];
+            }
+            //dual_basis[i][j] = tmp;
+            fipo[i] += tmp * tmp;
+            dum1 += fabs(tmp);
+        }
+        fipo[i] = SQRT(fipo[i] * lattice->decomp.Fd);
+        dum1 =  fabs(dum1 * lattice->decomp.Fq) * (1.0 + EPSILON);
+        if (dum1 < fipo[i]) {
+            fipo[i] = dum1;
+        }
+
+        #if VERBOSE > -1
+            fprintf(stderr, "%0.3lf ", fipo[i]);
+        #endif
+    }
+
+    // for (i = cols - 2; i >= 0; --i) {
+    //     for (j = 0, tmp = 0.0; j < rows; j++) {
+    //         dum1 = dual_basis[i][j] + dual_basis[i + 1][j];
+    //         tmp += fabs(dum1);
+    //     }
+    //     dual_bound[i] = tmp * Fq * (1.0 + EPSILON);
+    // }
+
+    #if VERBOSE > -1
+        fprintf(stderr, "\n\n");
+        fflush(stderr);
+    #endif
+}
+
 DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     /* local variables for |explicit_enumeration() */
     /*|__attribute((aligned(16)))|*/
@@ -1159,23 +1225,16 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     int *first_nonzero, *first_nonzero_in_column, *firstp;
     int bit_size;
 
-    DOUBLE *N, **mu, *c, **bd, **mu_trans;
+    DOUBLE **mu_trans;
+    // DOUBLE *N, **mu, *c, **bd, **mu_trans;
+    // DOUBLE **mu = lattice->decomp.R;
+    // DOUBLE *c = lattice->decomp.c;
+    // DOUBLE *N = lattice->decomp.N;
+    // DOUBLE **bd = lattice->decomp.H;
 
-    DOUBLE Fd, Fq, Fqeps;
-    DOUBLE tmp;
     coeff_t *swap_vec;
 
-    DOUBLE stepWidth = 0.0;
-    DOUBLE old_coeff;
-
     DOUBLE *fipo;
-    DOUBLE **dual_basis;
-    DOUBLE *dual_bound;
-
-    /* Vector to collect enumeration statistics */
-    long nlow[1000];
-    for (i = 0; i < 1000; i++) nlow[i] = 0;
-
     /* test the size of the basis */
     fprintf(stderr, "Dimension of solution space (k): %d compared to s-z+2: %d\n",
                 columns,
@@ -1189,7 +1248,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     }
 
     /* allocate the memory for enumeration */
-    lllalloc(&mu, &c, &N, &bd, columns, rows);
+    //decomp_alloc(lattice); //&mu, &c, &N, &bd, columns, rows);
     bd_1norm = (DOUBLE*)calloc(columns + 1, sizeof(DOUBLE));
 
     first_nonzero = (int*)calloc(rows, sizeof(int));
@@ -1205,15 +1264,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     }
 
     fipo = (DOUBLE*)calloc(columns+1, sizeof(DOUBLE));
-    muinv = (DOUBLE**)calloc(columns, sizeof(DOUBLE*));
-    for(i = 0; i < columns; ++i)
-        muinv[i] = (DOUBLE*)calloc(rows, sizeof(DOUBLE));
-
-    dual_basis = (DOUBLE**)calloc(columns+1, sizeof(DOUBLE*));
-    for (i = 0; i <= columns; ++i) {
-        dual_basis[i] = (DOUBLE*)calloc(rows, sizeof(DOUBLE));
-    }
-    dual_bound = (DOUBLE*)calloc(columns+1, sizeof(DOUBLE));
 
     bit_size = get_bit_size(lattice);
 
@@ -1249,86 +1299,43 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     }
 
     /* set the simple pruning bounds */
-    Fq = (DOUBLE)mpz_get_d(lattice->max_norm);
-    Fd = (rows*Fq*Fq) * (1.0 + EPSILON);
-    Fqeps = (1.0 + EPSILON) * Fq;        // Used in prune()
+    lattice->decomp.Fq = (DOUBLE)mpz_get_d(lattice->max_norm);
+    lattice->decomp.Fd = (rows * lattice->decomp.Fq * lattice->decomp.Fq) * (1.0 + EPSILON);
+    lattice->decomp.Fqeps = (1.0 + EPSILON) * lattice->decomp.Fq;        // Used in prune()
     #if VERBOSE > 0
-        fprintf(stderr, "Fq: %f\n", (double)Fq);
-        fprintf(stderr, "Fd: %f\n", (double)Fd);
+        fprintf(stderr, "Fq: %f\n", (double)lattice->decomp.Fq);
+        fprintf(stderr, "Fd: %f\n", (double)lattice->decomp.Fd);
         fflush(stderr);
     #endif
 
     /* orthogonalize the basis */
     #if GIVENS
-        givens(lattice, columns, rows, mu, bd, c);
+        givens(lattice, columns, rows, lattice->decomp.mu, lattice->decomp.bd, lattice->decomp.c);
     #else
-        gramschmidt(lattice, columns, rows, mu, bd, c);
+        gramschmidt(lattice, columns, rows, lattice->decomp.mu, lattice->decomp.bd, lattice->decomp.c);
     #endif
 
     /* compute $mu^\top$, the transpose of $mu$. */
     for (i = 0; i < columns; i++)
         for (j = 0; j < columns; j++)
-            mu_trans[j][i] = mu[i][j];
+            mu_trans[j][i] = lattice->decomp.mu[i][j];
 
     /* Compute 1-norm of orthogonal basis */
     for (i = 0; i <= columns; ++i) {
         bd_1norm[i] = 0.0;
         for (j = 0; j < rows; ++j) {
-            bd_1norm[i] += fabs(bd[i][j]);
+            bd_1norm[i] += fabs(lattice->decomp.bd[i][j]);
         }
-        bd_1norm[i] *= Fqeps / c[i];
+        bd_1norm[i] *= lattice->decomp.Fqeps / lattice->decomp.c[i];
     }
 
-    /* determine Fincke-Pohst bounds */
     dual_bound_success = 0;
-    inverse(mu, muinv, columns);
+    init_dualbounds(lattice, fipo);
 
-    #if VERBOSE > -1
-        fprintf(stderr, "Dual bounds:\n");
-        fflush(stderr);
-    #endif
-
-    /* Symmetric Fincke-Pohst */
-    for (i = 0; i < columns; i++) {
-        dum1 = 0.0;
-        fipo[i] = 0.0;
-        for (j = 0; j < rows; j++) {
-            tmp = 0.0;
-            for (l = i; l < columns; l++) {
-                tmp += muinv[i][l] * bd[l][j] / c[l];
-            }
-            dual_basis[i][j] = tmp;
-            fipo[i] += tmp * tmp;
-            dum1 += fabs(tmp);
-        }
-        fipo[i] = SQRT(fipo[i] * Fd);
-        dum1 =  fabs(dum1 * Fq) * (1.0 + EPSILON);
-        if (dum1 < fipo[i]) {
-            fipo[i] = dum1;
-        }
-
-        #if VERBOSE > -1
-            fprintf(stderr, "%0.3lf ", fipo[i]);
-        #endif
-    }
-
-    for (i = columns - 2; i >= 0; --i) {
-        for (j = 0, tmp = 0.0; j < rows; j++) {
-            dum1 = dual_basis[i][j] + dual_basis[i + 1][j];
-            tmp += fabs(dum1);
-        }
-        dual_bound[i] = tmp * Fq * (1.0 + EPSILON);
-    }
-
-    #if VERBOSE > -1
-        fprintf(stderr, "\n\n");
-        fflush(stderr);
-    #endif
-
-    /* Remove trailing unnecessary columns. 
-     * 
+    /* Remove trailing unnecessary columns.
+     *
      * Contradiction to sorting columns, see above!
-     * That means, columns whose corresponding Finke-Pohst bounds 
+     * That means, columns whose corresponding Finke-Pohst bounds
      * are equal to 0 can be removed.
      * This is important for the Selfdual Bent Functions Problems
      */
@@ -1394,7 +1401,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         for (k = 0; k < lattice->LLL_params.exhaustive_enum.lds_k_max; k++) {
             fprintf(stderr, "lds_k=%d\n", k); fflush(stderr);
             result = lds(enum_data, &zigzag, lattice,
-                bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
+                bd_1norm, fipo,
                 first_nonzero_in_column, firstp,
                 level, rows, columns, bit_size, mu_trans,
                 k, 0, 0);
@@ -1407,7 +1414,8 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     } else {
         while (0 <= level && level < columns) {
             level = dfs(enum_data, &zigzag, lattice,
-                bd, c, Fd, Fqeps, Fq, bd_1norm, fipo,
+                //bd, c, Fd, Fqeps, Fq,
+                bd_1norm, fipo,
                 first_nonzero_in_column, firstp,
                 level, rows, columns, bit_size, mu_trans);
         }

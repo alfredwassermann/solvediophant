@@ -30,9 +30,12 @@
  * Blockwise Korkine Zolotareff reduction
  */
 DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
-            int (*solutiontest)(lattice_t *lattice, int k), int (*solutiontest_long)(lattice_t *lattice, int k)) {
-    DOUBLE **R, *h_beta, *N;
-    DOUBLE **H;
+            int (*solutiontest)(lattice_t *lattice, int k),
+            int (*solutiontest_long)(lattice_t *lattice, int k)) {
+
+    DOUBLE **R = lattice->decomp.R;
+    DOUBLE *h_beta = lattice->decomp.c;
+    DOUBLE **H = lattice->decomp.H;
     DOUBLE r_tt;
     DOUBLE new_cj;
     //DOUBLE new_cj2;
@@ -46,6 +49,16 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
 
     long *u;
 
+    int j;
+    for (i = 0; i < lattice->num_cols; i++) {
+        for (j = 0; j < lattice->num_rows; j++) {
+            H[i][j] = 0.0;
+        }
+        for (j = 0; j < lattice->num_cols; j++) {
+            R[i][j] = 0.0;
+        }
+        h_beta[i] = 0.0;
+    }
     mpz_init(hv);
 
     last = s - 1;    /* |last| points to the last nonzero vector of the lattice.*/
@@ -65,13 +78,20 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
         u[i] = 0;
     }
 
-    lllalloc(&R, &h_beta, &N, &H, s, z);
     if (bit_size < 32) {
         copy_lattice_to_long(lattice);
         lllH_long(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest_long);
     } else {
         lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
     }
+
+
+    // for (i = 0; i < lattice->num_cols; i++) {
+    //     for (j = 0; j < lattice->num_cols; j++) {
+    //         fprintf(stderr, "%lf ", H[i][j]);
+    //     }
+    //     fprintf(stderr, "\n");
+    // }
 
     start_block = zaehler = -1;
     //start_block = 0;
@@ -154,7 +174,6 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
     fflush(stderr);
     #endif
 
-    lllfree(R, h_beta, N, H, s);
     free(u);
     mpz_clear(hv);
 

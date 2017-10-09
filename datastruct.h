@@ -53,6 +53,10 @@ typedef struct {
     DOUBLE **bd; 
     DOUBLE **mu, **mu_trans;
 
+    DOUBLE *h_beta;
+    DOUBLE **H;
+    DOUBLE **R;
+
     DOUBLE Fd, Fq, Fqeps;
     DOUBLE tmp;
     coeff_t *swap_vec;
@@ -100,7 +104,7 @@ typedef struct {
     long nom;
     long denom;
 
-    decomp_t *decomp;
+    decomp_t decomp;
     
     lll_params_t LLL_params;
     
