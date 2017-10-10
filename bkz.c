@@ -146,10 +146,10 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
             /* successful enumeration */
             #if 1
             if (bit_size < bit_size_threshold) {
-                fprintf(stderr, "long insert\n");
+                //fprintf(stderr, "long insert\n");
                 insert_vector_long(lattice, u, start_block, end_block, z);
             } else {
-                fprintf(stderr, "mpz insert\n");
+                //fprintf(stderr, "mpz insert\n");
                 insert_vector(lattice, u, start_block, end_block, z, hv);
             }
             #endif
