@@ -744,13 +744,13 @@ void allocateZigzag(zigzag_t *zigzag, int columns, int rows, int level) {
     zigzag->loops = 0;
 }
 
-void allocateEnum_data(enum_level_t** enum_data, DOUBLE *fipo, int columns, int rows) {
+void allocateEnum_data(enum_level_t** enum_data, DOUBLE **fipo, int columns, int rows) {
     int i, j;
     long k;
 
     (*enum_data) = (enum_level_t*)calloc(columns + 1, sizeof(enum_level_t));
     for (i = 0; i <= columns; i++) {
-        k = 2 * ((long)(fipo[i]) + 1);
+        k = 2 * ((long)(fipo[0][i]) + 1);
         k = (k > MAX_DUAL_BOUNDS) ? MAX_DUAL_BOUNDS : k;
         (*enum_data)[i].nodes = (enum_node_t*)calloc(k, sizeof(enum_node_t));
         for (j = 0; j < k; j++) {
@@ -763,7 +763,7 @@ void allocateEnum_data(enum_level_t** enum_data, DOUBLE *fipo, int columns, int 
 }
 
 int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
-                DOUBLE* bd_1norm, DOUBLE* fipo,
+                DOUBLE* bd_1norm, DOUBLE** fipo,
                 int* first_nonzero_in_column, int* firstp,
                 int level, int rows, int columns, int bit_size, int max_steps) {
 
@@ -815,7 +815,8 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
             /* Use (1, -1, 0, ...) as values in Hoelder pruning */
             goto_back = TRUE;
             ++hoelder2_success;
-        } else if (fabs(z->us[level] + 1) > fipo[level]) {
+        } else if (fabs(z->us[level]) > fipo[0][level] ||
+                   fabs(z->us[level] + 1) > fipo[1][level]) {
             dual_bound_success++;
             is_good = FALSE;
         } else {
@@ -901,7 +902,7 @@ int enumLevel(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
 int dfs(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
                 // DOUBLE** bd, DOUBLE* c,
                 //DOUBLE Fd, DOUBLE Fqeps, DOUBLE Fq,
-                DOUBLE* bd_1norm, DOUBLE* fipo,
+                DOUBLE* bd_1norm, DOUBLE** fipo,
                 int* first_nonzero_in_column, int* firstp,
                 int level, int rows, int columns, int bit_size, DOUBLE** mu_trans) {
 
@@ -983,7 +984,7 @@ int dfs(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
 }
 
 int lds(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
-                DOUBLE* bd_1norm, DOUBLE* fipo,
+                DOUBLE* bd_1norm, DOUBLE** fipo,
                 int* first_nonzero_in_column, int* firstp,
                 int level, int rows, int columns, int bit_size, DOUBLE** mu_trans,
                 int lds_k, int lds_l, int lds_threshold) {
@@ -1162,14 +1163,21 @@ int lds(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
     return max_height;
 }
 
-void init_dualbounds(lattice_t *lattice, DOUBLE *fipo) {
+void init_dualbounds(lattice_t *lattice, DOUBLE ***fipo) {
     DOUBLE **muinv;
     DOUBLE entry;
     DOUBLE norm_1, norm_2;
+    DOUBLE norm_1_1, norm_1_2;
+    DOUBLE norm_2_1, norm_2_2;
 
     int i, j, l;
     int cols = lattice->num_cols;
     int rows = lattice->num_rows;
+
+    (*fipo) = (DOUBLE**)calloc(cols + 1, sizeof(DOUBLE*));
+    for (i = 0; i <= cols; i++) {
+        (*fipo)[i] = (DOUBLE*)calloc(cols + 1, sizeof(DOUBLE));
+    }
 
     muinv = (DOUBLE**)calloc(cols, sizeof(DOUBLE*));
     for(i = 0; i < cols; ++i) {
@@ -1187,25 +1195,43 @@ void init_dualbounds(lattice_t *lattice, DOUBLE *fipo) {
     /* Symmetric Fincke-Pohst */
     for (i = 0; i < cols; i++) {
         norm_1 = norm_2 = 0.0;
+        norm_1_1 = norm_1_2 = 0.0;
+        norm_2_1 = norm_2_2 = 0.0;
         for (j = 0; j < rows; j++) {
             entry = 0.0;
             for (l = i; l < cols; l++) {
                 entry += muinv[i][l] * lattice->decomp.bd[l][j] / lattice->decomp.c[l];
             }
+            norm_2 += entry * entry;
+            norm_1 += fabs(entry);
             #if TRUE
             for (l = cols - 1; l < cols; l++) {
                 entry += muinv[cols - 1][l] * lattice->decomp.bd[l][j] / lattice->decomp.c[l];
             }
+            norm_1_2 += entry * entry;
+            norm_1_1 += fabs(entry);
             #endif
-            norm_2 += entry * entry;
-            norm_1 += fabs(entry);
+            #if TRUE
+            for (l = cols - 2; l < cols; l++) {
+                entry += muinv[cols - 2][l] * lattice->decomp.bd[l][j] / lattice->decomp.c[l];
+            }
+            norm_2_2 += entry * entry;
+            norm_2_1 += fabs(entry);
+            #endif
+
         }
         norm_2 = SQRT(norm_2 * lattice->decomp.Fd);
         norm_1 =  fabs(norm_1 * lattice->decomp.Fq) * (1.0 + EPSILON);
-        fipo[i] = (norm_1 < norm_2) ? norm_1 : norm_2;
+        (*fipo)[0][i] = (norm_1 < norm_2) ? norm_1 : norm_2;
+        norm_1_2 = SQRT(norm_1_2 * lattice->decomp.Fd);
+        norm_1_1 =  fabs(norm_1_1 * lattice->decomp.Fq) * (1.0 + EPSILON);
+        (*fipo)[1][i] = (norm_1_1 < norm_1_2) ? norm_1_1 : norm_1_2;
+        norm_2_2 = SQRT(norm_2_2 * lattice->decomp.Fd);
+        norm_2_1 =  fabs(norm_2_1 * lattice->decomp.Fq) * (1.0 + EPSILON);
+        (*fipo)[2][i] = (norm_2_1 < norm_2_2) ? norm_2_1 : norm_2_2;
 
         #if VERBOSE > -1
-            fprintf(stderr, "%0.3lf ", fipo[i]);
+            fprintf(stderr, "%0.3lf ", (*fipo)[0][i]);
         #endif
     }
 
@@ -1247,7 +1273,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
     coeff_t *swap_vec;
 
-    DOUBLE *fipo;
+    DOUBLE **fipo;
     /* test the size of the basis */
     fprintf(stderr, "Dimension of solution space (k): %d compared to s-z+2: %d\n",
                 columns,
@@ -1275,8 +1301,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     for (i = 0; i <= columns; i++) {
         mu_trans[i]=(DOUBLE*)calloc(columns+1, sizeof(DOUBLE));
     }
-
-    fipo = (DOUBLE*)calloc(columns+1, sizeof(DOUBLE));
 
     bit_size = get_bit_size(lattice);
 
@@ -1343,7 +1367,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     }
 
     dual_bound_success = 0;
-    init_dualbounds(lattice, fipo);
+    init_dualbounds(lattice, &fipo);
 
     /* Remove trailing unnecessary columns.
      *
@@ -1354,7 +1378,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
      */
     #if 1
     for (i = columns - 1; i >= 0; i--) {
-        if (fipo[i] < 0.9) {
+        if (fipo[0][i] < 0.9) {
             fprintf(stderr, "DEL\n");
             columns--;
         } else {
