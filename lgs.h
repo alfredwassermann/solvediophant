@@ -12,7 +12,8 @@ typedef struct {
     mpz_t *upperbounds;
 
     int num_boundedvars;
-
+    int rank;
+    
     int num_original_cols;
     int *original_cols;
 } lgs_t;

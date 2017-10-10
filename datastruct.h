@@ -77,6 +77,7 @@ typedef struct {
     int num_cols;
     int lgs_rows;
     int lgs_cols;
+    int lgs_rank;
 
     int num_boundedvars;
     int is_zero_one; // true, if 0/1 variables

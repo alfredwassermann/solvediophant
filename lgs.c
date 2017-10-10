@@ -226,7 +226,7 @@ int rank(lgs_t *LGS, long p) {
     rnk = 0;
     for (r = 0; r < rows; r++) {
         if (lead >= cols) {
-            break;
+            goto end_rank;
         }
         i = r;
         while (M[i][lead] == 0) {
@@ -235,10 +235,11 @@ int rank(lgs_t *LGS, long p) {
                 i = r;
                 lead++;
                 if (lead == cols) {
-                    break;
+                    goto end_rank;
                 }
             }
         }
+
         if (lead == cols - 1) {
             // System is not solvable, since
             // the last col, i.e. the RHS is
@@ -265,6 +266,7 @@ int rank(lgs_t *LGS, long p) {
         }
         lead++;
     }
+end_rank:
     rnk = r;
 
     return sgn * rnk;
@@ -305,7 +307,7 @@ int preprocess(lgs_t *LGS) {
     int i, j;
     int cols = LGS->num_cols;
     int rows = LGS->num_rows;
-    int rnk;
+    int rnk1, rnk2;
 
     // Remove columns whose entries are too large.
     for (i = cols - 1; i >= 0; i--) {
@@ -330,17 +332,25 @@ int preprocess(lgs_t *LGS) {
             }
         }
     }
-
-    printf("rows: %d, cols: %d\n", LGS->num_rows, LGS->num_cols);
-    printf("Rank 1073741827: %d\n", rank(LGS, 1073741827));
-    printf("Rank 2073976061: %d\n", rank(LGS, 2073976061));
-
     printf("SEL ");
-
     for (i = 0; i < LGS->num_original_cols; i++) {
         printf("%d ", LGS->original_cols[i]);
     }
     printf("\n");
+
+    // Check rank
+    rnk1 = rank(LGS, 1073741827);
+    if (rnk1 <= 0) {
+        fprintf(stderr, "Rank mod p: no solution possible.");
+        return 0;
+    }
+    rnk2 = rank(LGS, 1073741827);
+    if (rnk2 <= 0) {
+        fprintf(stderr, "Rank mod p: no solution possible.");
+        return 0;
+    }
+    LGS->rank = (rnk1 > rnk2) ? rnk1 : rnk2;
+    fprintf(stderr, "Rank=%d\n", LGS->rank);
 
     return 1;
 }

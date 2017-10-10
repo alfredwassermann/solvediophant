@@ -357,6 +357,7 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
     lattice->num_boundedvars = LGS->num_boundedvars;
     lattice->lgs_rows = lgs_rows;
     lattice->lgs_cols = lgs_cols;
+    lattice->lgs_rank = LGS->rank;
 
     if (lattice->free_RHS) {
         lattice->num_rows++;

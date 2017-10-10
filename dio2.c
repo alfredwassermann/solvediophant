@@ -1273,12 +1273,11 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
     DOUBLE **fipo;
     /* test the size of the basis */
-    fprintf(stderr, "Dimension of solution space (k): %d compared to s-z+2: %d\n",
-                columns,
-                lattice->lgs_cols - lattice->lgs_rows + 1 + lattice->free_RHS);
+    fprintf(stderr, "Dimension of solution space (k): %d compared to columns-rank: %d\n",
+                columns, lattice->lgs_cols - lattice->lgs_rank + 1 + lattice->free_RHS);
     fflush(stderr);
 
-    if (columns < lattice->lgs_cols - lattice->lgs_rows + 1 + lattice->free_RHS) {
+    if (columns < lattice->lgs_cols - lattice->lgs_rank + 1 + lattice->free_RHS) {
         fprintf(stderr,"LLL didn't succeed in computing a basis of the kernel.\n");
         fprintf(stderr,"Please increase c0 (the first parameter)!\n");
         return 0;
