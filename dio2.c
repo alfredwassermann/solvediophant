@@ -1158,7 +1158,7 @@ int lds(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
     return max_height;
 }
 
-void init_dualbounds(lattice_t *lattice, int last, DOUBLE ***fipo) {
+void init_dualbounds(lattice_t *lattice, DOUBLE ***fipo) {
     DOUBLE **muinv;
     DOUBLE entry;
     DOUBLE norm_1, norm_2;
@@ -1190,7 +1190,6 @@ void init_dualbounds(lattice_t *lattice, int last, DOUBLE ***fipo) {
     for (i = 0; i < cols; i++) {
         norm_1 = norm_2 = 0.0;
         norm_1_1 = norm_1_2 = 0.0;
-        norm_2_1 = norm_2_2 = 0.0;
         for (j = 0; j < rows; j++) {
             entry = 0.0;
             for (l = i; l < cols; l++) {
@@ -1199,7 +1198,7 @@ void init_dualbounds(lattice_t *lattice, int last, DOUBLE ***fipo) {
             norm_2 += entry * entry;
             norm_1 += fabs(entry);
             #if TRUE
-            for (l = last; l < cols; l++) {
+            for (l = cols - 1; l < cols; l++) {
                 entry += muinv[cols - 1][l] * lattice->decomp.bd[l][j] / lattice->decomp.c[l];
             }
             norm_1_2 += entry * entry;
