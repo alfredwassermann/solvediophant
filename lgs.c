@@ -302,6 +302,7 @@ void remove_column(lgs_t *LGS, int col_num) {
     }
 
 }
+
 int check_gcd(lgs_t *LGS) {
     int i, j;
     int cols = LGS->num_cols;
@@ -322,6 +323,35 @@ int check_gcd(lgs_t *LGS) {
         }
         if (!mpz_divisible_p(LGS->rhs[j], g)) {
             fprintf(stderr, "GCD check: contradiction in row %d\n", j);
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int check_rows(lgs_t *LGS) {
+    int i, j;
+    int cols = LGS->num_cols;
+    int rows = LGS->num_rows;
+    mpz_t g;
+    mpz_init(g);
+
+    if (cols == 0) {
+        return 1;
+    }
+    for (j = 0; j < rows; j++) {
+        mpz_set_ui(g, 0);
+        if (LGS->upperbounds != NULL) {
+            for (i = 0; i < cols; i++) {
+                mpz_addmul(g,  LGS->matrix[j][i], LGS->upperbounds[i]);
+            }
+        } else {
+            for (i = 0; i < cols; i++) {
+                mpz_addmul_ui(g, LGS->matrix[j][i], 1);
+            }
+        }
+        if (mpz_cmp(LGS->rhs[j], g) > 0) {
+            fprintf(stderr, "Check number of entries in rows: contradiction in row %d\n", j);
             return 0;
         }
     }
@@ -365,6 +395,13 @@ int preprocess(lgs_t *LGS) {
     printf("\n");
     #endif
 
+    if (!check_gcd(LGS)) {
+        return 0;
+    }
+    if (!check_rows(LGS)) {
+        return 0;
+    }
+
     // Check rank
     rnk1 = rank(LGS, 1073741827);
     if (rnk1 <= 0) {
@@ -379,9 +416,6 @@ int preprocess(lgs_t *LGS) {
     LGS->rank = (rnk1 > rnk2) ? rnk1 : rnk2;
     fprintf(stderr, "Rank=%d\n", LGS->rank);
 
-    if (!check_gcd(LGS)) {
-        return 0;
-    }
     return 1;
 }
 

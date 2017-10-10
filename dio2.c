@@ -69,7 +69,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 
     if (!preprocess(LGS)) {
         fprintf(stderr, "Total number of solutions: 0\n\n");
-        return 0;
+        exit(2);
     }
     lgs_to_lattice(LGS, lattice);
 
@@ -290,7 +290,7 @@ int cutlattice(lattice_t *lattice) {
      */
     flag = 0;
     for (i = 0; i < lattice->num_cols; i++)
-        if (mpz_sgn(get_entry(lattice->basis, i, lattice->num_rows-1)) != 0) {
+        if (mpz_sgn(get_entry(lattice->basis, i, lattice->num_rows - 1)) != 0) {
             flag = 1;
             break;
         }
