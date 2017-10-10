@@ -302,6 +302,31 @@ void remove_column(lgs_t *LGS, int col_num) {
     }
 
 }
+int check_gcd(lgs_t *LGS) {
+    int i, j;
+    int cols = LGS->num_cols;
+    int rows = LGS->num_rows;
+    mpz_t g, r;
+    mpz_init(g);
+    mpz_init(r);
+
+    if (cols == 0) {
+        return 1;
+    }
+    for (j = 0; j < rows; j++) {
+        mpz_set(g, LGS->matrix[j][0]);
+        for (i = 1; i < cols; i++) {
+            if (mpz_sgn(LGS->matrix[j][i]) != 0) {
+                mpz_gcd(g, g, LGS->matrix[j][i]);
+            }
+        }
+        if (!mpz_divisible_p(LGS->rhs[j], g)) {
+            fprintf(stderr, "GCD check: contradiction in row %d\n", j);
+            return 0;
+        }
+    }
+    return 1;
+}
 
 int preprocess(lgs_t *LGS) {
     int i, j;
@@ -323,7 +348,7 @@ int preprocess(lgs_t *LGS) {
 
     // Remove columns whose upper bounds on the variables are zero.
     cols = LGS->num_cols;
-    if (LGS->num_boundedvars > 0) {
+    if (LGS->upperbounds != NULL) {
         for (i = cols - 1; i >= 0; i--) {
             if (mpz_sgn(LGS->upperbounds[i]) == 0) {
                 // Delete column i
@@ -332,11 +357,13 @@ int preprocess(lgs_t *LGS) {
             }
         }
     }
+    #if 0
     printf("SEL ");
     for (i = 0; i < LGS->num_original_cols; i++) {
         printf("%d ", LGS->original_cols[i]);
     }
     printf("\n");
+    #endif
 
     // Check rank
     rnk1 = rank(LGS, 1073741827);
@@ -344,7 +371,7 @@ int preprocess(lgs_t *LGS) {
         fprintf(stderr, "Rank mod p: no solution possible.");
         return 0;
     }
-    rnk2 = rank(LGS, 1073741827);
+    rnk2 = rank(LGS, 2116084177);
     if (rnk2 <= 0) {
         fprintf(stderr, "Rank mod p: no solution possible.");
         return 0;
@@ -352,6 +379,9 @@ int preprocess(lgs_t *LGS) {
     LGS->rank = (rnk1 > rnk2) ? rnk1 : rnk2;
     fprintf(stderr, "Rank=%d\n", LGS->rank);
 
+    if (!check_gcd(LGS)) {
+        return 0;
+    }
     return 1;
 }
 

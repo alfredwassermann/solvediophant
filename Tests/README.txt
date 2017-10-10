@@ -6,7 +6,7 @@
 ./solvediophant -bkz -beta100 -p40 -silent Tests/KM_PGGL_2_32_t7_k8.in
 
 * KM_PSL_2_23_7_8.in:
-0/1 problem, 2 solutions, ca. 1 min 
+0/1 problem, 2 solutions, ca. 1 min
 ./solvediophant -bkz -beta100 -p40 Tests/KM_PSL_2_23_7_8.in
 
 * unitals_v1.txt:

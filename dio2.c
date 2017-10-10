@@ -67,7 +67,10 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         //openblas_set_num_threads(8);
     #endif
 
-    preprocess(LGS);
+    if (!preprocess(LGS)) {
+        fprintf(stderr, "Total number of solutions: 0\n\n");
+        return 0;
+    }
     lgs_to_lattice(LGS, lattice);
 
     /**
