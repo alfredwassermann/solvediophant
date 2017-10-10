@@ -166,8 +166,6 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     /**
      * third reduction
      */
-    //fprintf(stderr, "\n"); fflush(stderr);
-
     if (lattice->LLL_params.iterate) {
         iteratedlll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.iterate_no, LLLCONST_HIGH, POT_LLL);
     } else {
@@ -214,9 +212,6 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     fprintf(stderr, "\n"); fflush(stderr);
     num_solutions = explicit_enumeration(lattice, lattice->num_cols, lattice->num_rows);
 
-    /**
-     * close solution file;
-     */
     if (lattice->LLL_params.silent)
         print_num_solutions(num_solutions);
 
@@ -525,7 +520,6 @@ int solutiontest_long(lattice_t *lattice, int position) {
 
     return 1;
 }
-
 
 /**
  * LLL variants
@@ -1164,12 +1158,11 @@ int lds(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
     return max_height;
 }
 
-void init_dualbounds(lattice_t *lattice, DOUBLE ***fipo) {
+void init_dualbounds(lattice_t *lattice, int last, DOUBLE ***fipo) {
     DOUBLE **muinv;
     DOUBLE entry;
     DOUBLE norm_1, norm_2;
     DOUBLE norm_1_1, norm_1_2;
-    DOUBLE norm_2_1, norm_2_2;
 
     int i, j, l;
     int cols = lattice->num_cols;
@@ -1206,18 +1199,11 @@ void init_dualbounds(lattice_t *lattice, DOUBLE ***fipo) {
             norm_2 += entry * entry;
             norm_1 += fabs(entry);
             #if TRUE
-            for (l = cols - 1; l < cols; l++) {
+            for (l = last; l < cols; l++) {
                 entry += muinv[cols - 1][l] * lattice->decomp.bd[l][j] / lattice->decomp.c[l];
             }
             norm_1_2 += entry * entry;
             norm_1_1 += fabs(entry);
-            #endif
-            #if TRUE
-            for (l = cols - 2; l < cols; l++) {
-                entry += muinv[cols - 2][l] * lattice->decomp.bd[l][j] / lattice->decomp.c[l];
-            }
-            norm_2_2 += entry * entry;
-            norm_2_1 += fabs(entry);
             #endif
 
         }
@@ -1227,22 +1213,11 @@ void init_dualbounds(lattice_t *lattice, DOUBLE ***fipo) {
         norm_1_2 = SQRT(norm_1_2 * lattice->decomp.Fd);
         norm_1_1 =  fabs(norm_1_1 * lattice->decomp.Fq) * (1.0 + EPSILON);
         (*fipo)[1][i] = (norm_1_1 < norm_1_2) ? norm_1_1 : norm_1_2;
-        norm_2_2 = SQRT(norm_2_2 * lattice->decomp.Fd);
-        norm_2_1 =  fabs(norm_2_1 * lattice->decomp.Fq) * (1.0 + EPSILON);
-        (*fipo)[2][i] = (norm_2_1 < norm_2_2) ? norm_2_1 : norm_2_2;
 
         #if VERBOSE > -1
             fprintf(stderr, "%0.3lf ", (*fipo)[0][i]);
         #endif
     }
-
-    // for (i = cols - 2; i >= 0; --i) {
-    //     for (j = 0, tmp = 0.0; j < rows; j++) {
-    //         dum1 = dual_basis[i][j] + dual_basis[i + 1][j];
-    //         tmp += fabs(dum1);
-    //     }
-    //     dual_bound[i] = tmp * Fq * (1.0 + EPSILON);
-    // }
 
     #if VERBOSE > -1
         fprintf(stderr, "\n\n");
@@ -1321,7 +1296,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     fflush(stderr);
 
     // Move basis columns which have a nonzero entry in the last row to the end.
-    // For lds this is mandatory.
+    // This is mandatory for lds!!!
     if (lattice->LLL_params.exhaustive_enum.lds == 1) {
         for (j = columns - 1; j > 0; j--) {
             for (l = j - 1; l >= 0;  l--) {
@@ -1353,9 +1328,11 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     #endif
 
     /* compute $mu^\top$, the transpose of $mu$. */
-    for (i = 0; i < columns; i++)
-        for (j = 0; j < columns; j++)
+    for (i = 0; i < columns; i++) {
+        for (j = 0; j < columns; j++) {
             mu_trans[j][i] = lattice->decomp.mu[i][j];
+        }
+    }
 
     /* Compute 1-norm of orthogonal basis */
     for (i = 0; i <= columns; ++i) {
@@ -1369,10 +1346,11 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     dual_bound_success = 0;
     init_dualbounds(lattice, &fipo);
 
-    /* Remove trailing unnecessary columns.
+    /**
+     * Remove trailing unnecessary columns.
      *
      * Contradiction to sorting columns, see above!
-     * That means, columns whose corresponding Finke-Pohst bounds
+     * That means, columns whose corresponding dual bounds bounds
      * are equal to 0 can be removed.
      * This is important for the Selfdual Bent Functions Problems
      */
