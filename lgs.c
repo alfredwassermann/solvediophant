@@ -97,6 +97,7 @@ void read_upper_bounds(char *file_name, lgs_t *LGS) {
         printf("No %s \n",detectstring);
         fflush(stdout);
     } else {
+        // LGS->num_boundedvars has to be the number of variables!
         sscanf(zeile,"BOUNDS %d", &(LGS->num_boundedvars));
         if (LGS->num_boundedvars > 0) {
             fprintf(stderr, "Nr. bounded variables=%d\n", LGS->num_boundedvars);
@@ -158,10 +159,190 @@ void read_selected_cols(char *file_name, lgs_t *LGS) {
              }
          }
      } else {
-         for (i = 0; i < LGS->num_original_cols; i++)
+         for (i = 0; i < LGS->num_original_cols; i++) {
             LGS->original_cols[i] = 1;
+         }
      }
      fclose(txt);
+}
+/**
+ * Computes the gcd of two integers
+ */
+long gcd(long u, long v) {
+    if (u < 0) u = -u;
+    if (v < 0) v = -v;
+    if (v) {
+        while ((u %= v) && (v %= u));
+    }
+    return (u + v);
+}
+
+/**
+ * Computes the multiplicative inverse of a modulo b.
+ */
+int mul_inv(long a, long b) {
+	long b0 = b, t, q;
+    long x0 = 0, x1 = 1;
+
+	if (b == 1) return 1;
+	while (a > 1) {
+		q = a / b;
+		t = b, b = a % b, a = t;
+		t = x0, x0 = x1 - q * x0, x1 = t;
+	}
+	if (x1 < 0) x1 += b0;
+	return x1;
+}
+
+/**
+ * Returns the rank of the matrix of a linear system
+ * (M | rhs) modulo a prime p
+ * The return value is the negative of the rank
+ * if the rhs column is linearly independent from the other columns.
+ * This means, the linear system has no solution in Z_p.
+ */
+int rank(lgs_t *LGS, long p) {
+    int i, j, r;
+    int cols = LGS->num_cols;
+    int rows = LGS->num_rows;
+    long **M;
+    int lead;
+    long *row_swap;
+    long inv, f;
+    int rnk;
+    int sgn = 1;
+
+    M = (long**)calloc(rows, sizeof(long*));
+    for (j = 0; j < rows; j++) {
+        M[j] = (long*)calloc(cols + 1, sizeof(long));
+        for (i = 0; i < cols; i++) {
+            M[j][i] = (long)mpz_tdiv_ui(LGS->matrix[j][i], p);
+        }
+        M[j][cols] = (long)mpz_tdiv_ui(LGS->rhs[j], p);
+    }
+
+    cols++;
+    lead = 0;
+    rnk = 0;
+    for (r = 0; r < rows; r++) {
+        if (lead >= cols) {
+            break;
+        }
+        i = r;
+        while (M[i][lead] == 0) {
+            i++;
+            if (i == rows) {
+                i = r;
+                lead++;
+                if (lead == cols) {
+                    break;
+                }
+            }
+        }
+        if (lead == cols - 1) {
+            // System is not solvable, since
+            // the last col, i.e. the RHS is
+            // linearly independent from the other columns
+            sgn = -1;
+        }
+        row_swap = M[i];
+        M[i] = M[r];
+        M[r] = row_swap;
+
+        if (M[r][lead] != 0) {
+            inv = mul_inv(M[r][lead], p);
+            for (i = lead; i < cols; i++) {
+                M[r][i] = (M[r][i] * inv) % p;
+            }
+        }
+        for (i = 0; i < rows; i++) {
+            if (i != r) {
+                f = M[i][lead];
+                for (j = lead; j < cols; j++) {
+                    M[i][j] = (M[i][j] - f * M[r][j]) % p;
+                }
+            }
+        }
+        lead++;
+    }
+    rnk = r;
+
+    return sgn * rnk;
+}
+
+void remove_column(lgs_t *LGS, int col_num) {
+    int r, s;
+    int cols = LGS->num_cols;
+    int rows = LGS->num_rows;
+
+    for (r = 0; r < rows; r++) {
+        for (s = col_num + 1; s < cols; s++) {
+            mpz_set(LGS->matrix[r][s - 1], LGS->matrix[r][s]);
+        }
+    }
+    if (LGS->num_boundedvars > 0) {
+        for (s = col_num + 1; s < LGS->num_boundedvars; s++) {
+            mpz_set(LGS->upperbounds[s - 1], LGS->upperbounds[s]);
+        }
+        LGS->num_boundedvars--;
+    }
+
+    r = 0;
+    for (s = 0; s < LGS->num_original_cols; s++) {
+        if (LGS->original_cols[s] != 0) {
+            if (r == col_num) {
+                LGS->original_cols[s] = 0;
+                LGS->num_cols--;
+                break;
+            }
+            r++;
+        }
+    }
+
+}
+
+int preprocess(lgs_t *LGS) {
+    int i, j;
+    int cols = LGS->num_cols;
+    int rows = LGS->num_rows;
+    int rnk;
+
+    // Remove columns whose entries are too large.
+    for (i = cols - 1; i >= 0; i--) {
+        for (j = 0; j < rows; j++) {
+            if (mpz_cmp(LGS->matrix[j][i], LGS->rhs[j]) > 0) {
+                // Delete column i
+                fprintf(stderr, "Remove column %d\n", i);
+                remove_column(LGS, i);
+                break;
+            }
+        }
+    }
+
+    // Remove columns whose upper bounds on the variables are zero.
+    cols = LGS->num_cols;
+    if (LGS->num_boundedvars > 0) {
+        for (i = cols - 1; i >= 0; i--) {
+            if (mpz_sgn(LGS->upperbounds[i]) == 0) {
+                // Delete column i
+                fprintf(stderr, "Remove column %d (upper bound = 0)\n", i);
+                remove_column(LGS, i);
+            }
+        }
+    }
+
+    printf("rows: %d, cols: %d\n", LGS->num_rows, LGS->num_cols);
+    printf("Rank 1073741827: %d\n", rank(LGS, 1073741827));
+    printf("Rank 2073976061: %d\n", rank(LGS, 2073976061));
+
+    printf("SEL ");
+
+    for (i = 0; i < LGS->num_original_cols; i++) {
+        printf("%d ", LGS->original_cols[i]);
+    }
+    printf("\n");
+
+    return 1;
 }
 
 /**

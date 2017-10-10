@@ -111,24 +111,6 @@ void load_lattice(lattice_t *lattice, char *fname) {
     return;
 }
 
-long gcd(long n1, long n2) {
-    long a, b, c;
-
-    if (n1 > n2) {
-        a = n1;
-        b = n2;
-    } else {
-        a = n2;
-        b = n1;
-    }
-
-    while ((c = a % b) > 0) {
-        a = b;
-        b = c;
-    }
-    return b;
-}
-
 void coeffinit(coeff_t *v, int z) {
     short r = 0;
     short i;
@@ -271,7 +253,7 @@ void handle_upperbounds(lgs_t *LGS, lattice_t *lattice) {
         for (i = 0; i < lgs_cols; i++) {
             mpz_init_set_si(lattice->upperbounds[i], 1);
         }
-            // Copy the upper bounds from the LGS and determine upperbounds_max,
+        // Copy the upper bounds from the LGS and determine upperbounds_max,
         // which is the lcm of the non-zero upper bounds
         for (i = 0; i < lattice->num_boundedvars; i++) {
             mpz_set(lattice->upperbounds[i], LGS->upperbounds[i]);

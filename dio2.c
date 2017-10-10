@@ -58,7 +58,6 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
      * Initialize some globals
      */
     mpz_init(lastlines_factor);
-
     mpz_init(soltest_u);
     mpz_init(soltest_s);
     mpz_init_set_ui(soltest_upfac, 1);
@@ -68,6 +67,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         //openblas_set_num_threads(8);
     #endif
 
+    preprocess(LGS);
     lgs_to_lattice(LGS, lattice);
 
     /**
@@ -119,7 +119,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         }
         #if 0
             printf("After cutting\n");
-            print_lattice();
+            print_lattice(lattice);
         #endif
 
         #if 1
@@ -475,9 +475,7 @@ int solutiontest_long(lattice_t *lattice, int position) {
 
     /* write a solution with blanks */
     i = low;
-
     end = (lattice->cut_after == -1) ? lattice->no_original_cols : lattice->cut_after;
-
     for (j = 0; j < end; j++) {
         if (lattice->original_cols[j] == 0) {
             mpz_set_si(soltest_u,0);
