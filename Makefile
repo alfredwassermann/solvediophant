@@ -1,13 +1,19 @@
 CC=gcc
 
+#CFLAGS= -O3 -Wall \
+#		-pg
+
 CFLAGS= -O3 -Wall \
         -funroll-all-loops    \
 		-flto \
         -march=native -mtune=native -msse -msse2 -msse3 -mssse3 -m64 \
         -pipe  \
-        -fomit-frame-pointer -finline-functions  \
+		-finline-functions  \
 		-ftree-vectorize \
+        -fomit-frame-pointer \
 		-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4
+
+	#	-fprofile-use \
 	#-ffinite-math-only -fno-trapping-math -fno-signaling-nans -fno-signed-zeros \
 	#-ftree-vectorizer-verbose=2
 	#-mveclibabi=svml
@@ -16,7 +22,6 @@ CFLAGS= -O3 -Wall \
 	#-fprofile-generate -fprofile-use\
 
 #CFLAGS= -O3 -mcpu=i686 -march=i686 -fforce-addr -funroll-loops -frerun-cse-after-loop -frerun-loop-opt -malign-functions=4
-
 #CFLAGS= -g -Wall
 
 VIMFLAGS=-c 'set printoptions=number:y,left:2pc,right:2pc' -c 'set printfont=Courier:h9'

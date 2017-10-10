@@ -919,9 +919,13 @@ int dfs(enum_level_t* enum_data, zigzag_t* z, lattice_t* lattice,
         z->cs[level] = ed->nodes[ed->pos].cs;
 
         // z->w[level] = ed->nodes[ed->pos].w;
-        for (j = 0; j < rows; j++) {
-            z->w[level][j] = ed->nodes[ed->pos].w[j];
-        }
+        #if 1
+            memcpy(z->w[level], ed->nodes[ed->pos].w, sizeof(DOUBLE)*rows);
+        #else
+            for (j = 0; j < rows; j++) {
+                z->w[level][j] = ed->nodes[ed->pos].w[j];
+            }
+        #endif
 
         if (level == 0) {
             // Solution found
@@ -1527,7 +1531,8 @@ void compute_w2(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
 
 void compute_w(DOUBLE **w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     #if BLAS
-        cblas_dcopy(rows, w[level+1], 1, w[level], 1);
+        cblas_dcopy(rows, w[level + 1], 1, w[level], 1);
+        //memcpy(w[level], w[level + 1], sizeof(DOUBLE)*rows);
         if (fabs(alpha) > 1E-14) {
             cblas_daxpy(rows, alpha, bd[level], 1, w[level], 1);
         }

@@ -266,12 +266,18 @@ int rank(lgs_t *LGS, long p) {
         }
         lead++;
     }
+
 end_rank:
     rnk = r;
 
     return sgn * rnk;
 }
 
+/**
+ * Remove a column from the LGS.
+ * Also remove the corresponding entry from upperbounds
+ * and decrease num_cols and num_boundedvars
+ */
 void remove_column(lgs_t *LGS, int col_num) {
     int r, s;
     int cols = LGS->num_cols;
@@ -282,7 +288,7 @@ void remove_column(lgs_t *LGS, int col_num) {
             mpz_set(LGS->matrix[r][s - 1], LGS->matrix[r][s]);
         }
     }
-    if (LGS->num_boundedvars > 0) {
+    if (LGS->upperbounds != NULL) {
         for (s = col_num + 1; s < LGS->num_boundedvars; s++) {
             mpz_set(LGS->upperbounds[s - 1], LGS->upperbounds[s]);
         }
@@ -300,16 +306,18 @@ void remove_column(lgs_t *LGS, int col_num) {
             r++;
         }
     }
-
 }
 
+/**
+ * Check if for every row the rhs is an integer multiple
+ * of the gcd of the matrix entries.
+ */
 int check_gcd(lgs_t *LGS) {
     int i, j;
     int cols = LGS->num_cols;
     int rows = LGS->num_rows;
-    mpz_t g, r;
+    mpz_t g;
     mpz_init(g);
-    mpz_init(r);
 
     if (cols == 0) {
         return 1;
@@ -329,6 +337,11 @@ int check_gcd(lgs_t *LGS) {
     return 1;
 }
 
+/**
+ * Check for every row, if
+ *     sum_i=0^cols entry_i * upperbound_i >= rhs
+ * Otherwise the system has no solution
+ */
 int check_rows(lgs_t *LGS) {
     int i, j;
     int cols = LGS->num_cols;
@@ -347,7 +360,9 @@ int check_rows(lgs_t *LGS) {
             }
         } else {
             for (i = 0; i < cols; i++) {
-                mpz_addmul_ui(g, LGS->matrix[j][i], 1);
+                if (mpz_sgn(LGS->matrix[j][i])) {
+                    mpz_addmul_ui(g, LGS->matrix[j][i], 1);
+                }
             }
         }
         if (mpz_cmp(LGS->rhs[j], g) > 0) {
