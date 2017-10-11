@@ -800,8 +800,6 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
         coeff = us[level] + zz->y;
         zz->cs = parent_node->cs + coeff * coeff * c[level];
 
-printf("Level %d %d %lf %lf\n", level, ed->num, zz->cs, us[level]);
-
         if (zz->cs >= Fd)  {
             goto_back = TRUE;
         } else if (fabs(coeff) > bd_1norm[level]) {
