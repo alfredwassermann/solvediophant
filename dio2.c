@@ -676,7 +676,7 @@ typedef struct {
 
     DOUBLE cs;
     DOUBLE us;
-    DOUBLE y;
+    //DOUBLE y;
     DOUBLE* w;
 } enum_node_t;
 
@@ -751,6 +751,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
     enum_node_t *zz, *parent_node;
 
     DOUBLE coeff = 0.0;
+    DOUBLE y = 0.0;
     long delta;
     long v;
     int eta;
@@ -763,14 +764,15 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
     delta = eta = 0;
     if (level == level_max) {
         us[level] = v = 1.0;
-        zz->y = 0.0;
+        y = 0.0;
         d = 1;
+        eta = 1;
     } else {
-        zz->y = compute_y(mu_trans, us, level, level_max);
-        us[level] = v = ROUND(-zz->y);
-        d = (v > -zz->y) ? -1 : 1;
+        y = compute_y(mu_trans, us, level, level_max);
+        us[level] = v = ROUND(-y);
+        d = (v > -y) ? -1 : 1;
     }
-printf("Start Level %d %d\n", level, enum_data[level + 1].pos);
+printf("Start Level %d %d %lf\n", level, enum_data[level + 1].pos, parent_node->w[0]);
 
     isSideStep = FALSE;
     do {
@@ -798,7 +800,7 @@ printf("Start Level %d %d\n", level, enum_data[level + 1].pos);
 
         /* compute new |cs| */
         old_coeff = coeff;
-        coeff = us[level] + zz->y;
+        coeff = us[level] + y;
         zz->cs = parent_node->cs + coeff * coeff * c[level];
 
 printf(">>level %d, d: %d us: %lf, num=%d\n", level, d, us[level], ed->num);
@@ -806,7 +808,7 @@ printf(">>level %d, d: %d us: %lf, num=%d\n", level, d, us[level], ed->num);
         if (zz->cs >= Fd)  {
             goto_back = TRUE;
         }
-        #if 0
+        #if 1
         else if (fabs(coeff) > bd_1norm[level]) {
             /* Use (1, -1, 0, ...) as values in Hoelder pruning */
             goto_back = TRUE;
@@ -828,13 +830,12 @@ printf(">>level %d, d: %d us: %lf, num=%d\n", level, d, us[level], ed->num);
                 i = prune_only_zeros(lattice, zz->w, parent_node->w,
                         level, rows,
                         Fq, first_nonzero_in_column, firstp,
-                        bd, zz->y, us[level], columns);
-                i = 0;
+                        bd, y, us[level], columns);
                 if (i < 0) {
                     goto_back = TRUE;
                 } else if (i > 0) {
                     is_good = FALSE;
-                } else if (FALSE && prune(zz->w, zz->cs, rows, Fqeps)) {
+                } else if (prune(zz->w, zz->cs, rows, Fqeps)) {
                     ++hoelder_success;
                     is_good = FALSE;
                     if (eta == 1) {
@@ -920,7 +921,7 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
 printf("EnumLevel %d %d\n", level, enum_data[level].num);
 
     for (pos = 0; pos < ed->num; pos++) {
-printf("dfs: level=%d (%d, %d)\n", level, pos, ed->num);
+printf("dfs: level=%d (%d, %d) %lf\n", level, pos, ed->num, ed->nodes[pos].w[0]);
         us[level] = ed->nodes[pos].us;
         ed->pos = pos;
         // zz->cs = ed->nodes[pos].cs;
@@ -935,7 +936,7 @@ printf("dfs: level=%d (%d, %d)\n", level, pos, ed->num);
         if (level == 0) {
             // Solution found
             printf("==================================\n");
-            if (1 || final_test(ed->nodes[pos].w, rows, lattice->decomp.Fq, us, lattice, bit_size) == 1) {
+            if (final_test(ed->nodes[pos].w, rows, lattice->decomp.Fq, us, lattice, bit_size) == 1) {
                 print_solution(lattice, ed->nodes[pos].w, rows, lattice->decomp.Fq, us, columns);
 
                 #if 0
