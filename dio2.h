@@ -34,7 +34,7 @@ extern int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps);
 extern int prune_only_zeros(lattice_t *lattice, DOUBLE *w, DOUBLE *w1,
                 int level, int rows, DOUBLE Fq,
                 int *first_nonzero_in_column, int *firstp,
-                DOUBLE **bd, DOUBLE y, DOUBLE us, int columns);
+                DOUBLE **bd, DOUBLE y, int columns);
 
 extern int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns);
 

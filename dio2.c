@@ -816,7 +816,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                     i = prune_only_zeros(lattice, node->w, parent_node->w,
                         level, rows,
                         Fq, first_nonzero_in_column, firstp,
-                        bd, y, u, columns);
+                        bd, y, columns);
                     if (i < 0) {
                         goto_back = TRUE;
                     } else if (i > 0) {
@@ -827,7 +827,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                 // i = prune_only_zeros(lattice, node->w, parent_node->w,
                 //         level, rows,
                 //         Fq, first_nonzero_in_column, firstp,
-                //         bd, y, u, columns);
+                //         bd, y, columns);
                 // if (i < 0) {
                 //     goto_back = TRUE;
                 // } else if (i > 0) {
@@ -1539,16 +1539,13 @@ DOUBLE compute_w(DOUBLE *w, DOUBLE *w1, DOUBLE **bd, DOUBLE alpha, int level, in
         cblas_daxpy(rows, alpha, bd[level], 1, w, 1);
         return cblas_dasum(rows, w, 1);
     #else
-        if (fabs(alpha) > 1E-17) {
-            for (i = 0; i < rows; ++i) {
-                w[i] = w1[i] + alpha * bd[level][i];
-                norm1 += fabs(w[i]);
-            }
-        } else {
-            memcpy(w, w1, sizeof(DOUBLE)*rows);
-            for (i = 0; i < rows; ++i) {
-                norm1 += fabs(w[i]);
-            }
+        register int i;
+        register DOUBLE norm1 = 0.0;
+        DOUBLE *b = &(bd[level][0]);
+
+        for (i = 0; i < rows; ++i) {
+            w[i] = w1[i] + alpha * b[i];
+            norm1 += fabs(w[i]);
         }
         return norm1;
      #endif
@@ -1756,7 +1753,7 @@ int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps) {
 int prune_only_zeros(lattice_t *lattice, DOUBLE *w, DOUBLE *w1,
         int level, int rows, DOUBLE Fq,
         int *first_nonzero_in_column, int *firstp,
-        DOUBLE **bd, DOUBLE y, DOUBLE us, int columns) {
+        DOUBLE **bd, DOUBLE y, int columns) {
 
     int i;
     int f;
