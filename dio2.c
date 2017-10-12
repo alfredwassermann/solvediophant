@@ -676,7 +676,6 @@ typedef struct {
 
     DOUBLE cs;
     DOUBLE us;
-    //DOUBLE y;
     DOUBLE* w;
 } enum_node_t;
 
@@ -706,10 +705,9 @@ void allocateEnum_data(enum_level_t** enum_data, DOUBLE **fipo, int columns, int
 }
 
 int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
-                DOUBLE *us, DOUBLE* bd_1norm, DOUBLE** fipo,
-                DOUBLE** mu_trans,
-                int* first_nonzero_in_column, int* firstp,
-                int level, int rows, int columns, int bit_size, int max_steps) {
+                DOUBLE *us,
+                DOUBLE** fipo,
+                int level, int rows, int columns, int max_steps) {
 
     int i;
     int goto_back;
@@ -731,7 +729,6 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
     long v;
     int eta;
     int d;
-//    int j;
     DOUBLE norm1;
 
     ed->num = 0;
@@ -745,7 +742,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
         d = 1;
         eta = 1;
     } else {
-        y = compute_y(mu_trans, us, level, level_max);
+        y = compute_y(lattice->decomp.mu_trans, us, level, level_max);
         u = v = ROUND(-y);
         d = (v > -y) ? -1 : 1;
     }
@@ -779,7 +776,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
 
         if (node->cs >= Fd)  {
             goto_back = TRUE;
-        } else if (fabs(coeff) > bd_1norm[level]) {
+        } else if (fabs(coeff) > lattice->decomp.bd_1norm[level]) {
             /* Use (1, -1, 0, ...) as values in Hoelder pruning */
             goto_back = TRUE;
             ++hoelder2_success;
@@ -805,7 +802,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                 } else {
                     i = prune_only_zeros(lattice, node->w, parent_node->w,
                         level, rows,
-                        Fq, first_nonzero_in_column, firstp,
+                        Fq, //first_nonzero_in_column, firstp,
                         bd, y, columns);
                     if (i < 0) {
                         goto_back = TRUE;
@@ -816,7 +813,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
 
                 // i = prune_only_zeros(lattice, node->w, parent_node->w,
                 //         level, rows,
-                //         Fq, first_nonzero_in_column, firstp,
+                //         Fq, // first_nonzero_in_column, firstp,
                 //         bd, y, columns);
                 // if (i < 0) {
                 //     goto_back = TRUE;
@@ -877,17 +874,17 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
 }
 
 int dfs(enum_level_t* enum_data, lattice_t* lattice,
-        DOUBLE *us, DOUBLE* bd_1norm, DOUBLE** fipo,
-        int* first_nonzero_in_column, int* firstp,
-        int level, int rows, int columns, int bit_size, DOUBLE** mu_trans) {
+        DOUBLE *us,
+        DOUBLE** fipo,
+        int level, int rows, int columns) {
 
     int pos;
     enum_level_t* ed = &(enum_data[level]);
 
     if (-1 == enumLevel(enum_data, lattice,
-            us, bd_1norm, fipo, mu_trans,
-            first_nonzero_in_column, firstp,
-            level, rows, columns, bit_size, -1)) {
+            us,
+            fipo,
+            level, rows, columns, -1)) {
 
         return -1;
     }
@@ -898,7 +895,7 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
 
         if (level == 0) {
             // Solution found
-            if (final_test(ed->nodes[pos].w, rows, lattice->decomp.Fq, us, lattice, bit_size) == 1) {
+            if (final_test(ed->nodes[pos].w, rows, lattice->decomp.Fq, us, lattice) == 1) {
                 print_solution(lattice, ed->nodes[pos].w, rows, lattice->decomp.Fq, us, columns);
 
                 if (lattice->LLL_params.stop_after_solutions > 0 &&
@@ -908,9 +905,9 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
             }
         } else {
             if (-1 == dfs(enum_data, lattice,
-                us, bd_1norm, fipo,
-                first_nonzero_in_column, firstp,
-                level - 1, rows, columns, bit_size, mu_trans)) {
+                us,
+                fipo,
+                level - 1, rows, columns)) {
                 return -1;
             }
         }
@@ -926,19 +923,17 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
 }
 
 int lds(enum_level_t* enum_data, lattice_t* lattice,
-                DOUBLE *us, DOUBLE* bd_1norm, DOUBLE** fipo,
-                int* first_nonzero_in_column, int* firstp,
-                int level, int rows, int columns, int bit_size, DOUBLE** mu_trans,
+                DOUBLE *us,
+                DOUBLE** fipo,
+                int level, int rows, int columns,
                 int lds_k, int lds_l, int lds_threshold) {
 
     int j;
-    //int result;
     int start, end, pos, do_left_branch_last, p;
     int next_lds_k;
     int height, max_height, count;
     int max_steps;
     enum_level_t* ed = &(enum_data[level]);
-    //zigzag_t* zz = &(z[level]);
 
     max_steps = -1;
     if (level >= lds_threshold && lds_k == 0) {
@@ -946,9 +941,9 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
     }
 
     if (-1 == enumLevel(enum_data, lattice,
-            us, bd_1norm, fipo, mu_trans,
-            first_nonzero_in_column, firstp,
-            level, rows, columns, bit_size, max_steps)) {
+            us,
+            fipo,
+            level, rows, columns, max_steps)) {
 
         return -1;
     }
@@ -993,7 +988,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
     // BBS
     count = 0;
     max_height = 0;
-    // for (pos = start; pos < end && pos < ed->num; pos++) {
+
     for (p = start; p <= ed->num; p++) {
         // Right branches first
         if (p >= end &&
@@ -1011,7 +1006,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
         us[level] = ed->nodes[pos].us;
         if (level == 0) {
             // Solution found
-            if (final_test(ed->nodes[pos].w, rows, lattice->decomp.Fq, us, lattice, bit_size) == 1) {
+            if (final_test(ed->nodes[pos].w, rows, lattice->decomp.Fq, us, lattice) == 1) {
                 print_solution(lattice, ed->nodes[pos].w, rows, lattice->decomp.Fq, us, columns);
                 #if 0
                 for (j = columns - 1 ; j >= 0; j--) {
@@ -1049,9 +1044,9 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
             }
 
             height = lds(enum_data, lattice,
-                    us, bd_1norm, fipo,
-                    first_nonzero_in_column, firstp,
-                    level, rows, columns, bit_size, mu_trans,
+                    us,
+                    fipo,
+                    level, rows, columns,
                     next_lds_k, lds_l, lds_threshold);
 
                     if (height == -1) {
@@ -1155,17 +1150,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     enum_level_t* enum_data;
     DOUBLE *us;
 
-    DOUBLE *bd_1norm;
-    int *first_nonzero, *first_nonzero_in_column, *firstp;
-    int bit_size;
-
-    DOUBLE **mu_trans;
-    // DOUBLE *N, **mu, *c, **bd, **mu_trans;
-    // DOUBLE **mu = lattice->decomp.R;
-    // DOUBLE *c = lattice->decomp.c;
-    // DOUBLE *N = lattice->decomp.N;
-    // DOUBLE **bd = lattice->decomp.H;
-
     coeff_t *swap_vec;
 
     DOUBLE **fipo;
@@ -1181,22 +1165,22 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     }
 
     /* allocate the memory for enumeration */
-    bd_1norm = (DOUBLE*)calloc(columns + 1, sizeof(DOUBLE));
+    lattice->decomp.bd_1norm = (DOUBLE*)calloc(columns + 1, sizeof(DOUBLE));
     us = (DOUBLE*)calloc(columns + 1, sizeof(DOUBLE));
 
-    first_nonzero = (int*)calloc(rows, sizeof(int));
-    first_nonzero_in_column = (int*)calloc(columns+rows+1, sizeof(int));
-    if (first_nonzero_in_column == NULL) {
+    lattice->decomp.first_nonzero = (int*)calloc(rows, sizeof(int));
+    lattice->decomp.first_nonzero_in_column = (int*)calloc(columns+rows+1, sizeof(int));
+    if (lattice->decomp.first_nonzero_in_column == NULL) {
         return(0);
     }
-    firstp = (int*)calloc(columns+1, sizeof(int));
+    lattice->decomp.firstp = (int*)calloc(columns+1, sizeof(int));
 
-    mu_trans = (DOUBLE**)calloc(columns+1, sizeof(DOUBLE*));
+    lattice->decomp.mu_trans = (DOUBLE**)calloc(columns+1, sizeof(DOUBLE*));
     for (i = 0; i <= columns; i++) {
-        mu_trans[i]=(DOUBLE*)calloc(columns+1, sizeof(DOUBLE));
+        lattice->decomp.mu_trans[i]=(DOUBLE*)calloc(columns+1, sizeof(DOUBLE));
     }
 
-    bit_size = get_bit_size(lattice);
+    lattice->decomp.bit_size = get_bit_size(lattice);
 
     /* count nonzero entries in the last rows(s) */
     if (lattice->free_RHS) {
@@ -1211,7 +1195,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     for (j = columns - 1; j >= 0; j--) if (mpz_sgn(get_entry(lattice->basis, j, rows-1)) !=0 )
         i++;
     fprintf(stderr, "Number of nonzero entries in the last row: %d\n", i);
-    fprintf(stderr, "Max bit size: %d\n", bit_size);
+    fprintf(stderr, "Max bit size: %d\n", lattice->decomp.bit_size);
     fflush(stderr);
 
     // Move basis columns which have a nonzero entry in the last row to the end.
@@ -1249,17 +1233,17 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     /* compute $mu^\top$, the transpose of $mu$. */
     for (i = 0; i < columns; i++) {
         for (j = 0; j < columns; j++) {
-            mu_trans[j][i] = lattice->decomp.mu[i][j];
+            lattice->decomp.mu_trans[j][i] = lattice->decomp.mu[i][j];
         }
     }
 
     /* Compute 1-norm of orthogonal basis */
     for (i = 0; i <= columns; ++i) {
-        bd_1norm[i] = 0.0;
+        lattice->decomp.bd_1norm[i] = 0.0;
         for (j = 0; j < rows; ++j) {
-            bd_1norm[i] += fabs(lattice->decomp.bd[i][j]);
+            lattice->decomp.bd_1norm[i] += fabs(lattice->decomp.bd[i][j]);
         }
-        bd_1norm[i] *= lattice->decomp.Fqeps / lattice->decomp.c[i];
+        lattice->decomp.bd_1norm[i] *= lattice->decomp.Fqeps / lattice->decomp.c[i];
     }
 
     dual_bound_success = 0;
@@ -1290,7 +1274,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     /* initialize first-nonzero arrays */
     for (l = 0; l < rows; l++) {
         for (i = 0; i < columns; i++) if (mpz_sgn(get_entry(lattice->basis, i, l)) != 0) {
-            first_nonzero[l] = i;
+            lattice->decomp.first_nonzero[l] = i;
             break;
         }
     }
@@ -1298,27 +1282,27 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     fprintf(stderr, "First non-zero entries:\n");
     j = 0;
     for (l = 0; l < columns; l++) {
-        firstp[l] = j;
-        first_nonzero_in_column[j] = 0;
+        lattice->decomp.firstp[l] = j;
+        lattice->decomp.first_nonzero_in_column[j] = 0;
         j++;
         for (i = 0; i < rows; i++) {
-            if (first_nonzero[i] == l) {
-                first_nonzero_in_column[j] = i;
-                first_nonzero_in_column[firstp[l]]++;
+            if (lattice->decomp.first_nonzero[i] == l) {
+                lattice->decomp.first_nonzero_in_column[j] = i;
+                lattice->decomp.first_nonzero_in_column[lattice->decomp.firstp[l]]++;
                 j++;
             }
         }
-        fprintf(stderr, "%d ", first_nonzero_in_column[firstp[l]]);
+        fprintf(stderr, "%d ", lattice->decomp.first_nonzero_in_column[lattice->decomp.firstp[l]]);
     }
     fprintf(stderr, ": %d\n", rows);
-    firstp[columns] = j;
-    first_nonzero_in_column[j] = 0;
+    lattice->decomp.firstp[columns] = j;
+    lattice->decomp.first_nonzero_in_column[j] = 0;
 
     /* more initialization */
-    level = first_nonzero[rows-1];
+    level = lattice->decomp.first_nonzero[rows-1];
     if (level < 0) level = 0;
 
-    level = first_nonzero[rows - 1];//columns - 1;
+    level = lattice->decomp.first_nonzero[rows - 1];//columns - 1;
     level_max = level;
     // us[level] = 1;
     // v[level] = 1;
@@ -1336,9 +1320,9 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         for (k = 0; k < lattice->LLL_params.exhaustive_enum.lds_k_max; k++) {
             fprintf(stderr, "lds_k=%d\n", k); fflush(stderr);
             result = lds(enum_data, lattice,
-                us, bd_1norm, fipo,
-                first_nonzero_in_column, firstp,
-                level, rows, columns, bit_size, mu_trans,
+                us,
+                fipo,
+                level, rows, columns,
                 k, 0, 0);
 
             if (result  == -1) {
@@ -1349,9 +1333,9 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     } else {
         while (0 <= level && level < columns) {
             level = dfs(enum_data, lattice,
-                us, bd_1norm, fipo,
-                first_nonzero_in_column, firstp,
-                level, rows, columns, bit_size, mu_trans);
+                us,
+                fipo,
+                level, rows, columns);
         }
     }
 
@@ -1591,7 +1575,7 @@ void inverse(DOUBLE **mu, DOUBLE **muinv, int columns) {
 }
 
 /* There are several pruning methods.*/
-int final_test(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice, int bit_size) {
+int final_test(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
     register int i;
     register int k;
 
@@ -1605,7 +1589,7 @@ int final_test(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice, i
 
     // If the involved numbers are too big,
     // an exact test is done.
-    if (bit_size < 27) {
+    if (lattice->decomp.bit_size < 27) {
         return 1;
     }
     for (i = 0; i < rows; i++) {
@@ -1665,7 +1649,7 @@ int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps) {
 
 int prune_only_zeros(lattice_t *lattice, DOUBLE *w, DOUBLE *w1,
         int level, int rows, DOUBLE Fq,
-        int *first_nonzero_in_column, int *firstp,
+        //int *first_nonzero_in_column, int *firstp,
         DOUBLE **bd, DOUBLE y, int columns) {
 
     int i;
@@ -1673,8 +1657,8 @@ int prune_only_zeros(lattice_t *lattice, DOUBLE *w, DOUBLE *w1,
     DOUBLE u1, u2;
 
     only_zeros_no++;
-    for (i = 0; i < first_nonzero_in_column[firstp[level]]; i++) {
-        f = first_nonzero_in_column[firstp[level] + 1 + i];
+    for (i = 0; i < lattice->decomp.first_nonzero_in_column[lattice->decomp.firstp[level]]; i++) {
+        f = lattice->decomp.first_nonzero_in_column[lattice->decomp.firstp[level] + 1 + i];
         u1 = ( Fq - w1[f]) / bd[level][f] - y;
         u2 = (-Fq - w1[f]) / bd[level][f] - y;
 

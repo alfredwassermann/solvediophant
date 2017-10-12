@@ -41,7 +41,7 @@ GMPINC=
 #all: solvediophant.dvi diophant.pdf solvediophant
 all: sd3
 
-%.o: %.c %.h
+%.o: %.c %.h datastruct.h
 	$(CC) $(CFLAGS) -D$(BLAS) -I$(BLASINC) -c $< $(GMPINC)
 
 # With BLAS

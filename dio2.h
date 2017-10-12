@@ -29,11 +29,10 @@ extern DOUBLE compute_w(DOUBLE *w, DOUBLE *w1, DOUBLE **bd, DOUBLE alpha, int le
 extern void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c);
 extern void givens(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c);
 extern void inverse(DOUBLE **mu, DOUBLE **muinv, int columns);
-extern int final_test(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice, int bit_size);
+extern int final_test(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice);
 extern int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps);
 extern int prune_only_zeros(lattice_t *lattice, DOUBLE *w, DOUBLE *w1,
                 int level, int rows, DOUBLE Fq,
-                int *first_nonzero_in_column, int *firstp,
                 DOUBLE **bd, DOUBLE y, int columns);
 
 extern int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns);

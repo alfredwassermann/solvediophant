@@ -44,13 +44,11 @@ typedef struct {
  * Helper arrays for Gram-Schmidt dcomposition and others
  */
 typedef struct {
-    DOUBLE *bd_1norm;
-    int *first_nonzero, *first_nonzero_in_column, *firstp;
     int bit_size;
 
     DOUBLE *N;
     DOUBLE *c;
-    DOUBLE **bd; 
+    DOUBLE **bd;
     DOUBLE **mu, **mu_trans;
 
     DOUBLE *h_beta;
@@ -67,6 +65,12 @@ typedef struct {
     DOUBLE *fipo;
     DOUBLE **dual_basis;
     DOUBLE *dual_bound;
+
+    DOUBLE *bd_1norm;
+
+    int *first_nonzero;
+    int *first_nonzero_in_column;
+    int *firstp;
 } decomp_t;
 
 /**
