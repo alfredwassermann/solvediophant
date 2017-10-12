@@ -10,7 +10,6 @@ CFLAGS= -O3 -Wall \
 		-finline-functions  \
 		-ftree-vectorize \
         -fomit-frame-pointer \
-		-fprofile-use \
 		-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4
 
 	#	-fprofile-use \

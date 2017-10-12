@@ -111,6 +111,10 @@ typedef struct {
     
 } lattice_t;
 
+typedef struct {
+    long num_solutions;
+} stat_t;
+
 /**
  * Needed for swaping in bkz, see also dio2.c
  */

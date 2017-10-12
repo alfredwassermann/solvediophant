@@ -4,7 +4,7 @@
 - 0/1 problem, 2 solutions
 - `./sd2 -bkz -beta30 -p18 Bench/KM_PSL_2_23_7_8.in`
 - First solution after 4.8 sec, 30 Mio Loops
-- `sd3` with ILDS early: First solution after 0.9 sec, 900k Loops
+- `sd3` with ILDS early: First solution after 0.9 sec, 900k Loops, lds_k = 4
 - `sd3` with ILDS late: First solution after 2.8 sec, 7 Mio Loops
 
 ### `n8_282.txt`:

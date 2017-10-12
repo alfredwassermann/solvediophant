@@ -711,9 +711,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                 int* first_nonzero_in_column, int* firstp,
                 int level, int rows, int columns, int bit_size, int max_steps) {
 
-    // DOUBLE old_coeff, stepWidth;
     int i;
-    //int isSideStep;
     int goto_back;
     int is_good;
 
@@ -752,7 +750,6 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
         d = (v > -y) ? -1 : 1;
     }
 
-    // isSideStep = FALSE;
     do {
         /* increase loop counter */
         loops++;
@@ -777,7 +774,6 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
         is_good = TRUE;
 
         /* compute new |cs| */
-        // old_coeff = coeff;
         coeff = u + y;
         node->cs = parent_node->cs + coeff * coeff * c[level];
 
@@ -792,12 +788,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
             dual_bound_success++;
             is_good = FALSE;
         } else {
-            // if (isSideStep) {
-            //     stepWidth = coeff - old_coeff;
-            //     compute_w2(node->w, bd, stepWidth, level, rows);
-            // } else {
             norm1 = compute_w(node->w, parent_node->w, bd, coeff, level, rows);
-            // }
             if (level > 0) {
                 if (node->cs > Fqeps * norm1) {
                     ++hoelder_success;
@@ -809,7 +800,6 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                         delta *= -1;
                         if (delta * d >= 0) delta += d;
                         u = v + delta;
-                        // isSideStep = TRUE;
                         continue;
                     }
                 } else {
@@ -853,19 +843,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
         if (goto_back) {
             return 0;
         } else if (is_good) {
-            //i = ed->num;
-
             node->us = u;
-            // node->cs = node->cs;
-            // #if 1
-            //     memcpy(ed->nodes[i].w, node->w, sizeof(DOUBLE)*rows);
-            // #else
-            //     for (j = 0; j < rows; j++) {
-            //         ed->nodes[i].w[j] = node->w[j];
-            //     }
-            // #endif
-            // node->y = node->y;
-
             ed->num++;
             node = &(ed->nodes)[ed->num];
 
@@ -878,9 +856,6 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                 fflush(stderr);
                 exit(1);
             }
-            // isSideStep = TRUE;
-        // } else {
-        //     isSideStep = FALSE;
         }
 
         /*
@@ -907,7 +882,6 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
         int level, int rows, int columns, int bit_size, DOUBLE** mu_trans) {
 
     int pos;
-    // int j;
     enum_level_t* ed = &(enum_data[level]);
 
     if (-1 == enumLevel(enum_data, lattice,
@@ -921,31 +895,11 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
     for (pos = 0; pos < ed->num; pos++) {
         us[level] = ed->nodes[pos].us;
         ed->pos = pos;
-        // zz->cs = ed->nodes[pos].cs;
-        // #if 1
-        //     memcpy(zz->w, ed->nodes[pos].w, sizeof(DOUBLE)*rows);
-        // #else
-        //     for (j = 0; j < rows; j++) {
-        //         zz->w[j] = ed->nodes[pos].w[j];
-        //     }
-        // #endif
 
         if (level == 0) {
             // Solution found
             if (final_test(ed->nodes[pos].w, rows, lattice->decomp.Fq, us, lattice, bit_size) == 1) {
                 print_solution(lattice, ed->nodes[pos].w, rows, lattice->decomp.Fq, us, columns);
-
-                #if 0
-                for (j = columns - 1 ; j >= 0; j--) {
-                    if (enum_data[j].pos > 0) {
-                        fprintf(stderr, "====== ");
-                    }
-                    fprintf(stderr, "%d: %d of %d:\n",
-                        j,
-                        enum_data[j].pos, enum_data[j].num
-                    );
-                }
-                #endif
 
                 if (lattice->LLL_params.stop_after_solutions > 0 &&
                     lattice->LLL_params.stop_after_solutions <= num_solutions) {
@@ -953,34 +907,19 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
                 }
             }
         } else {
-            //level--;
-            // // zz = &(z[level]);
-            // zz->delta = zz->eta = 0;
-            // zz->y = compute_y(mu_trans, us, level, level_max);
-            // us[level] = zz->v = ROUND(-zz->y);
-            // zz->d = (zz->v > -zz->y) ? -1 : 1;
-
             if (-1 == dfs(enum_data, lattice,
                 us, bd_1norm, fipo,
                 first_nonzero_in_column, firstp,
                 level - 1, rows, columns, bit_size, mu_trans)) {
                 return -1;
             }
-
-            //level++;
-            // // zz = &(z[level]);
         }
     }
 
     #if TRUE
         level++;
         if (level > level_max) {
-            // If we reach a new level_max, a side step has to be done
-            // in order to initialise z->us
             level_max = level;
-            // zz = &(z[level]);
-            // zz->delta += zz->d * ((zz->delta * zz->d >= 0) ? 1: -1);
-            // us[level] = zz->v + zz->delta;
         }
     #endif
     return level;
@@ -1055,37 +994,26 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
     count = 0;
     max_height = 0;
     // for (pos = start; pos < end && pos < ed->num; pos++) {
-    for (pos = start; pos <= ed->num; pos++) {
+    for (p = start; p <= ed->num; p++) {
         // Right branches first
-        if (pos >= end &&
-            !(do_left_branch_last && pos == ed->num)) {
+        if (p >= end &&
+            !(do_left_branch_last && p == ed->num)) {
                 continue;
             }
-        p = pos % ed->num;
-        ed->pos = p;
+        ed->pos = pos = p % ed->num;
+
         //--------------
         // BBS
         // if (lds_k == 0 && count > 0) {
         //     break;
         // }
         //--------------
-        us[level] = ed->nodes[p].us;
-        //zz->cs = ed->nodes[p].cs;
-
-        // z->w[level] = ed->nodes[p].w;
-        // #if 1
-        //     memcpy(zz->w, ed->nodes[ed->pos].w, sizeof(DOUBLE)*rows);
-        // #else
-        //     for (j = 0; j < rows; j++) {
-        //         zz->w[j] = ed->nodes[ed->pos].w[j];
-        //     }
-        // #endif
-
+        us[level] = ed->nodes[pos].us;
         if (level == 0) {
             // Solution found
             if (final_test(ed->nodes[pos].w, rows, lattice->decomp.Fq, us, lattice, bit_size) == 1) {
                 print_solution(lattice, ed->nodes[pos].w, rows, lattice->decomp.Fq, us, columns);
-
+                #if 0
                 for (j = columns - 1 ; j >= 0; j--) {
                     fprintf(stderr, "%d: %d of %d\t%0.0lf\t%d",
                         j,
@@ -1097,48 +1025,34 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
                         fprintf(stderr, "\t*");
                     }
                     fprintf(stderr, "\n");
-                    // for (i = 0; i <= enum_data[j].num - 1; i++) {
-                    //     s = enum_data[j].nodes[i].y + enum_data[j].nodes[i].us;
-                    //     fprintf(stderr, "\t%.0lf\t%lf\t%lf\t%lf\t coeff=%lf\n",
-                    //         enum_data[j].nodes[i].us,
-                    //         enum_data[j].nodes[i].cs,
-                    //         enum_data[j].nodes[i].l1,
-                    //         s * s * c[j],
-                    //         s
-                    //     );
-                    // }
                     if (j == lds_threshold) {
                         fprintf(stderr, "-------------------------------------\n");
                     }
                 }
-
+                #endif
                 if (lattice->LLL_params.stop_after_solutions > 0 &&
                     lattice->LLL_params.stop_after_solutions <= num_solutions)
                     return -1;
             }
         } else {
             level--;
-            // zz = &(z[level]);
-            // zz->delta = zz->eta = 0;
-            // zz->y = compute_y(mu_trans, us, level, level_max);
-            // us[level] = zz->v = ROUND(-zz->y);
-            // zz->d = (zz->v > -zz->y) ? -1 : 1;
 
             next_lds_k = lds_k;
             if (level >= lds_threshold) {
                 // we are in ILDS mode
-                if (p == 0) {
+                if (pos == 0) {
                     // depth > k, left branch
                     next_lds_k = lds_k;
                 } else if (lds_k > 0) {
-                    next_lds_k = (lds_k > p) ? lds_k - p : 0;
+                    next_lds_k = (lds_k > p) ? lds_k - pos : 0;
                 }
             }
-            
+
             height = lds(enum_data, lattice,
                     us, bd_1norm, fipo,
                     first_nonzero_in_column, firstp,
-                    level, rows, columns, bit_size, mu_trans, next_lds_k, lds_l, lds_threshold);
+                    level, rows, columns, bit_size, mu_trans,
+                    next_lds_k, lds_l, lds_threshold);
 
                     if (height == -1) {
                 return -1;
@@ -1147,9 +1061,8 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
             if (height >= lds_l) {
                 count++;
             }
-            
+
             level++;
-            //zz = &(z[level]);
         }
 
     }
@@ -1795,7 +1708,7 @@ int prune_only_zeros(lattice_t *lattice, DOUBLE *w, DOUBLE *w1,
 }
 
 int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns) {
-    int i,j,k;
+    int i, j, k;
     int upper;
     int end;
 
