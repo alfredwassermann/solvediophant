@@ -329,7 +329,7 @@ int check_gcd(lgs_t *LGS) {
                 mpz_gcd(g, g, LGS->matrix[j][i]);
             }
         }
-        if (!mpz_divisible_p(LGS->rhs[j], g)) {
+        if (mpz_sgn(g) && !mpz_divisible_p(LGS->rhs[j], g)) {
             fprintf(stderr, "GCD check: contradiction in row %d\n", j);
             return 0;
         }
@@ -410,10 +410,10 @@ int preprocess(lgs_t *LGS) {
     printf("\n");
     #endif
 
-    if (!check_gcd(LGS)) {
+    if (!check_rows(LGS)) {
         return 0;
     }
-    if (!check_rows(LGS)) {
+    if (!check_gcd(LGS)) {
         return 0;
     }
 
