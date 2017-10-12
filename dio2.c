@@ -211,7 +211,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
      * explicit enumeration
      */
     fprintf(stderr, "\n"); fflush(stderr);
-    num_solutions = explicit_enumeration(lattice, lattice->num_cols, lattice->num_rows);
+    num_solutions = explicit_enumeration(lattice);
 
     if (lattice->LLL_params.silent)
         print_num_solutions(num_solutions);
@@ -707,11 +707,13 @@ void allocateEnum_data(enum_level_t** enum_data, DOUBLE **fipo, int columns, int
 int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                 DOUBLE *us,
                 DOUBLE** fipo,
-                int level, int rows, int columns, int max_steps) {
+                int level, int max_steps) {
 
     int i;
     int goto_back;
     int is_good;
+    int columns = lattice->num_cols;
+    int rows = lattice->num_rows;
 
     DOUBLE** bd = lattice->decomp.bd;
     DOUBLE* c = lattice->decomp.c;
@@ -876,16 +878,12 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
 int dfs(enum_level_t* enum_data, lattice_t* lattice,
         DOUBLE *us,
         DOUBLE** fipo,
-        int level, int rows, int columns) {
+        int level) {
 
     int pos;
     enum_level_t* ed = &(enum_data[level]);
 
-    if (-1 == enumLevel(enum_data, lattice,
-            us,
-            fipo,
-            level, rows, columns, -1)) {
-
+    if (-1 == enumLevel(enum_data, lattice, us, fipo, level, -1)) {
         return -1;
     }
 
@@ -895,8 +893,8 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
 
         if (level == 0) {
             // Solution found
-            if (final_test(ed->nodes[pos].w, rows, lattice->decomp.Fq, us, lattice) == 1) {
-                print_solution(lattice, ed->nodes[pos].w, rows, lattice->decomp.Fq, us, columns);
+            if (final_test(ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us, lattice) == 1) {
+                print_solution(lattice, ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us, lattice->num_cols);
 
                 if (lattice->LLL_params.stop_after_solutions > 0 &&
                     lattice->LLL_params.stop_after_solutions <= num_solutions) {
@@ -904,10 +902,7 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
                 }
             }
         } else {
-            if (-1 == dfs(enum_data, lattice,
-                us,
-                fipo,
-                level - 1, rows, columns)) {
+            if (-1 == dfs(enum_data, lattice, us, fipo, level - 1)) {
                 return -1;
             }
         }
@@ -925,7 +920,7 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
 int lds(enum_level_t* enum_data, lattice_t* lattice,
                 DOUBLE *us,
                 DOUBLE** fipo,
-                int level, int rows, int columns,
+                int level,
                 int lds_k, int lds_l, int lds_threshold) {
 
     int j;
@@ -943,7 +938,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
     if (-1 == enumLevel(enum_data, lattice,
             us,
             fipo,
-            level, rows, columns, max_steps)) {
+            level, max_steps)) {
 
         return -1;
     }
@@ -1006,10 +1001,11 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
         us[level] = ed->nodes[pos].us;
         if (level == 0) {
             // Solution found
-            if (final_test(ed->nodes[pos].w, rows, lattice->decomp.Fq, us, lattice) == 1) {
-                print_solution(lattice, ed->nodes[pos].w, rows, lattice->decomp.Fq, us, columns);
+            if (final_test(ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us, lattice) == 1) {
+                print_solution(lattice, ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us,
+                    lattice->num_cols);
                 #if 0
-                for (j = columns - 1 ; j >= 0; j--) {
+                for (j = lattice->num_cols - 1 ; j >= 0; j--) {
                     fprintf(stderr, "%d: %d of %d\t%0.0lf\t%d",
                         j,
                         enum_data[j].pos, enum_data[j].num,
@@ -1044,9 +1040,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
             }
 
             height = lds(enum_data, lattice,
-                    us,
-                    fipo,
-                    level, rows, columns,
+                    us, fipo, level,
                     next_lds_k, lds_l, lds_threshold);
 
                     if (height == -1) {
@@ -1063,7 +1057,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
     }
 
     level++;
-    if (level >= columns) {
+    if (level >= lattice->num_cols) {
         // We are done, let's leave the loop.
         //break;
         return 1;
@@ -1139,7 +1133,7 @@ void init_dualbounds(lattice_t *lattice, DOUBLE ***fipo) {
     #endif
 }
 
-DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
+DOUBLE explicit_enumeration(lattice_t *lattice) {
     /* local variables for |explicit_enumeration() */
     /*|__attribute((aligned(16)))|*/
 
@@ -1155,29 +1149,29 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     DOUBLE **fipo;
     /* test the size of the basis */
     fprintf(stderr, "Dimension of solution space (k): %d compared to columns-rank: %d\n",
-                columns, lattice->lgs_cols - lattice->lgs_rank + 1 + lattice->free_RHS);
+                lattice->num_cols, lattice->lgs_cols - lattice->lgs_rank + 1 + lattice->free_RHS);
     fflush(stderr);
 
-    if (columns < lattice->lgs_cols - lattice->lgs_rank + 1 + lattice->free_RHS) {
+    if (lattice->num_cols < lattice->lgs_cols - lattice->lgs_rank + 1 + lattice->free_RHS) {
         fprintf(stderr,"LLL didn't succeed in computing a basis of the kernel.\n");
         fprintf(stderr,"Please increase c0 (the first parameter)!\n");
         return 0;
     }
 
     /* allocate the memory for enumeration */
-    lattice->decomp.bd_1norm = (DOUBLE*)calloc(columns + 1, sizeof(DOUBLE));
-    us = (DOUBLE*)calloc(columns + 1, sizeof(DOUBLE));
+    lattice->decomp.bd_1norm = (DOUBLE*)calloc(lattice->num_cols + 1, sizeof(DOUBLE));
+    us = (DOUBLE*)calloc(lattice->num_cols + 1, sizeof(DOUBLE));
 
-    lattice->decomp.first_nonzero = (int*)calloc(rows, sizeof(int));
-    lattice->decomp.first_nonzero_in_column = (int*)calloc(columns+rows+1, sizeof(int));
+    lattice->decomp.first_nonzero = (int*)calloc(lattice->num_rows, sizeof(int));
+    lattice->decomp.first_nonzero_in_column = (int*)calloc(lattice->num_cols + lattice->num_rows + 1, sizeof(int));
     if (lattice->decomp.first_nonzero_in_column == NULL) {
         return(0);
     }
-    lattice->decomp.firstp = (int*)calloc(columns+1, sizeof(int));
+    lattice->decomp.firstp = (int*)calloc(lattice->num_cols + 1, sizeof(int));
 
-    lattice->decomp.mu_trans = (DOUBLE**)calloc(columns+1, sizeof(DOUBLE*));
-    for (i = 0; i <= columns; i++) {
-        lattice->decomp.mu_trans[i]=(DOUBLE*)calloc(columns+1, sizeof(DOUBLE));
+    lattice->decomp.mu_trans = (DOUBLE**)calloc(lattice->num_cols + 1, sizeof(DOUBLE*));
+    for (i = 0; i <= lattice->num_cols; i++) {
+        lattice->decomp.mu_trans[i]=(DOUBLE*)calloc(lattice->num_cols + 1, sizeof(DOUBLE));
     }
 
     lattice->decomp.bit_size = get_bit_size(lattice);
@@ -1185,25 +1179,28 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     /* count nonzero entries in the last rows(s) */
     if (lattice->free_RHS) {
         i=0;
-        for (j = columns - 1; j >= 0; j--) if (mpz_sgn(get_entry(lattice->basis, j, rows-2)) != 0)
+        for (j = lattice->num_cols - 1; j >= 0; j--)
+            if (mpz_sgn(get_entry(lattice->basis, j, lattice->num_rows - 2)) != 0)
             i++;
         fprintf(stderr, "Number of nonzero entries in the second last row: %d\n", i);
         fflush(stderr);
     }
 
     i = 0;
-    for (j = columns - 1; j >= 0; j--) if (mpz_sgn(get_entry(lattice->basis, j, rows-1)) !=0 )
+    for (j = lattice->num_cols - 1; j >= 0; j--)
+        if (mpz_sgn(get_entry(lattice->basis, j, lattice->num_rows - 1)) !=0 )
         i++;
     fprintf(stderr, "Number of nonzero entries in the last row: %d\n", i);
     fprintf(stderr, "Max bit size: %d\n", lattice->decomp.bit_size);
     fflush(stderr);
 
-    // Move basis columns which have a nonzero entry in the last row to the end.
+    // Move basis lattice->num_cols which have a nonzero entry in the last row to the end.
     // This is mandatory for lds!!!
     if (lattice->LLL_params.exhaustive_enum.lds == 1) {
-        for (j = columns - 1; j > 0; j--) {
+        for (j = lattice->num_cols - 1; j > 0; j--) {
             for (l = j - 1; l >= 0;  l--) {
-                if (mpz_cmpabs(get_entry(lattice->basis, l, rows - 1), get_entry(lattice->basis, j, rows - 1)) > 0) {
+                if (mpz_cmpabs(get_entry(lattice->basis, l, lattice->num_rows - 1),
+                               get_entry(lattice->basis, j, lattice->num_rows - 1)) > 0) {
                     swap_vec = lattice->basis[l];
                     for (i = l + 1; i <= j; i++) lattice->basis[i - 1] = lattice->basis[i];
                     lattice->basis[j] = swap_vec;
@@ -1215,7 +1212,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
     /* set the simple pruning bounds */
     lattice->decomp.Fq = (DOUBLE)mpz_get_d(lattice->max_norm);
-    lattice->decomp.Fd = (rows * lattice->decomp.Fq * lattice->decomp.Fq) * (1.0 + EPSILON);
+    lattice->decomp.Fd = (lattice->num_rows * lattice->decomp.Fq * lattice->decomp.Fq) * (1.0 + EPSILON);
     lattice->decomp.Fqeps = (1.0 + EPSILON) * lattice->decomp.Fq;        // Used in prune()
     #if VERBOSE > 0
         fprintf(stderr, "Fq: %f\n", (double)lattice->decomp.Fq);
@@ -1225,22 +1222,22 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
     /* orthogonalize the basis */
     #if GIVENS
-        givens(lattice, columns, rows, lattice->decomp.mu, lattice->decomp.bd, lattice->decomp.c);
+        givens(lattice, lattice->num_cols, lattice->num_rows, lattice->decomp.mu, lattice->decomp.bd, lattice->decomp.c);
     #else
-        gramschmidt(lattice, columns, rows, lattice->decomp.mu, lattice->decomp.bd, lattice->decomp.c);
+        gramschmidt(lattice, lattice->num_cols, lattice->num_rows, lattice->decomp.mu, lattice->decomp.bd, lattice->decomp.c);
     #endif
 
     /* compute $mu^\top$, the transpose of $mu$. */
-    for (i = 0; i < columns; i++) {
-        for (j = 0; j < columns; j++) {
+    for (i = 0; i < lattice->num_cols; i++) {
+        for (j = 0; j < lattice->num_cols; j++) {
             lattice->decomp.mu_trans[j][i] = lattice->decomp.mu[i][j];
         }
     }
 
     /* Compute 1-norm of orthogonal basis */
-    for (i = 0; i <= columns; ++i) {
+    for (i = 0; i <= lattice->num_cols; ++i) {
         lattice->decomp.bd_1norm[i] = 0.0;
-        for (j = 0; j < rows; ++j) {
+        for (j = 0; j < lattice->num_rows; ++j) {
             lattice->decomp.bd_1norm[i] += fabs(lattice->decomp.bd[i][j]);
         }
         lattice->decomp.bd_1norm[i] *= lattice->decomp.Fqeps / lattice->decomp.c[i];
@@ -1250,7 +1247,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     init_dualbounds(lattice, &fipo);
 
     /**
-     * Remove trailing unnecessary columns.
+     * Remove trailing unnecessary lattice->num_cols.
      *
      * Contradiction to sorting columns, see above!
      * That means, columns whose corresponding dual bounds bounds
@@ -1258,10 +1255,10 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
      * This is important for the Selfdual Bent Functions Problems
      */
     #if 1
-    for (i = columns - 1; i >= 0; i--) {
+    for (i = lattice->num_cols - 1; i >= 0; i--) {
         if (fipo[0][i] < 0.9) {
             fprintf(stderr, "DEL\n");
-            columns--;
+            lattice->num_cols--;
         } else {
             break;
         }
@@ -1269,11 +1266,11 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     #endif
 
     /* New strategy */
-    allocateEnum_data(&enum_data, fipo, columns, rows);
+    allocateEnum_data(&enum_data, fipo, lattice->num_cols, lattice->num_rows);
 
     /* initialize first-nonzero arrays */
-    for (l = 0; l < rows; l++) {
-        for (i = 0; i < columns; i++) if (mpz_sgn(get_entry(lattice->basis, i, l)) != 0) {
+    for (l = 0; l < lattice->num_rows; l++) {
+        for (i = 0; i < lattice->num_cols; i++) if (mpz_sgn(get_entry(lattice->basis, i, l)) != 0) {
             lattice->decomp.first_nonzero[l] = i;
             break;
         }
@@ -1281,11 +1278,11 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
     fprintf(stderr, "First non-zero entries:\n");
     j = 0;
-    for (l = 0; l < columns; l++) {
+    for (l = 0; l < lattice->num_cols; l++) {
         lattice->decomp.firstp[l] = j;
         lattice->decomp.first_nonzero_in_column[j] = 0;
         j++;
-        for (i = 0; i < rows; i++) {
+        for (i = 0; i < lattice->num_rows; i++) {
             if (lattice->decomp.first_nonzero[i] == l) {
                 lattice->decomp.first_nonzero_in_column[j] = i;
                 lattice->decomp.first_nonzero_in_column[lattice->decomp.firstp[l]]++;
@@ -1294,15 +1291,15 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
         }
         fprintf(stderr, "%d ", lattice->decomp.first_nonzero_in_column[lattice->decomp.firstp[l]]);
     }
-    fprintf(stderr, ": %d\n", rows);
-    lattice->decomp.firstp[columns] = j;
+    fprintf(stderr, ": %d\n", lattice->num_rows);
+    lattice->decomp.firstp[lattice->num_cols] = j;
     lattice->decomp.first_nonzero_in_column[j] = 0;
 
     /* more initialization */
-    level = lattice->decomp.first_nonzero[rows-1];
+    level = lattice->decomp.first_nonzero[lattice->num_rows - 1];
     if (level < 0) level = 0;
 
-    level = lattice->decomp.first_nonzero[rows - 1];//columns - 1;
+    level = lattice->decomp.first_nonzero[lattice->num_rows - 1];//columns - 1;
     level_max = level;
     // us[level] = 1;
     // v[level] = 1;
@@ -1316,14 +1313,10 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     /* the loop of the exhaustive enumeration */
     if (lattice->LLL_params.exhaustive_enum.lds == 1) {
         //for (i = 0; i <= columns / 2; i++) {
-        //for (k = 0; k <= 8/*columns*/; k++) {
+        //for (k = 0; k <= 8/*lattice->num_cols*/; k++) {
         for (k = 0; k < lattice->LLL_params.exhaustive_enum.lds_k_max; k++) {
             fprintf(stderr, "lds_k=%d\n", k); fflush(stderr);
-            result = lds(enum_data, lattice,
-                us,
-                fipo,
-                level, rows, columns,
-                k, 0, 0);
+            result = lds(enum_data, lattice, us, fipo, level, k, 0, 0);
 
             if (result  == -1) {
                 fprintf(stderr, "solution for lds_k=%d\n\n", k);
@@ -1331,11 +1324,8 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
             }
         }
     } else {
-        while (0 <= level && level < columns) {
-            level = dfs(enum_data, lattice,
-                us,
-                fipo,
-                level, rows, columns);
+        while (0 <= level && level < lattice->num_cols) {
+            level = dfs(enum_data, lattice, us, fipo, level);
         }
     }
 
@@ -1381,20 +1371,20 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     //
     // free(eta);
     // free(v);
-    // for (l = 0; l <= columns; l++) free(w[l]);
+    // for (l = 0; l <= lattice->num_cols; l++) free(w[l]);
     // free(w);
-    // free(original_columns);
+    // free(original_lattice->num_cols);
 
     // free(fipo);
-    // for (l = 0; l < columns; l++) free(muinv[l]);
+    // for (l = 0; l < lattice->num_cols; l++) free(muinv[l]);
     // free(muinv);
     //
-    // for (l = 0; l <= columns; l++) free(dual_basis[l]);
+    // for (l = 0; l <= lattice->num_cols; l++) free(dual_basis[l]);
     // free(dual_basis);
     // free(dual_bound);
 
-    // lllfree(mu, c, N, bd, columns);
-    // for (l = 0; l < columns; l++) free(mu_trans[l]);
+    // lllfree(mu, c, N, bd, lattice->num_cols);
+    // for (l = 0; l < lattice->num_cols; l++) free(mu_trans[l]);
     // free(mu_trans);
 
     return 1;

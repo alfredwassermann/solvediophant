@@ -21,7 +21,7 @@ extern void lll(lattice_t *lattice, int s, int z, DOUBLE quality, int reduction_
 extern DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE quality, int reduction_type);
 extern DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE quality, int reduction_type);
 
-extern DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows);
+extern DOUBLE explicit_enumeration(lattice_t *lattice);
 
 extern DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max);
 extern void compute_w2(DOUBLE *w, DOUBLE **bd, DOUBLE alpha, int level, int rows);
