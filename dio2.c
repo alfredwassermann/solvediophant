@@ -687,31 +687,6 @@ typedef struct {
     enum_node_t* nodes;
 } enum_level_t;
 
-typedef struct {
-    DOUBLE cs;
-    DOUBLE *w;
-    DOUBLE y;
-} zigzag_t;
-
-void allocateZigzag(zigzag_t **zigzag, int columns, int rows) {
-    int i, l,
-        c = columns + 1;
-
-    (*zigzag) = (zigzag_t*)calloc(c, sizeof(zigzag_t));
-    for (i = 0; i < c; i++) {
-        (*zigzag)[i].w = (DOUBLE*)calloc(rows, sizeof(DOUBLE));
-    }
-
-    /* initialize arrays */
-    for (i = 0; i < c; i++) {
-        (*zigzag)[i].y = 0.0;
-        (*zigzag)[i].cs = 0.0;
-        // (*zigzag)[i].delta = 0;
-        // (*zigzag)[i].v = 0;
-        // (*zigzag)[i].eta = (*zigzag)[i].d = 1;
-    }
-}
-
 void allocateEnum_data(enum_level_t** enum_data, DOUBLE **fipo, int columns, int rows) {
     int i, j;
     long k;
@@ -736,8 +711,9 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                 int* first_nonzero_in_column, int* firstp,
                 int level, int rows, int columns, int bit_size, int max_steps) {
 
-    DOUBLE old_coeff, stepWidth;
-    int i, isSideStep;
+    // DOUBLE old_coeff, stepWidth;
+    int i;
+    //int isSideStep;
     int goto_back;
     int is_good;
 
@@ -748,33 +724,35 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
     DOUBLE Fq = lattice->decomp.Fq;
 
     enum_level_t* ed = &(enum_data[level]);
-    enum_node_t *zz, *parent_node;
+    enum_node_t *node, *parent_node;
 
     DOUBLE coeff = 0.0;
     DOUBLE y = 0.0;
+    DOUBLE u;
     long delta;
     long v;
     int eta;
     int d;
+//    int j;
+    DOUBLE norm1;
 
     ed->num = 0;
-    zz = &(ed->nodes)[ed->num];
+    node = &(ed->nodes)[ed->num];
     parent_node = &(enum_data[level + 1].nodes[enum_data[level + 1].pos]);
 
     delta = eta = 0;
     if (level == level_max) {
-        us[level] = v = 1.0;
+        u = v = 1.0;
         y = 0.0;
         d = 1;
         eta = 1;
     } else {
         y = compute_y(mu_trans, us, level, level_max);
-        us[level] = v = ROUND(-y);
+        u = v = ROUND(-y);
         d = (v > -y) ? -1 : 1;
     }
-printf("Start Level %d %d %lf\n", level, enum_data[level + 1].pos, parent_node->w[0]);
 
-    isSideStep = FALSE;
+    // isSideStep = FALSE;
     do {
         /* increase loop counter */
         loops++;
@@ -799,43 +777,29 @@ printf("Start Level %d %d %lf\n", level, enum_data[level + 1].pos, parent_node->
         is_good = TRUE;
 
         /* compute new |cs| */
-        old_coeff = coeff;
-        coeff = us[level] + y;
-        zz->cs = parent_node->cs + coeff * coeff * c[level];
+        // old_coeff = coeff;
+        coeff = u + y;
+        node->cs = parent_node->cs + coeff * coeff * c[level];
 
-printf(">>level %d, d: %d us: %lf, num=%d\n", level, d, us[level], ed->num);
-
-        if (zz->cs >= Fd)  {
+        if (node->cs >= Fd)  {
             goto_back = TRUE;
-        }
-        #if 1
-        else if (fabs(coeff) > bd_1norm[level]) {
+        } else if (fabs(coeff) > bd_1norm[level]) {
             /* Use (1, -1, 0, ...) as values in Hoelder pruning */
             goto_back = TRUE;
             ++hoelder2_success;
-        } else if (fabs(us[level]) > fipo[0][level] ||
-                   fabs(us[level] + 1) > fipo[1][level]) {
+        } else if (fabs(u) > fipo[0][level] ||
+                   fabs(u + 1) > fipo[1][level]) {
             dual_bound_success++;
             is_good = FALSE;
-        }
-        #endif
-        else {
-            if (isSideStep) {
-                stepWidth = coeff - old_coeff;
-                compute_w2(zz->w, bd, stepWidth, level, rows);
-            } else {
-                compute_w(zz->w, parent_node->w, bd, coeff, level, rows);
-            }
+        } else {
+            // if (isSideStep) {
+            //     stepWidth = coeff - old_coeff;
+            //     compute_w2(node->w, bd, stepWidth, level, rows);
+            // } else {
+            norm1 = compute_w(node->w, parent_node->w, bd, coeff, level, rows);
+            // }
             if (level > 0) {
-                i = prune_only_zeros(lattice, zz->w, parent_node->w,
-                        level, rows,
-                        Fq, first_nonzero_in_column, firstp,
-                        bd, y, us[level], columns);
-                if (i < 0) {
-                    goto_back = TRUE;
-                } else if (i > 0) {
-                    is_good = FALSE;
-                } else if (prune(zz->w, zz->cs, rows, Fqeps)) {
+                if (node->cs > Fqeps * norm1) {
                     ++hoelder_success;
                     is_good = FALSE;
                     if (eta == 1) {
@@ -844,11 +808,45 @@ printf(">>level %d, d: %d us: %lf, num=%d\n", level, d, us[level], ed->num);
                         eta = 1;
                         delta *= -1;
                         if (delta * d >= 0) delta += d;
-                        us[level] = v + delta;
-                        isSideStep = TRUE;
+                        u = v + delta;
+                        // isSideStep = TRUE;
                         continue;
                     }
+                } else {
+                    i = prune_only_zeros(lattice, node->w, parent_node->w,
+                        level, rows,
+                        Fq, first_nonzero_in_column, firstp,
+                        bd, y, u, columns);
+                    if (i < 0) {
+                        goto_back = TRUE;
+                    } else if (i > 0) {
+                        is_good = FALSE;
+                    }
                 }
+
+                // i = prune_only_zeros(lattice, node->w, parent_node->w,
+                //         level, rows,
+                //         Fq, first_nonzero_in_column, firstp,
+                //         bd, y, u, columns);
+                // if (i < 0) {
+                //     goto_back = TRUE;
+                // } else if (i > 0) {
+                //     is_good = FALSE;
+                // } else if (node->cs > Fqeps * norm1) {
+                //     //} else if (prune(node->w, node->cs, rows, Fqeps)) {
+                //     ++hoelder_success;
+                //     is_good = FALSE;
+                //     if (eta == 1) {
+                //         goto_back = TRUE;
+                //     } else {
+                //         eta = 1;
+                //         delta *= -1;
+                //         if (delta * d >= 0) delta += d;
+                //         u = v + delta;
+                //         // isSideStep = TRUE;
+                //         continue;
+                //     }
+                // }
             }
         }
 
@@ -857,19 +855,19 @@ printf(">>level %d, d: %d us: %lf, num=%d\n", level, d, us[level], ed->num);
         } else if (is_good) {
             //i = ed->num;
 
-            zz->us = us[level];
-            // zz->cs = zz->cs;
+            node->us = u;
+            // node->cs = node->cs;
             // #if 1
-            //     memcpy(ed->nodes[i].w, zz->w, sizeof(DOUBLE)*rows);
+            //     memcpy(ed->nodes[i].w, node->w, sizeof(DOUBLE)*rows);
             // #else
             //     for (j = 0; j < rows; j++) {
-            //         ed->nodes[i].w[j] = zz->w[j];
+            //         ed->nodes[i].w[j] = node->w[j];
             //     }
             // #endif
-            // zz->y = zz->y;
+            // node->y = node->y;
 
             ed->num++;
-            zz = &(ed->nodes)[ed->num];
+            node = &(ed->nodes)[ed->num];
 
             if (max_steps >= 0 && ed->num >= max_steps) {
                 return 0;
@@ -880,9 +878,9 @@ printf(">>level %d, d: %d us: %lf, num=%d\n", level, d, us[level], ed->num);
                 fflush(stderr);
                 exit(1);
             }
-            isSideStep = TRUE;
-        } else {
-            isSideStep = FALSE;
+            // isSideStep = TRUE;
+        // } else {
+        //     isSideStep = FALSE;
         }
 
         /*
@@ -897,7 +895,7 @@ printf(">>level %d, d: %d us: %lf, num=%d\n", level, d, us[level], ed->num);
         } else {
             delta += d * ((delta * d >= 0) ? 1: -1);
         }
-        us[level] = v + delta;
+        u = v + delta;
     } while (TRUE);
 
     return 0;
@@ -908,7 +906,8 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
         int* first_nonzero_in_column, int* firstp,
         int level, int rows, int columns, int bit_size, DOUBLE** mu_trans) {
 
-    int pos, j;
+    int pos;
+    // int j;
     enum_level_t* ed = &(enum_data[level]);
 
     if (-1 == enumLevel(enum_data, lattice,
@@ -918,10 +917,8 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
 
         return -1;
     }
-printf("EnumLevel %d %d\n", level, enum_data[level].num);
 
     for (pos = 0; pos < ed->num; pos++) {
-printf("dfs: level=%d (%d, %d) %lf\n", level, pos, ed->num, ed->nodes[pos].w[0]);
         us[level] = ed->nodes[pos].us;
         ed->pos = pos;
         // zz->cs = ed->nodes[pos].cs;
@@ -935,7 +932,6 @@ printf("dfs: level=%d (%d, %d) %lf\n", level, pos, ed->num, ed->nodes[pos].w[0])
 
         if (level == 0) {
             // Solution found
-            printf("==================================\n");
             if (final_test(ed->nodes[pos].w, rows, lattice->decomp.Fq, us, lattice, bit_size) == 1) {
                 print_solution(lattice, ed->nodes[pos].w, rows, lattice->decomp.Fq, us, columns);
 
@@ -1243,7 +1239,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
     int i, j, l, k;
     int result;
 
-    zigzag_t *zigzag;
     enum_level_t* enum_data;
     DOUBLE *us;
 
@@ -1412,7 +1407,6 @@ DOUBLE explicit_enumeration(lattice_t *lattice, int columns, int rows) {
 
     level = first_nonzero[rows - 1];//columns - 1;
     level_max = level;
-    allocateZigzag(&zigzag, columns, rows);
     // us[level] = 1;
     // v[level] = 1;
     loops = 0;
@@ -1538,31 +1532,27 @@ void compute_w2(DOUBLE *w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     return;
 }
 
-void compute_w(DOUBLE *w, DOUBLE *w1, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
+DOUBLE compute_w(DOUBLE *w, DOUBLE *w1, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     #if BLAS
         cblas_dcopy(rows, w1, 1, w, 1);
-        //memcpy(w[level], w[level + 1], sizeof(DOUBLE)*rows);
-        if (fabs(alpha) > 1E-14) {
-            cblas_daxpy(rows, alpha, bd[level], 1, w, 1);
-        }
+        //memcpy(w, w1, sizeof(DOUBLE)*rows);
+        cblas_daxpy(rows, alpha, bd[level], 1, w, 1);
+        return cblas_dasum(rows, w, 1);
     #else
-        int i;
-        i = rows - 1;
-
-        if (fabs(alpha) > 1E-14) {
-            while (i >= 0) {
+        if (fabs(alpha) > 1E-17) {
+            for (i = 0; i < rows; ++i) {
                 w[i] = w1[i] + alpha * bd[level][i];
-                i--;
+                norm1 += fabs(w[i]);
             }
         } else {
-            while (i >= 0) {
-                w[i] = w1[i];
-                i--;
+            memcpy(w, w1, sizeof(DOUBLE)*rows);
+            for (i = 0; i < rows; ++i) {
+                norm1 += fabs(w[i]);
             }
         }
-    #endif
+        return norm1;
+     #endif
 
-    return;
 }
 
 void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c) {
