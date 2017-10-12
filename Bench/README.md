@@ -23,6 +23,11 @@
 - Progressive BKZ, ILDS early: First solution after 1min5sec, 400k Loops, lds_k=2
 - `./sd3 -c10000 -bkz -beta48 -lds Bench/KM_C11Id2X_t3_k4.txt`
 - First solution after 25k loops, 1min3sec
+- After removing conflicting columns from the LGS:
+- `./sd3 -c10000 -bkz -beta48 -lds Bench/KM_C11Id2X_t3_k4.txt`
+- First solution after 150 Mio loops, lds_k=4
+- bkz beta60: First solution after 6 Mio loops, lds_k=3
+- bkz beta80: First solution after 758k loops, lds_k=2
 
 ### `qdesign_2_8_4_217_q2.txt`:
 - $2-(8,4,217)_2$ design, part of a large set for $N=3$, , group <singer^5, frob^2>

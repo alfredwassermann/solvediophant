@@ -380,24 +380,24 @@ int preprocess(lgs_t *LGS) {
     int rnk1, rnk2;
 
     // Remove columns whose entries are too large.
+    #if 1
     for (i = cols - 1; i >= 0; i--) {
         for (j = 0; j < rows; j++) {
             if (mpz_cmp(LGS->matrix[j][i], LGS->rhs[j]) > 0) {
-                // Delete column i
-                fprintf(stderr, "Remove column %d\n", i);
+                fprintf(stderr, "Remove column %d because an entry is larger then rhs\n", i);
                 remove_column(LGS, i);
                 break;
             }
         }
     }
+    #endif
 
     // Remove columns whose upper bounds on the variables are zero.
     cols = LGS->num_cols;
     if (LGS->upperbounds != NULL) {
         for (i = cols - 1; i >= 0; i--) {
             if (mpz_sgn(LGS->upperbounds[i]) == 0) {
-                // Delete column i
-                fprintf(stderr, "Remove column %d (upper bound = 0)\n", i);
+                fprintf(stderr, "Remove column %d because upper bound = 0\n", i);
                 remove_column(LGS, i);
             }
         }
