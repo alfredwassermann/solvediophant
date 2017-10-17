@@ -76,4 +76,6 @@
 - Old version: first solution after several weeks (according to Vedran and Mario)
 - `../sd3 -bkz -beta60 -lds10 4_18_9_56.txt`
 - Solution after 103 min, 12551 Mio loops, lds_k = 5
+- `../sd3 -bkz -beta150 -lds10 4_18_9_56.txt`
+- Solution after 31 min, 5084 Mio loops, lds_k = 5
 

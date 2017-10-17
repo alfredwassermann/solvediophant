@@ -419,16 +419,16 @@ int preprocess(lgs_t *LGS) {
 
     // Check rank
     rnk1 = rank(LGS, 1073741827);
-    if (rnk1 <= 0) {
+    if (cols > rows && rnk1 <= 0) {
         fprintf(stderr, "Rank mod p: no solution possible.");
         return 0;
     }
     rnk2 = rank(LGS, 2116084177);
-    if (rnk2 <= 0) {
+    if (cols > rows && rnk2 <= 0) {
         fprintf(stderr, "Rank mod p: no solution possible.");
         return 0;
     }
-    LGS->rank = (rnk1 > rnk2) ? rnk1 : rnk2;
+    LGS->rank = abs((rnk1 > rnk2) ? rnk1 : rnk2);
     fprintf(stderr, "Rank=%d\n", LGS->rank);
 
     return 1;
