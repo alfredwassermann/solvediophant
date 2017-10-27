@@ -39,7 +39,7 @@ GMPLIB=
 GMPINC=
 
 #all: solvediophant.dvi diophant.pdf solvediophant
-all: sd3
+all: sd3 tags
 
 %.o: %.c %.h datastruct.h
 	$(CC) $(CFLAGS) -D$(BLAS) -I$(BLASINC) -c $< $(GMPINC)
@@ -77,6 +77,11 @@ lgs.pdf: lgs.c
 	vim $(VIMFLAGS) -c 'hardcopy > lgs.ps' -c quit lgs.c
 	ps2pdf lgs.ps
 	rm lgs.ps
+
+tags: $(SRCS) Makefile
+	ctags *
+
+
 
 .PHONY: clean
 clean:
