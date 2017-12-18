@@ -72,6 +72,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         fprintf(stderr, "Total number of solutions: 0\n\n");
         exit(2);
     }
+    fprintf(stderr, "Num variables after preprocess: %d\n", LGS->num_cols);
     lgs_to_lattice(LGS, lattice);
 
     /**

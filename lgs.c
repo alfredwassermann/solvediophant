@@ -16,7 +16,7 @@ void lgs_allocate_mem(lgs_t *LGS) {
            mpz_init(LGS->matrix[j][i]);
     }
 
-    LGS->rhs = (mpz_t*)calloc(LGS->num_rows, sizeof(mpz_t));
+    LGS->rhs = (mpz_t*)calloc((unsigned int)LGS->num_rows, sizeof(mpz_t));
     for (i = 0; i < LGS->num_rows; i++)
        mpz_init(LGS->rhs[i]);
 }
@@ -374,7 +374,7 @@ int check_rows(lgs_t *LGS) {
 }
 
 int preprocess(lgs_t *LGS) {
-    int i, j;
+    int i, j, found_a_column = 0;
     int cols = LGS->num_cols;
     int rows = LGS->num_rows;
     int rnk1, rnk2;
@@ -384,22 +384,40 @@ int preprocess(lgs_t *LGS) {
     for (i = cols - 1; i >= 0; i--) {
         for (j = 0; j < rows; j++) {
             if (mpz_cmp(LGS->matrix[j][i], LGS->rhs[j]) > 0) {
-                fprintf(stderr, "Remove column %d because an entry is larger then rhs\n", i);
                 remove_column(LGS, i);
+
+                found_a_column++;
+                if (found_a_column == 1)  {
+                    fprintf(stderr, "Remove columns because an entry is larger then rhs:\n");
+                }
+                fprintf(stderr, "%d ", i);
+
                 break;
             }
         }
+    }
+    if (found_a_column > 0) {
+        fprintf(stderr, "\n");
     }
     #endif
 
     // Remove columns whose upper bounds on the variables are zero.
     cols = LGS->num_cols;
     if (LGS->upperbounds != NULL) {
+        found_a_column = 0;
         for (i = cols - 1; i >= 0; i--) {
             if (mpz_sgn(LGS->upperbounds[i]) == 0) {
-                fprintf(stderr, "Remove column %d because upper bound = 0\n", i);
                 remove_column(LGS, i);
+
+                found_a_column++;
+                if (found_a_column == 1)  {
+                    fprintf(stderr, "Remove columns because upper bound = 0:\n");
+                }
+                fprintf(stderr, "%d ", i);
             }
+        }
+        if (found_a_column > 0) {
+            fprintf(stderr, "\n");
         }
     }
     #if 0
