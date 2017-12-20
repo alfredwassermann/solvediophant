@@ -79,3 +79,10 @@
 - `../sd3 -bkz -beta150 -lds10 4_18_9_56.txt`
 - Solution after 31 min, 5084 Mio loops, lds_k = 5
 
+### `qgdd_8_4_2_20_2.txt`:
+- 0/1 problem
+- `../sd3 -bkz -beta48 -dfs qgdd_8_4_2_20_2.txt`
+- Solution after  min,   Mio loops
+- `../sd3 -bkz -beta48 -lds10 qgdd_8_4_2_20_2.txt`
+- Solution after  min,  Mio loops, lds_k = 
+
