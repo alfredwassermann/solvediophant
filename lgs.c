@@ -255,14 +255,18 @@ int rank(lgs_t *LGS, long p) {
         if (M[r][lead] != 0) {
             inv = mul_inv(M[r][lead], p);
             for (i = lead; i < cols; i++) {
-                M[r][i] = (M[r][i] * inv) % p;
+                if (M[r][i] != 0) {
+                    M[r][i] = (M[r][i] * inv) % p;
+                }
             }
         }
         for (i = 0; i < rows; i++) {
             if (i != r) {
                 f = M[i][lead];
                 for (j = lead; j < cols; j++) {
-                    M[i][j] = (M[i][j] - f * M[r][j]) % p;
+                    if (M[r][j] != 0) {
+                        M[i][j] = (M[i][j] - f * M[r][j]) % p;
+                    }
                 }
             }
         }
@@ -445,7 +449,7 @@ int preprocess(lgs_t *LGS) {
         LGS->num_cols++;
 
         if (/*cols > rows &&*/ rnk1_a != rnk1_b) {
-            fprintf(stderr, "First rank test mod p failed: no solution possible. Rank=%d, %d\n", rnk1_a, rnk1_b);
+            fprintf(stderr, "First rank test mod p failed: no solution possible. Ranks: %d < %d\n", rnk1_b, rnk1_a);
             return 0;
         }
         rnk2_a = rank(LGS, 2116084177);
@@ -454,7 +458,7 @@ int preprocess(lgs_t *LGS) {
         LGS->num_cols++;
 
         if (/*cols > rows &&*/ rnk2_a != rnk2_b) {
-            fprintf(stderr, "Second rank test mod p failed: no solution possible. Rank=%d, %d \n", rnk2_a, rnk2_b);
+            fprintf(stderr, "Second rank test mod p failed: no solution possible. Ranks: %d < %d \n", rnk2_b, rnk2_a);
             return 0;
         }
         // LGS->rank = abs((rnk1 > rnk2) ? rnk1 : rnk2);
