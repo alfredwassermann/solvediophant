@@ -69,6 +69,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     #endif
 
     if (!preprocess(LGS)) {
+        fprintf(stderr, "Preprocess found contradiction\n");
         fprintf(stderr, "Total number of solutions: 0\n\n");
         exit(2);
     }

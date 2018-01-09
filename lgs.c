@@ -240,12 +240,14 @@ int rank(lgs_t *LGS, long p) {
             }
         }
 
+    #if 0
         if (lead == cols - 1) {
             // System is not solvable, since
             // the last col, i.e. the RHS is
             // linearly independent from the other columns
             sgn = -1;
         }
+    #endif
         row_swap = M[i];
         M[i] = M[r];
         M[r] = row_swap;
@@ -377,7 +379,7 @@ int preprocess(lgs_t *LGS) {
     int i, j, found_a_column = 0;
     int cols = LGS->num_cols;
     int rows = LGS->num_rows;
-    int rnk1, rnk2;
+    int rnk1_a, rnk1_b, rnk2_a, rnk2_b;
 
     // Remove columns whose entries are too large.
     #if 1
@@ -435,21 +437,31 @@ int preprocess(lgs_t *LGS) {
         return 0;
     }
 
-    #if 0
-    // Check rank
-    rnk1 = rank(LGS, 1073741827);
-    if (cols > rows && rnk1 <= 0) {
-        fprintf(stderr, "First rank test mod p failed: no solution possible.");
-        //return 0;
-    }
-    rnk2 = rank(LGS, 2116084177);
-    if (cols > rows && rnk2 <= 0) {
-        fprintf(stderr, "Second rank test mod p failed: no solution possible.");
-        //return 0;
-    }
-    LGS->rank = abs((rnk1 > rnk2) ? rnk1 : rnk2);
+    #if 1
+        // Check rank
+        rnk1_a = rank(LGS, 1073741827);
+        LGS->num_cols--;
+        rnk1_b = rank(LGS, 1073741827);
+        LGS->num_cols++;
+
+        if (/*cols > rows &&*/ rnk1_a != rnk1_b) {
+            fprintf(stderr, "First rank test mod p failed: no solution possible. Rank=%d, %d\n", rnk1_a, rnk1_b);
+            return 0;
+        }
+        rnk2_a = rank(LGS, 2116084177);
+        LGS->num_cols--;
+        rnk2_b = rank(LGS, 1073741827);
+        LGS->num_cols++;
+
+        if (/*cols > rows &&*/ rnk2_a != rnk2_b) {
+            fprintf(stderr, "Second rank test mod p failed: no solution possible. Rank=%d, %d \n", rnk2_a, rnk2_b);
+            return 0;
+        }
+        // LGS->rank = abs((rnk1 > rnk2) ? rnk1 : rnk2);
+        LGS->rank = (rnk1_a > rnk2_a) ? rnk1_a : rnk2_a;
+
     #else
-    LGS->rank = rows;
+        LGS->rank = rows;
     #endif
     fprintf(stderr, "Rank=%d\n", LGS->rank);
 
