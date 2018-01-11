@@ -328,6 +328,7 @@ int check_gcd(lgs_t *LGS) {
     if (cols == 0) {
         return 1;
     }
+    fprintf(stderr, ">> preprocess: find rows whose rhs can not be reached because of gcd\n");
     for (j = 0; j < rows; j++) {
         mpz_set(g, LGS->matrix[j][0]);
         for (i = 1; i < cols; i++) {
@@ -359,6 +360,7 @@ int check_rows(lgs_t *LGS) {
     if (cols == 0) {
         return 1;
     }
+    fprintf(stderr, ">> preprocess: find rows whose entries are too small\n");
     for (j = 0; j < rows; j++) {
         mpz_set_ui(g, 0);
         if (LGS->upperbounds != NULL) {
@@ -384,12 +386,14 @@ int check_rows(lgs_t *LGS) {
 
 int preprocess(lgs_t *LGS) {
     int i, j, k, found_a_column = 0;
+    long p;
     int cols = LGS->num_cols;
     int rows = LGS->num_rows;
     int rnk1_a, rnk1_b, rnk2_a, rnk2_b;
 
     mpz_t sum_neg;
 
+    fprintf(stderr, ">> preprocess: remove zero-forced variables\n");
     // Remove columns whose upper bounds on the variables are zero.
     cols = LGS->num_cols;
     if (LGS->upperbounds != NULL) {
@@ -419,6 +423,7 @@ int preprocess(lgs_t *LGS) {
 
     // Remove columns whose entries are too large.
     #if 1
+    fprintf(stderr, ">> preprocess: remove columns with entries that are too large\n");
     mpz_init(sum_neg);
 
     for (j = 0; j < rows; j++) {
@@ -457,34 +462,54 @@ int preprocess(lgs_t *LGS) {
     }
 
     #if 1
-        rnk1_a = rank(LGS, 423847);
+        /*
+        fprintf(stderr, ">> preprocess: test solvability over the rationals by rank computation\n");
+        rnk1_a = rank(LGS, 7);
         LGS->num_cols--;
-        rnk1_b = rank(LGS, 423847);
+        rnk1_b = rank(LGS, 7);
         LGS->num_cols++;
-        fprintf(stderr, "Ranks: %d - %d\n", rnk1_b, rnk1_a);
+        fprintf(stderr, "Ranks p=7: %d - %d\n", rnk1_b, rnk1_a);
+
+        rnk1_a = rank(LGS, 11);
+        LGS->num_cols--;
+        rnk1_b = rank(LGS, 11);
+        LGS->num_cols++;
+        fprintf(stderr, "Ranks p=11: %d - %d\n", rnk1_b, rnk1_a);
+        */
+
+        #if 0
+        p = 423847;
+        rnk1_a = rank(LGS, );
+        LGS->num_cols--;
+        rnk1_b = rank(LGS, p);
+        LGS->num_cols++;
+        fprintf(stderr, "Ranks p=%ld: %d - %d\n", p, rnk1_b, rnk1_a);
 
         if (/*cols > rows &&*/ rnk1_a != rnk1_b) {
             fprintf(stderr, "First rank test mod p failed: no solution possible. Ranks: %d < %d\n", rnk1_b, rnk1_a);
             return 0;
         }
-
+        #endif
+        
         // Check rank
-        rnk1_a = rank(LGS, 1073741827);
+        p = 1073741827;
+        rnk1_a = rank(LGS, p);
         LGS->num_cols--;
-        rnk1_b = rank(LGS, 1073741827);
+        rnk1_b = rank(LGS, p);
         LGS->num_cols++;
-        fprintf(stderr, "Ranks: %d - %d\n", rnk1_b, rnk1_a);
+        fprintf(stderr, "Ranks p=%ld: %d - %d\n", p, rnk1_b, rnk1_a);
 
         if (/*cols > rows &&*/ rnk1_a != rnk1_b) {
             fprintf(stderr, "First rank test mod p failed: no solution possible. Ranks: %d < %d\n", rnk1_b, rnk1_a);
             return 0;
         }
 
-        rnk2_a = rank(LGS, 2116084177);
+        p = 2116084177;
+        rnk2_a = rank(LGS, p);
         LGS->num_cols--;
-        rnk2_b = rank(LGS, 2116084177);
+        rnk2_b = rank(LGS, p);
         LGS->num_cols++;
-        fprintf(stderr, "Ranks: %d - %d\n", rnk2_b, rnk2_a);
+        fprintf(stderr, "Ranks p=%ld: %d - %d\n", p, rnk2_b, rnk2_a);
 
         if (/*cols > rows &&*/ rnk2_a != rnk2_b) {
             fprintf(stderr, "Second rank test mod p failed: no solution possible. Ranks: %d < %d \n", rnk2_b, rnk2_a);

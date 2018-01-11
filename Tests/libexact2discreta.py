@@ -15,19 +15,25 @@ if __name__ == '__main__':
     for line in sys.stdin:
         c = line.strip().split(' ')
         if c[0] == 'r':
+            # RHS
             rhs.append(int(c[2]))
             num_rows += 1
+
         elif c[0] == 'c':
+            # Upper bounds on the variables
             bounds.append(int(c[2]))
             num_cols += 1
+
         elif c[0] == 'e':
+            # 1-entries of the matrix
             if is_first_entry:
                 for i in range(num_rows):
                     mat.append([0] * num_cols)
                 is_first_entry = False
-
             mat[int(c[1]) - 1][int(c[2]) - 1] = 1
+
         elif c[0] == 'p':
+            # Fixed variables
             v = [0] * num_cols
             v[int(c[1]) - 1] = 1
             mat.append(v)
