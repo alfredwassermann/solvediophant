@@ -209,16 +209,28 @@ int main(int argc, char *argv[]) {
             restart = 1;
 
         } else if (strcmp(argv[i],"-?") == 0 || strcmp(argv[i],"-h") == 0) {
-            fprintf(stderr,"\nsd2 --- multiple precision version --- \n");
-            fprintf(stderr,"sd2");
-            fprintf(stderr," -iterate*|(-bkz -beta*) [-c*] [-maxnorm*] [-scalelastline*] [-lds*] [-time*(sec)] [-silent] [-o*] [-restart*] [-printntl]");
-            fprintf(stderr,"[-delta_low*] ");
-            fprintf(stderr,"[-delta_med*] ");
-            fprintf(stderr,"[-delta_high*] ");
-            fprintf(stderr,"[-delta_higher*] ");
-            fprintf(stderr," inputfile\n");
-            fprintf(stderr," Print lattice: kill -10 PID\n");
-            fprintf(stderr," Dump lattice: kill -12 PID\n");
+            fprintf(stderr,"sd2 --- multiple precision version --- \n");
+            fprintf(stderr,"Usage:\n\tsd2 options inputfile\n");
+            fprintf(stderr,"Options:\n");
+            fprintf(stderr,"\t-iterate{num} do num LLL calls with delta=delta_high\n");
+            fprintf(stderr,"\t-bkz -beta{num} do BKZ with blocksize num\n");
+            fprintf(stderr,"\t-c{num} scale equations by num (default=10000000000000)\n");
+            fprintf(stderr,"\t-scalelastline{num} scale last line by num (default=1000)\n");
+            fprintf(stderr,"\t-maxnorm* ???? default=1\n");
+            fprintf(stderr,"\t-delta_low{num} delta for first LLL reduction\n");
+            fprintf(stderr,"\t-delta_med{num} delta for second reduction\n");
+            fprintf(stderr,"\t-delta_high{num} delta for second reduction and for third reduction in case of -iterate\n");
+            fprintf(stderr,"\t-delta_higher{num} delta for bkz reduction\n");
+
+            fprintf(stderr,"\t-o{string} write solutions to file 'string' (default='solutions')\n");
+            fprintf(stderr,"\t-time{num} stop program after num seconds\n");
+            fprintf(stderr,"\t-silent do not write solutions to stdout and solution file\n");
+            fprintf(stderr,"\t-printntl write (shortened) lattice after third reduction in NTL format to stdout\n");
+            fprintf(stderr,"\t-restart{string} Read dumped lattice basis from file 'string' and jump to third reduction phase\n");
+            fprintf(stderr,"\t-lds{num} Use LDS enumration up tp num discrepancies, otherwise use dfs (default=dfs)\n");
+            fprintf(stderr,"Signals:\n");
+            fprintf(stderr,"\t 10: print lattice, e.g. kill -10 PID\n");
+            fprintf(stderr,"\t 12 Dump lattice to file 'dump_lattice.b', e.g. kill -12 PID\n");
 
             exit(3);
         }
