@@ -108,7 +108,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     mpz_set_ui(lastlines_factor, 1);
     fprintf(stderr, "\n"); fflush(stderr);
     if (!restart) {
-        lll(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_LOW, CLASSIC_LLL);
+        lll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.lll.delta_low, CLASSIC_LLL);
 
         #if 0
             printf("After first reduction\n");
@@ -134,8 +134,8 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
              * second reduction
              */
             mpz_set_ui(lastlines_factor, 1);
-            lll(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_MED, POT_LLL);
-            lll(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGH, POT_LLL);
+            lll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.lll.delta_med, POT_LLL);
+            lll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.lll.delta_high, POT_LLL);
             fprintf(stderr, "Second reduction successful\n"); fflush(stderr);
         #endif
 
@@ -170,14 +170,17 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
      * third reduction
      */
     if (lattice->LLL_params.iterate) {
-        iteratedlll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.iterate_no, LLLCONST_HIGH, POT_LLL);
+        iteratedlll(lattice, lattice->num_cols, lattice->num_rows,
+                lattice->LLL_params.iterate_no,
+                lattice->LLL_params.lll.delta_high, POT_LLL);
     } else {
         //shufflelattice(lattice);
 
         for (block_size = 4; block_size <= lattice->LLL_params.bkz.beta; block_size += 4) {
             lD = lDnew;
             //shufflelattice(lattice);
-            lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows, LLLCONST_HIGHER,
+            lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
+                        lattice->LLL_params.lll.delta_higher,
                         block_size, lattice->LLL_params.bkz.p,
                         solutiontest, solutiontest_long);
             fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);

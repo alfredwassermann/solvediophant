@@ -490,7 +490,7 @@ int preprocess(lgs_t *LGS) {
             return 0;
         }
         #endif
-        
+
         // Check rank
         p = 1073741827;
         rnk1_a = rank(LGS, p);

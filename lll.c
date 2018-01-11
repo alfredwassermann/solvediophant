@@ -44,6 +44,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     int deep_size;
     coeff_t *swapvl;
 
+    // fprintf(stderr, "delta=%lf\n", delta);
     #if VERBOSE > 1
         int counter = 0;
     #endif
@@ -491,6 +492,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     int deep_size;
     long *swap;
 
+    // fprintf(stderr, "delta=%lf\n", delta);
     #if VERBOSE > 1
         int counter = 0;
     #endif

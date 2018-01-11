@@ -27,6 +27,13 @@ typedef struct {
     long stop_after_loops;
     int print_ntl;
 
+    struct _lll {
+        DOUBLE delta_low;
+        DOUBLE delta_med;
+        DOUBLE delta_high;
+        DOUBLE delta_higher;
+    } lll;
+
     struct _bkz {
         int beta;
         DOUBLE p;
@@ -36,7 +43,7 @@ typedef struct {
         int lds;
         int lds_k_max;
     } exhaustive_enum;
-    
+
 } lll_params_t;
 
 /**

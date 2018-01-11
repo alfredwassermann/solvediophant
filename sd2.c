@@ -112,6 +112,11 @@ int main(int argc, char *argv[]) {
     lattice.LLL_params.exhaustive_enum.lds = -1;
     lattice.LLL_params.exhaustive_enum.lds_k_max = 10;
 
+    lattice.LLL_params.lll.delta_low = LLLCONST_LOW;
+    lattice.LLL_params.lll.delta_med = LLLCONST_MED;
+    lattice.LLL_params.lll.delta_high = LLLCONST_HIGH;
+    lattice.LLL_params.lll.delta_higher = LLLCONST_HIGHER;
+
     mpz_init(lattice.LLL_params.scalelastlinefactor);
     mpz_init(lattice.matrix_factor);
     mpz_init(lattice.max_norm);
@@ -177,11 +182,27 @@ int main(int argc, char *argv[]) {
             strcpy(suffix, argv[i] + 14);
             mpz_set_str(lattice.LLL_params.scalelastlinefactor, suffix, 10);
 
-        } else if (strncmp(argv[i],"-i", 2) == 0) {
-            strcpy(suffix, argv[i] + 2);
+        // } else if (strncmp(argv[i],"-i", 2) == 0) {
+        //     strcpy(suffix, argv[i] + 2);
 
         } else if (strncmp(argv[i],"-o", 2) == 0) {
             strcpy(sol_filename, argv[i] + 2);
+
+        } else if (strncmp(argv[i],"-delta_low", 10) == 0) {
+            strcpy(suffix, argv[i] + 10);
+            lattice.LLL_params.lll.delta_low = atof(suffix);
+
+        } else if (strncmp(argv[i],"-delta_med", 10) == 0) {
+            strcpy(suffix, argv[i] + 10);
+            lattice.LLL_params.lll.delta_med = atof(suffix);
+
+        } else if (strncmp(argv[i],"-delta_higher", 13) == 0) { // must be before delta_high
+            strcpy(suffix, argv[i] + 13);
+            lattice.LLL_params.lll.delta_higher = atof(suffix);
+
+        } else if (strncmp(argv[i],"-delta_high", 11) == 0) {
+            strcpy(suffix, argv[i] + 11);
+            lattice.LLL_params.lll.delta_high = atof(suffix);
 
         } else if (strncmp(argv[i],"-restart", 8) == 0) {
             strcpy(restart_filename, argv[i] + 8);
@@ -191,6 +212,10 @@ int main(int argc, char *argv[]) {
             fprintf(stderr,"\nsd2 --- multiple precision version --- \n");
             fprintf(stderr,"sd2");
             fprintf(stderr," -iterate*|(-bkz -beta*) [-c*] [-maxnorm*] [-scalelastline*] [-lds*] [-time*(sec)] [-silent] [-o*] [-restart*] [-printntl]");
+            fprintf(stderr,"[-delta_low*] ");
+            fprintf(stderr,"[-delta_med*] ");
+            fprintf(stderr,"[-delta_high*] ");
+            fprintf(stderr,"[-delta_higher*] ");
             fprintf(stderr," inputfile\n");
             fprintf(stderr," Print lattice: kill -10 PID\n");
             fprintf(stderr," Dump lattice: kill -12 PID\n");
@@ -242,6 +267,12 @@ int main(int argc, char *argv[]) {
         fprintf(stderr,"Enumeration type is 'lds'. ");
         fprintf(stderr,"lds_k_max = %d\n", lattice.LLL_params.exhaustive_enum.lds_k_max);
     }
+
+    fprintf(stderr,"LLL deltas:\n");
+    fprintf(stderr,"\t low   =%lf\n", lattice.LLL_params.lll.delta_low);
+    fprintf(stderr,"\t med   =%lf\n", lattice.LLL_params.lll.delta_med);
+    fprintf(stderr,"\t high  =%lf\n", lattice.LLL_params.lll.delta_high);
+    fprintf(stderr,"\t higher=%lf\n", lattice.LLL_params.lll.delta_higher);
 
     inputfile_name = argv[argc-1];
 
