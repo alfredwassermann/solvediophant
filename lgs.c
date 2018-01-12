@@ -51,6 +51,11 @@ void lgs_free_mem(lgs_t *LGS) {
  */
 void read_linear_system(FILE *txt, lgs_t *LGS) {
     int i, j, res;
+    char *rowp;
+    char zeile[ZLENGTH];
+    int found_bounds = 0;
+    int found_selcols = 0;
+
     for (j = 0; j < LGS->num_rows; j++) {
         for (i = 0; i < LGS->num_cols; i++) {
             res = mpz_inp_str(LGS->matrix[j][i], txt, 10);
@@ -63,6 +68,32 @@ void read_linear_system(FILE *txt, lgs_t *LGS) {
             incorrect_input_file();
         }
     }
+
+    do {
+        rowp = fgets(zeile, ZLENGTH, txt);
+        if (strstr(zeile, "BOUNDS") != NULL) {
+            read_upper_bounds(txt, zeile, LGS);
+            found_bounds = 1;
+        } else if (strstr(zeile, "SELECTEDCOLUMNS") != NULL) {
+            read_selected_cols(txt, LGS);
+            found_selcols = 1;
+        }
+    } while (rowp != NULL);
+
+    if (!found_bounds) {
+        LGS->num_boundedvars = LGS->num_cols;
+        LGS->upperbounds = NULL;
+        fprintf(stderr, "No BOUNDS found \n");
+    }
+
+    if (!found_selcols) {
+        fprintf(stderr, "No SELECTCOLUMNS found \n");
+        LGS->num_original_cols = LGS->num_cols;
+        LGS->original_cols = (int*)calloc(LGS->num_original_cols, sizeof(int));
+        for (i = 0; i < LGS->num_original_cols; i++) {
+           LGS->original_cols[i] = 1;
+        }
+    }
 }
 
 /**
@@ -70,48 +101,25 @@ void read_linear_system(FILE *txt, lgs_t *LGS) {
  * @param file_name [description]
  * @param LGS       [description]
  */
-void read_upper_bounds(char *file_name, lgs_t *LGS) {
+void read_upper_bounds(FILE *txt, char *zeile, lgs_t *LGS) {
     int i;
-    FILE *txt;
-    char zeile[ZLENGTH];
-    char *rowp;
-    char detectstring[1024];
 
     LGS->upperbounds = NULL;
-    txt = fopen(file_name, "r");
-    if (txt == NULL) {
-        printf("Could not open file %s !\n", file_name);
-        fflush(stdout);
-        exit(1);
-    }
 
-    zeile[0] = '\0';
-    sprintf(detectstring, "BOUNDS");
-    do {
-        rowp = fgets(zeile, ZLENGTH, txt);
-    } while ((rowp != NULL) && (strstr(zeile,detectstring) == NULL));
+    // LGS->num_boundedvars has to be the number of variables!
+    sscanf(zeile, "BOUNDS %d", &(LGS->num_boundedvars));
 
-    LGS->num_boundedvars = LGS->num_cols;
-    if (rowp == NULL) {
-        LGS->upperbounds = NULL;
-        printf("No %s \n",detectstring);
-        fflush(stdout);
+    if (LGS->num_boundedvars > 0) {
+        fprintf(stderr, "Num. bounded variables = %d\n", LGS->num_boundedvars);
     } else {
-        // LGS->num_boundedvars has to be the number of variables!
-        sscanf(zeile,"BOUNDS %d", &(LGS->num_boundedvars));
-        if (LGS->num_boundedvars > 0) {
-            fprintf(stderr, "Nr. bounded variables=%d\n", LGS->num_boundedvars);
-        } else {
-            LGS->num_boundedvars = 0;
-        }
-
-        LGS->upperbounds = (mpz_t*)calloc(LGS->num_cols, sizeof(mpz_t));
-        for (i = 0; i < LGS->num_boundedvars; i++) {
-            mpz_init(LGS->upperbounds[i]);
-            mpz_inp_str(LGS->upperbounds[i], txt, 10);
-        }
+        LGS->num_boundedvars = 0;
     }
-    fclose(txt);
+
+    LGS->upperbounds = (mpz_t*)calloc(LGS->num_cols, sizeof(mpz_t));
+    for (i = 0; i < LGS->num_boundedvars; i++) {
+        mpz_init(LGS->upperbounds[i]);
+        mpz_inp_str(LGS->upperbounds[i], txt, 10);
+    }
 }
 
 /**
@@ -119,52 +127,26 @@ void read_upper_bounds(char *file_name, lgs_t *LGS) {
  * @param file_name [description]
  * @param LGS       [description]
  */
-void read_selected_cols(char *file_name, lgs_t *LGS) {
-    FILE *txt;
-    char zeile[ZLENGTH];
-    char *rowp;
-    char detectstring[1024];
+void read_selected_cols(FILE *txt, lgs_t *LGS) {
     int i, res;
 
-    txt = fopen(file_name, "r");
-    if (txt == NULL) {
-        printf("Could not open file %s !\n", file_name);
-        fflush(stdout);
-        exit(1);
+    fprintf(stderr, "SELECTEDCOLUMNS detected\n");
+    fflush(stderr);
+    res = fscanf(txt, "%d" , &(LGS->num_original_cols));
+    if (res == (long)NULL || res == (long)EOF) {
+        incorrect_input_file();
     }
 
-    sprintf(detectstring, "SELECTEDCOLUMNS");
-    do {
-        rowp = fgets(zeile, ZLENGTH, txt);
-    } while ((rowp != NULL) && (strstr(zeile, detectstring) == NULL));
+    LGS->original_cols = (int*)calloc(LGS->num_original_cols, sizeof(int));
 
-     if (rowp != NULL) {
-         fprintf(stderr, "SELECTEDCOLUMNS detected\n");
-         fflush(stderr);
-         res = fscanf(txt, "%d" , &(LGS->num_original_cols));
-         if (res == (long)NULL || res == (long)EOF) {
-             incorrect_input_file();
-         }
-     } else {
-         LGS->num_original_cols = LGS->num_cols;
-     }
-
-     LGS->original_cols = (int*)calloc(LGS->num_original_cols, sizeof(int));
-
-     if (rowp != NULL) {
-         for (i = 0; i < LGS->num_original_cols; i++) {
-             res = fscanf(txt, "%d", &(LGS->original_cols[i]));
-             if (res == (long)NULL || res == (long)EOF) {
-                 incorrect_input_file();
-             }
-         }
-     } else {
-         for (i = 0; i < LGS->num_original_cols; i++) {
-            LGS->original_cols[i] = 1;
-         }
-     }
-     fclose(txt);
+    for (i = 0; i < LGS->num_original_cols; i++) {
+        res = fscanf(txt, "%d", &(LGS->original_cols[i]));
+        if (res == (long)NULL || res == (long)EOF) {
+            incorrect_input_file();
+        }
+    }
 }
+
 /**
  * Computes the gcd of two integers
  */

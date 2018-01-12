@@ -22,8 +22,8 @@ typedef struct {
 
 extern void lgs_allocate_mem(lgs_t *LGS);
 extern void lgs_free_mem(lgs_t *LGS);
-extern void read_upper_bounds(char *file_name, lgs_t *LGS);
-extern void read_selected_cols(char *file_name, lgs_t *LGS);
+extern void read_upper_bounds(FILE *txt, char *zeile, lgs_t *LGS);
+extern void read_selected_cols(FILE *txt, lgs_t *LGS);
 extern void read_linear_system(FILE *txt, lgs_t *LGS);
 extern int  rank(lgs_t *LGS, long p);
 extern int  preprocess(lgs_t *LGS);

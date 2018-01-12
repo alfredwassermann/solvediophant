@@ -228,6 +228,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr,"sd2 --- multiple precision version --- \n");
             fprintf(stderr,"Usage:\n\tsd2 options inputfile\n");
             fprintf(stderr,"Options:\n");
+            fprintf(stderr,"\t inputfile: file name or '-'  for stdin\n");
             fprintf(stderr,"\t-iterate{num} do num LLL calls with delta=delta_high\n");
             fprintf(stderr,"\t-bkz -beta{num} do BKZ with blocksize num\n");
             fprintf(stderr,"\t-c{num} scale equations by num (default=10000000000000)\n");
@@ -255,9 +256,9 @@ int main(int argc, char *argv[]) {
     /**
      * Set default values
      */
-    if (argc < 2 || strncmp(argv[argc-1], "-", 1) == 0) {
-        fprintf(stderr,"The last parameter on the command line\n");
-        fprintf(stderr,"has to be the input file name.\n");
+    if (argc < 2 ||
+        (strlen(argv[argc-1]) > 1 && argv[argc-1][0] == '-')) {
+        fprintf(stderr,"The last parameter on the command line has to be the input file name or '-'.\n");
         exit(1);
     }
     if (lattice.LLL_params.iterate == -1) {
@@ -319,16 +320,24 @@ int main(int argc, char *argv[]) {
     signal(SIGUSR2, dump_lattice_sig);
 
     /**
-     * Read options and system size in input file
+     * Open file or stdin
      */
-    txt = fopen(inputfile_name, "r");
-    if (txt==NULL) {
+    if (strlen(inputfile_name) == 1 && inputfile_name[0] == '-') {
+        txt = stdin;
+    } else {
+        txt = fopen(inputfile_name, "r");
+    }
+
+    if (txt == NULL) {
         printf("Could not open file '%s'!\n", inputfile_name);
         fflush(stdout);
         exit(1);
     }
-    flag = 0;
 
+    /**
+     * Read additional options and system size in input file
+     */
+    flag = 0;
     lattice.free_RHS = 0;
     lattice.cut_after = -1;
     lattice.LLL_params.stop_after_loops = 0;
@@ -361,8 +370,6 @@ int main(int argc, char *argv[]) {
 	lgs_allocate_mem(&LGS);
     read_linear_system(txt, &LGS);
     fclose(txt);
-    read_upper_bounds(inputfile_name, &LGS);
-    read_selected_cols(inputfile_name, &LGS);
 
     solfile = fopen(sol_filename, "w");
     time_0 = os_ticks();
