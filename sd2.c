@@ -3,6 +3,7 @@
 #include <gmp.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <sys/times.h>  /* For run time measurements */
 #include <unistd.h>
 #include "lgs.h"
@@ -61,6 +62,31 @@ void print_delta_time_tps(int l, int tps, char *str) {
 
 void print_delta_time(int l, char *str) {
     print_delta_time_tps(l, os_ticks_per_second(), str);
+}
+
+int get_param(int argc, char *argv[], int i, char *name, char *suffix) {
+    int len;
+    //char suffix[1024];
+
+    if (i >= argc - 1 || strlen(argv[i]) >= 1024) {
+        suffix = "";
+        return 0;
+    }
+
+    len = strlen(name);
+    if (strncmp(argv[i], name, len) != 0) {
+        return 0;
+    }
+
+    strcpy(suffix, argv[i] + len);
+
+    if (strlen(suffix) == 0 && i < argc - 2 && argv[i + 1][0] != '-') {
+        // We do not have negative numbers as parameters
+        //|| (argv[i + 1][0] == '-' && isdigit(argv[i + 1][1])))) {
+        strcpy(suffix, argv[i + 1]);
+    }
+
+    return 1;
 }
 
 int SILENT;
@@ -134,81 +160,71 @@ int main(int argc, char *argv[]) {
      * Read CLI parameters
      */
     for (i = 1; i < argc; i++) {
-        if (strcmp(argv[i],"-silent") == 0) {
+        if (get_param(argc, argv, i, "-silent", suffix) != 0) {
             lattice.LLL_params.silent = SILENT = 1;
             fprintf(stderr,"No output of solutions, just counting.\n");
 
-        } else if (strncmp(argv[i],"-printntl", 9) == 0) {
+        } else if (get_param(argc, argv, i, "-printntl", suffix) != 0) {
             lattice.LLL_params.print_ntl = 1;
 
-        } else if (strncmp(argv[i],"-iterate", 8) == 0) {
-            strcpy(suffix, argv[i] + 8);
+        } else if (get_param(argc, argv, i, "-iterate", suffix) != 0) {
             lattice.LLL_params.iterate_no  = (int)strtol(suffix, &endptr, 10);
             lattice.LLL_params.iterate = 1;
 
-        } else if (strncmp(argv[i],"-bkz", 4) == 0) {
+        } else if (get_param(argc, argv, i, "-bkz", suffix) != 0) {
+            //fprintf(stderr, "SUFFIX %s\n", suffix);
             lattice.LLL_params.iterate = 0;
 
-        } else if (strncmp(argv[i],"-beta", 5) == 0) {
-            strcpy(suffix, argv[i] + 5);
+        } else if (get_param(argc, argv, i, "-beta", suffix) != 0) {
             lattice.LLL_params.bkz.beta = (int)strtol(suffix, &endptr, 10);
 
-        } else if (strncmp(argv[i],"-p", 2) == 0) {
-            strcpy(suffix, argv[i] + 2);
-            lattice.LLL_params.bkz.p = strtod(suffix, &endptr);
+        // -p is obsolete
+        // } else if (get_param(argc, argv, i, "-p", suffix) != 0) {
+        //     strcpy(suffix, argv[i] + 2);
+        //     lattice.LLL_params.bkz.p = strtod(suffix, &endptr);
 
-        } else if (strncmp(argv[i],"-lds", 4) == 0) {
-            strcpy(suffix, argv[i] + 4);
+        } else if (get_param(argc, argv, i, "-lds", suffix) != 0) {
             lattice.LLL_params.exhaustive_enum.lds = 1;
             if (strlen(suffix) > 0) {
                 lattice.LLL_params.exhaustive_enum.lds_k_max = (int)strtol(suffix, &endptr, 10);
             }
 
-        } else if (strncmp(argv[i],"-time", 5) == 0) {
-            strcpy(suffix, argv[i] + 5);
+        } else if (get_param(argc, argv, i, "-time", suffix) != 0) {
             maxruntime = (int)strtol(suffix, &endptr, 10);
-        } else if (strncmp(argv[i],"-c", 2) == 0) {
-            strcpy(suffix, argv[i] + 2);
-    #if 1
-            mpz_set_str(lattice.matrix_factor, suffix, 10);  /* Regular version */
-    #else
-            mpz_ui_pow_ui(lattice.matrix_factor, 10, strtoul(suffix, &endptr, 10)); /* Version for the NTL output */
-    #endif
-        } else if (strncmp(argv[i],"-maxnorm", 8) == 0) {
-            strcpy(suffix, argv[i] + 8);
+
+        } else if (get_param(argc, argv, i, "-c", suffix) != 0) {
+            #if 1
+                mpz_set_str(lattice.matrix_factor, suffix, 10);  /* Regular version */
+            #else
+                mpz_ui_pow_ui(lattice.matrix_factor, 10, strtoul(suffix, &endptr, 10)); /* Version for the NTL output */
+            #endif
+
+        } else if (get_param(argc, argv, i, "-maxnorm", suffix) != 0) {
             mpz_set_str(lattice.max_norm,suffix,10);
 
-        } else if (strncmp(argv[i],"-scalelastline", 14) == 0) {
-            strcpy(suffix, argv[i] + 14);
+        } else if (get_param(argc, argv, i, "-scalelastline", suffix) != 0) {
             mpz_set_str(lattice.LLL_params.scalelastlinefactor, suffix, 10);
 
-        // } else if (strncmp(argv[i],"-i", 2) == 0) {
-        //     strcpy(suffix, argv[i] + 2);
+        } else if (get_param(argc, argv, i, "-o", suffix) != 0) {
+            strcpy(sol_filename, suffix);
 
-        } else if (strncmp(argv[i],"-o", 2) == 0) {
-            strcpy(sol_filename, argv[i] + 2);
+        } else if (get_param(argc, argv, i, "-delta_low", suffix) != 0) {
+           lattice.LLL_params.lll.delta_low = strtod(suffix, &endptr);
 
-        } else if (strncmp(argv[i],"-delta_low", 10) == 0) {
-            strcpy(suffix, argv[i] + 10);
-            lattice.LLL_params.lll.delta_low = strtod(suffix, &endptr);
-
-        } else if (strncmp(argv[i],"-delta_med", 10) == 0) {
-            strcpy(suffix, argv[i] + 10);
+        } else if (get_param(argc, argv, i, "-delta_med", suffix) != 0) {
             lattice.LLL_params.lll.delta_med = strtod(suffix, &endptr);
 
-        } else if (strncmp(argv[i],"-delta_higher", 13) == 0) { // must be before delta_high
-            strcpy(suffix, argv[i] + 13);
+        } else if (get_param(argc, argv, i, "-delta_higher", suffix) != 0) { // must be before delta_high
             lattice.LLL_params.lll.delta_higher = strtod(suffix, &endptr);
 
-        } else if (strncmp(argv[i],"-delta_high", 11) == 0) {
-            strcpy(suffix, argv[i] + 11);
+        } else if (get_param(argc, argv, i, "-delta_high", suffix) != 0) {
             lattice.LLL_params.lll.delta_high = strtod(suffix, &endptr);
 
-        } else if (strncmp(argv[i],"-restart", 8) == 0) {
-            strcpy(restart_filename, argv[i] + 8);
+        } else if (get_param(argc, argv, i, "-restart", suffix) != 0) {
+            strcpy(restart_filename, suffix);
             restart = 1;
 
-        } else if (strcmp(argv[i],"-?") == 0 || strcmp(argv[i],"-h") == 0) {
+        } else if (strcmp(argv[i], "-?") == 0 || strcmp(argv[i], "-h") == 0) {
             fprintf(stderr,"sd2 --- multiple precision version --- \n");
             fprintf(stderr,"Usage:\n\tsd2 options inputfile\n");
             fprintf(stderr,"Options:\n");
@@ -239,7 +255,7 @@ int main(int argc, char *argv[]) {
     /**
      * Set default values
      */
-    if (argc < 2 || strncmp(argv[argc-1], "-",1) == 0) {
+    if (argc < 2 || strncmp(argv[argc-1], "-", 1) == 0) {
         fprintf(stderr,"The last parameter on the command line\n");
         fprintf(stderr,"has to be the input file name.\n");
         exit(1);
