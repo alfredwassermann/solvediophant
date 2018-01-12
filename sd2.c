@@ -97,6 +97,7 @@ int main(int argc, char *argv[]) {
 
     char zeile[ZLENGTH];
     char suffix[1024];
+    char *endptr;
 
     FILE* solfile;
     char sol_filename[1024];
@@ -142,7 +143,7 @@ int main(int argc, char *argv[]) {
 
         } else if (strncmp(argv[i],"-iterate", 8) == 0) {
             strcpy(suffix, argv[i] + 8);
-            lattice.LLL_params.iterate_no  = atoi(suffix);
+            lattice.LLL_params.iterate_no  = (int)strtol(suffix, &endptr, 10);
             lattice.LLL_params.iterate = 1;
 
         } else if (strncmp(argv[i],"-bkz", 4) == 0) {
@@ -150,29 +151,28 @@ int main(int argc, char *argv[]) {
 
         } else if (strncmp(argv[i],"-beta", 5) == 0) {
             strcpy(suffix, argv[i] + 5);
-            lattice.LLL_params.bkz.beta = atoi(suffix);
+            lattice.LLL_params.bkz.beta = (int)strtol(suffix, &endptr, 10);
 
         } else if (strncmp(argv[i],"-p", 2) == 0) {
             strcpy(suffix, argv[i] + 2);
-            lattice.LLL_params.bkz.p = atof(suffix);
+            lattice.LLL_params.bkz.p = strtod(suffix, &endptr);
 
         } else if (strncmp(argv[i],"-lds", 4) == 0) {
             strcpy(suffix, argv[i] + 4);
             lattice.LLL_params.exhaustive_enum.lds = 1;
             if (strlen(suffix) > 0) {
-                lattice.LLL_params.exhaustive_enum.lds_k_max = atoi(suffix);
+                lattice.LLL_params.exhaustive_enum.lds_k_max = (int)strtol(suffix, &endptr, 10);
             }
 
         } else if (strncmp(argv[i],"-time", 5) == 0) {
             strcpy(suffix, argv[i] + 5);
-            maxruntime = atoi(suffix);
-
+            maxruntime = (int)strtol(suffix, &endptr, 10);
         } else if (strncmp(argv[i],"-c", 2) == 0) {
             strcpy(suffix, argv[i] + 2);
     #if 1
             mpz_set_str(lattice.matrix_factor, suffix, 10);  /* Regular version */
     #else
-            mpz_ui_pow_ui(lattice.matrix_factor, 10, atoi(suffix)); /* Version for the NTL output */
+            mpz_ui_pow_ui(lattice.matrix_factor, 10, strtoul(suffix, &endptr, 10)); /* Version for the NTL output */
     #endif
         } else if (strncmp(argv[i],"-maxnorm", 8) == 0) {
             strcpy(suffix, argv[i] + 8);
@@ -190,19 +190,19 @@ int main(int argc, char *argv[]) {
 
         } else if (strncmp(argv[i],"-delta_low", 10) == 0) {
             strcpy(suffix, argv[i] + 10);
-            lattice.LLL_params.lll.delta_low = atof(suffix);
+            lattice.LLL_params.lll.delta_low = strtod(suffix, &endptr);
 
         } else if (strncmp(argv[i],"-delta_med", 10) == 0) {
             strcpy(suffix, argv[i] + 10);
-            lattice.LLL_params.lll.delta_med = atof(suffix);
+            lattice.LLL_params.lll.delta_med = strtod(suffix, &endptr);
 
         } else if (strncmp(argv[i],"-delta_higher", 13) == 0) { // must be before delta_high
             strcpy(suffix, argv[i] + 13);
-            lattice.LLL_params.lll.delta_higher = atof(suffix);
+            lattice.LLL_params.lll.delta_higher = strtod(suffix, &endptr);
 
         } else if (strncmp(argv[i],"-delta_high", 11) == 0) {
             strcpy(suffix, argv[i] + 11);
-            lattice.LLL_params.lll.delta_high = atof(suffix);
+            lattice.LLL_params.lll.delta_high = strtod(suffix, &endptr);
 
         } else if (strncmp(argv[i],"-restart", 8) == 0) {
             strcpy(restart_filename, argv[i] + 8);
@@ -292,6 +292,7 @@ int main(int argc, char *argv[]) {
      * Start alarm for max run time
      */
     if (maxruntime > 0) {
+        fprintf(stderr, "Alarm: stop program after %d seconds\n", maxruntime);
         signal(SIGALRM, stop_program_sig);
         alarm(maxruntime);
     }
