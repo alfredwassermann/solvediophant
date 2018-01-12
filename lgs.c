@@ -521,7 +521,7 @@ int preprocess(lgs_t *LGS) {
     #else
         LGS->rank = rows;
     #endif
-    fprintf(stderr, "Rank=%d\n", LGS->rank);
+    fprintf(stderr, "rank >= %d\n", LGS->rank);
 
     return 1;
 }

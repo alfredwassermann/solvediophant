@@ -1153,7 +1153,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice) {
 
     DOUBLE **fipo;
     /* test the size of the basis */
-    fprintf(stderr, "Dimension of solution space (k): %d compared to columns-rank: %d\n",
+    fprintf(stderr, "Dimension of solution space (k): %d compared to (columns - rank): %d\n",
                 lattice->num_cols, lattice->lgs_cols - lattice->lgs_rank + 1 + lattice->free_RHS);
     fflush(stderr);
 
