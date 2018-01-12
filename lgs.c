@@ -98,7 +98,8 @@ void read_linear_system(FILE *txt, lgs_t *LGS) {
 
 /**
  * Read upper bounds and allocate memory for LGS->upperbounds
- * @param file_name [description]
+ * @param txt [description]
+ * @param zeile [description]
  * @param LGS       [description]
  */
 void read_upper_bounds(FILE *txt, char *zeile, lgs_t *LGS) {
@@ -124,7 +125,7 @@ void read_upper_bounds(FILE *txt, char *zeile, lgs_t *LGS) {
 
 /**
  * Search for pre-selected variables
- * @param file_name [description]
+ * @param txt [description]
  * @param LGS       [description]
  */
 void read_selected_cols(FILE *txt, lgs_t *LGS) {
