@@ -444,7 +444,7 @@ int preprocess(lgs_t *LGS) {
         return 0;
     }
 
-    #if 1
+    #if 0
         /*
         fprintf(stderr, ">> preprocess: test solvability over the rationals by rank computation\n");
         rnk1_a = rank(LGS, 7);
