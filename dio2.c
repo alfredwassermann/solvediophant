@@ -709,6 +709,20 @@ void allocateEnum_data(enum_level_t** enum_data, DOUBLE **fipo, int columns, int
     }
 }
 
+/**
+ * @brief Generate all enumeration nodes of a given level `level`.
+ * The nodes are stored in `enum_data`.
+ *
+ * @param enum_data 
+ * @param lattice 
+ * @param us 
+ * @param fipo 
+ * @param level 
+ * @param max_steps 
+ * @return int
+ *      0: after all nodes of the level have been generated
+ *      -1: if LLL_params.stop_after_loops has been reached.
+ */
 int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                 DOUBLE *us,
                 DOUBLE** fipo,
@@ -922,16 +936,33 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
     return level;
 }
 
+/**
+ * @brief Recursive procedure for "least discrepancy search"
+ * 
+ * @param enum_data 
+ * @param lattice 
+ * @param us 
+ * @param fipo 
+ * @param level 
+ * @param lds_k 
+ * @param lds_threshold
+ * @return int
+ *      -1: if enumLevel() returns -1 (reached max loops.)
+ *      -1: if max solutions is reached
+ *      -1: if recursive call of lds() return -1
+ *      1: if level >= lattice->num_cols
+ *      max_height: otherwise
+ */
 int lds(enum_level_t* enum_data, lattice_t* lattice,
                 DOUBLE *us,
                 DOUBLE** fipo,
                 int level,
-                int lds_k, int lds_l, int lds_threshold) {
+                int lds_k, int lds_threshold) {
 
     int j;
     int start, end, pos, do_left_branch_last, p;
     int next_lds_k;
-    int height, max_height, count;
+    int height, max_height;
     int max_steps;
     enum_level_t* ed = &(enum_data[level]);
 
@@ -978,7 +1009,6 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
         }
     }
 
-    count = 0;
     max_height = 0;
 
     for (p = start; p <= ed->num; p++) {
@@ -991,6 +1021,9 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
 
         us[level] = ed->nodes[pos].us;
         if (level == 0) {
+            if (p > 1) {
+                fprintf(stderr, "!!!!\n");
+            }
             // Solution found
             if (final_test(ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us, lattice) == 1) {
                 print_solution(lattice, ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us,
@@ -1032,15 +1065,12 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
 
             height = lds(enum_data, lattice,
                     us, fipo, level,
-                    next_lds_k, lds_l, lds_threshold);
+                    next_lds_k, lds_threshold);
 
             if (height == -1) {
                 return -1;
             }
             if (height + 1 > max_height) max_height = height + 1;
-            if (height >= lds_l) {
-                count++;
-            }
 
             level++;
         }
@@ -1053,6 +1083,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
         //break;
         return 1;
     } else if (level > level_max) {
+        // level_max is global!!!
         level_max = level;
     }
     return max_height;
@@ -1307,7 +1338,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice) {
         //for (k = 0; k <= 8/*lattice->num_cols*/; k++) {
         for (k = 0; k < lattice->LLL_params.exhaustive_enum.lds_k_max; k++) {
             fprintf(stderr, "lds_k=%d\n", k); fflush(stderr);
-            result = lds(enum_data, lattice, us, fipo, level, k, 0, 0);
+            result = lds(enum_data, lattice, us, fipo, level, k, 0);
 
             if (result  == -1) {
                 fprintf(stderr, "solution for lds_k=%d\n\n", k);
