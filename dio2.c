@@ -945,6 +945,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
             fipo,
             level, max_steps)) {
 
+        // enumLevel reached max. num of solutions
         return -1;
     }
 
@@ -973,19 +974,10 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
             //end = (lds_k < 2) ? lds_k + 1 : 2;
         } else {
             // left-branches only
-            #if 0
-                // BBS
-                // lds_k == 0: start conventional backtracking
-                start = 0;
-                end = ed->num;
-                do_left_branch_last = 0;
-            #else
-                end = 1;
-            #endif
+            end = 1;
         }
     }
 
-    // BBS
     count = 0;
     max_height = 0;
 
@@ -994,15 +986,9 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
         if (p >= end &&
             !(do_left_branch_last && p == ed->num)) {
                 continue;
-            }
+        } // Otherwise we execute the leftmost branch at the end.
         ed->pos = pos = p % ed->num;
 
-        //--------------
-        // BBS
-        // if (lds_k == 0 && count > 0) {
-        //     break;
-        // }
-        //--------------
         us[level] = ed->nodes[pos].us;
         if (level == 0) {
             // Solution found
@@ -1035,7 +1021,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
 
             next_lds_k = lds_k;
             if (level >= lds_threshold) {
-                // we are in ILDS mode
+                // We are in ILDS mode
                 if (pos == 0) {
                     // depth > k, left branch
                     next_lds_k = lds_k;
@@ -1048,7 +1034,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
                     us, fipo, level,
                     next_lds_k, lds_l, lds_threshold);
 
-                    if (height == -1) {
+            if (height == -1) {
                 return -1;
             }
             if (height + 1 > max_height) max_height = height + 1;
