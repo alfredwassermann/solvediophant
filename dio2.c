@@ -950,8 +950,8 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
  *      -1: if enumLevel() returns -1 (reached max loops.)
  *      -1: if max solutions is reached
  *      -1: if recursive call of lds() return -1
- *      0: if level >= lattice->num_cols
- *      max_height: otherwise
+ *      1: solutions are still possible
+ *      2: No solution is possible
  */
 int lds(enum_level_t* enum_data, lattice_t* lattice,
                 DOUBLE *us,
@@ -959,14 +959,13 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
                 int level,
                 int lds_k, int lds_threshold) {
 
-    int j;
     int start, end, pos, do_left_branch_last, p;
     int next_lds_k;
     int ret;
 
-    // 0 if we could reach lds_k = 0
-    // 1 otherwise
-    int exhausted = 1;
+    // 1 if we could reach lds_k = 0
+    // 2 otherwise. In this case we can stop enumeration.
+    int exhausted = 2;
 
     // Controls the maximum values which are searched for in
     // one level in enumLevel.
@@ -994,9 +993,9 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
         ed->is_leave_count++;
 
         if (lds_k > 0) {
-            exhausted = 1;
+            exhausted = 2;
         } else {
-            exhausted = 0;
+            exhausted = 1;
         }
     }
 
@@ -1004,11 +1003,13 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
     do_left_branch_last = 1;
     if (level < lds_threshold) {
         // dfs branching
+        //
         start = 0;
         end = ed->num;
         do_left_branch_last = 0;
     } else {
         // lds branching
+        //
         // depth <= k: no more left branches are possible,
         // if all discrepancies should be used.
         // Without this check, search trees for smaller
@@ -1044,7 +1045,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
                     lattice->num_cols);
                 #if 0
                 int f = 0;
-                for (j = lattice->num_cols - 1 ; j >= 0; j--) {
+                for (int j = lattice->num_cols - 1 ; j >= 0; j--) {
                     // fprintf(stderr, "%d: %d of %d\t%0.0lf\t%d",
                     //     j,
                     //     enum_data[j].pos, enum_data[j].num,
@@ -1068,12 +1069,14 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
                     return -1;
                 }
             }
-            exhausted = 0;
+            if (lds_k > 0) {
+                exhausted = 2;
+            } else {
+                exhausted = 1;
+            }
         } else {
-            level--;
-
             next_lds_k = lds_k;
-            if (level >= lds_threshold) {
+            if (level > lds_threshold) {
                 // We are in ILDS mode
                 if (pos == 0) {
                     // depth > k, left branch
@@ -1084,32 +1087,26 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
             }
 
             ret = lds(enum_data, lattice,
-                    us, fipo, level,
+                    us, fipo, level - 1,
                     next_lds_k, lds_threshold);
 
             if (ret == -1) {
                 return -1;
             }
-            if (ret == 0) {
-                exhausted = 0;
+            if (ret == 1) {
+                exhausted = ret;
             }
-
-            //if (height + 1 > max_height) max_height = height + 1;
-
-            level++;
         }
     }
 
     level++;
-    if (level >= lattice->num_cols) {
-        // We are done, let's leave the loop.
-        //break;
-        return 0;
-    }
+    // if (level >= lattice->num_cols) {
+    //     return 0;
+    // }
 
     // level_max is used in enumLevel()
     // for the computation of y.
-    if (level > level_max) {
+    if (level_max < level && level < lattice->num_cols) {
         // level_max is global!!!
         level_max = level;
     }
@@ -1367,10 +1364,10 @@ DOUBLE explicit_enumeration(lattice_t *lattice) {
             fprintf(stderr, "lds_k=%d\n", k); fflush(stderr);
             result = lds(enum_data, lattice, us, fipo, level, k, 0);
 
-            if (result  == -1) {
-                fprintf(stderr, "solution for lds_k=%d\n\n", k);
+            if (result == -1) {
+                fprintf(stderr, "max_solutions or max_loops reached for lds_k=%d\n\n", k);
                 break;
-            } else if (result == 1) {
+            } else if (result == 2) {
                 fprintf(stderr, "No more discrepancies possible than lds_k=%d\n\n", k);
                 break;
             }
