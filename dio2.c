@@ -1361,6 +1361,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice) {
         //for (i = 0; i <= columns / 2; i++) {
         //for (k = 0; k <= 8/*lattice->num_cols*/; k++) {
         for (k = 0; k < lattice->LLL_params.exhaustive_enum.lds_k_max; k++) {
+            level_max = level;
             fprintf(stderr, "lds_k=%d\n", k); fflush(stderr);
             result = lds(enum_data, lattice, us, fipo, level, k, 0);
 

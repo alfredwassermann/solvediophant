@@ -139,9 +139,11 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
         r_tt *= r_tt;
         if (delta * r_tt > new_cj) {
             //fprintf(stderr, "R: %lf %lf\n", r_tt, new_cj);
+            #if 0
             fprintf(stderr, "enum %d successful %d %lf improvement: %lf\n",
                 beta, start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
             fflush(stderr);
+            #endif
 
             /* successful enumeration */
             #if 1
@@ -445,9 +447,9 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                     c_min = c[t];
                     for (i = start_block; i <= end_block; i++) {
                         u[i] = (long)round(u_loc[i]);
-                        fprintf(stderr, "%ld ", u[i]);
+                        // fprintf(stderr, "%ld ", u[i]);
                     }
-                    fprintf(stderr, "\n");
+                    // fprintf(stderr, "\n");
                     found_improvement = 1;
                 }
             } else {
