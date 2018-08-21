@@ -8,8 +8,8 @@ CFLAGS= -O3 -Wall \
         -march=native -mtune=native -msse -msse2 -msse3 -mssse3 -m64 \
         -pipe  \
 		-finline-functions  \
+    	-fomit-frame-pointer \
 		-ftree-vectorize \
-        -fomit-frame-pointer \
 		-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4
 
 	#	-fprofile-use \
@@ -63,10 +63,9 @@ all: sd3 tags
 
 #sd3: sd2.o dio2.o lgs.o lattice.o lll.o bkz.o dualbkz.o
 #	$(CC) $(CFLAGS) -o sd3 sd2.o dio2.o bkz.o dualbkz.o lll.o lattice.o lgs.o $(BLASLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
-sd3: sd2.o dio2.o lgs.o lattice.o lll.o bkz.o
-	$(CC) $(CFLAGS) -o sd3 sd2.o dio2.o bkz.o lll.o lattice.o lgs.o  \
-	-lm -static \
-	$(BLASLIB) \
+sd3: sd2.o dio2.o lgs.o lattice.o lll.o bkz.o enum.o
+	$(CC) $(CFLAGS) -o sd3 sd2.o dio2.o bkz.o lll.o lattice.o lgs.o enum.o \
+	-lm -static $(BLASLIB) \
 	-lgmp $(GMPLIB) $(GMPINC)
 
 dio2.pdf: dio2.c

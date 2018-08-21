@@ -365,7 +365,7 @@ int main(int argc, char *argv[]) {
     sscanf(zeile, "%d%d%d", &(LGS.num_rows), &(LGS.num_cols), &flag);
 
     /**
-     * Allocate memory and read LGS
+     * Allocate memory and read problem LGS from file
      */
 	lgs_allocate_mem(&LGS);
     read_linear_system(txt, &LGS);
