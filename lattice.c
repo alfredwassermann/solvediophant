@@ -14,16 +14,17 @@
 #include "lattice.h"
 #include "lll.h"
 
-#if defined(USEBLAS)
+#if defined(USE_BLAS)
     #define BLAS 1
+    #include <cblas-openblas.h>
+#elif defined(USE_BLAS_DEV)
+    #define BLAS 1
+    #include "common.h"
+    #include "cblas.h"
 #else
     #define BLAS 0
 #endif
 
-#if BLAS
-    #include "OpenBLASsub/common.h"
-    #include "OpenBLASsub/cblas.h"
-#endif
 
 void debug_print(char *m, int l) {
     if (VERBOSE >= l) {

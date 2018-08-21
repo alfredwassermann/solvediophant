@@ -24,19 +24,36 @@ CFLAGS= -O3 -Wall \
 #CFLAGS= -g -Wall
 
 VIMFLAGS=-c 'set printoptions=number:y,left:2pc,right:2pc' -c 'set printfont=Courier:h9'
-#ASSEMBLERLIB=/usr/lib/openblas-base/libblas.a
 
-BLAS=USEBLAS
-BLASINC=./OpenBLASsub/
-BLASLIB=-L./OpenBLASsub/ -lopenblas -lpthread
-#BLAS=NOBLAS
-#BLASINC=
-#BLASLIB=
+###################################
+# USE BLAS library
+#
+# First option: do not use BLAS at all.
+# Uncomment these:
+# BLAS=NOBLAS
+# BLASINC=.
+# BLASLIB=
+# Second option: use OpenBLAS as installed in ubuntu.
+# Uncomment these:
+# BLAS=USE_BLAS
+# BLASINC=/usr/lib/x86_64-linux-gnu/
+# BLASLIB=-L/usr/lib/x86_64-linux-gnu/ -lopenblas -lpthread
+# Third option: use OpenBLAS installed and compiled in a folder.
+# Uncomment these:
+BLAS=USE_BLAS_DEV
+BLASINC=../OpenBLAS/
+BLASLIB=-L../OpenBLAS/ -lopenblas -lpthread
+###################################
 
-#GMPLIB=-L../gmp-4.2.1/bin/lib
-#GMPINC=-I../gmp-4.2.1/bin/include
+###################################
+# Use of the GMP long integer library
+# First option: standard install in ubuntu
 GMPLIB=
 GMPINC=
+# Second option: use a dedicated folder containing GMP
+#GMPLIB=-L../gmp-4.2.1/bin/lib
+#GMPINC=-I../gmp-4.2.1/bin/include
+###################################
 
 #all: solvediophant.dvi diophant.pdf solvediophant
 all: sd3 tags
@@ -44,7 +61,6 @@ all: sd3 tags
 %.o: %.c %.h datastruct.h
 	$(CC) $(CFLAGS) -D$(BLAS) -I$(BLASINC) -c $< $(GMPINC)
 
-# With BLAS
 #sd3: sd2.o dio2.o lgs.o lattice.o lll.o bkz.o dualbkz.o
 #	$(CC) $(CFLAGS) -o sd3 sd2.o dio2.o bkz.o dualbkz.o lll.o lattice.o lgs.o $(BLASLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
 sd3: sd2.o dio2.o lgs.o lattice.o lll.o bkz.o
@@ -80,8 +96,6 @@ lgs.pdf: lgs.c
 
 tags: $(SRCS) Makefile
 	ctags *
-
-
 
 .PHONY: clean
 clean:

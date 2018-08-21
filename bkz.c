@@ -15,15 +15,15 @@
 #include "lll.h"
 #include "bkz.h"
 
-#if defined(USEBLAS)
+#if defined(USE_BLAS)
     #define BLAS 1
-#else
-    #define BLAS 0
-#endif
-
-#if BLAS
+    #include <cblas-openblas.h>
+#elif defined(USE_BLAS_DEV)
+    #define BLAS 1
     #include "common.h"
     #include "cblas.h"
+#else
+    #define BLAS 0
 #endif
 
 /**
