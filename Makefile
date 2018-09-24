@@ -5,9 +5,9 @@ CC=gcc
 CFLAGS= -O3 -Wall \
         -funroll-all-loops    \
 		-flto \
-        -march=native -mtune=native -msse -msse2 -msse3 -mssse3 -m64 \
         -pipe  \
 		-finline-functions  \
+        -march=native -mtune=native -msse -msse2 -msse3 -mssse3 -m64 \
     	-fomit-frame-pointer \
 		-ftree-vectorize \
 		-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4
@@ -35,14 +35,14 @@ VIMFLAGS=-c 'set printoptions=number:y,left:2pc,right:2pc' -c 'set printfont=Cou
 # BLASLIB=
 # Second option: use OpenBLAS as installed in ubuntu.
 # Uncomment these:
-# BLAS=USE_BLAS
-# BLASINC=/usr/lib/x86_64-linux-gnu/
-# BLASLIB=-L/usr/lib/x86_64-linux-gnu/ -lopenblas -lpthread
+BLAS=USE_BLAS
+BLASINC=/usr/lib/x86_64-linux-gnu/
+BLASLIB=-L/usr/lib/x86_64-linux-gnu/ -lopenblas -lpthread
 # Third option: use OpenBLAS installed and compiled in a folder.
 # Uncomment these:
-BLAS=USE_BLAS_DEV
-BLASINC=../OpenBLAS/
-BLASLIB=-L../OpenBLAS/ -lopenblas -lpthread
+# BLAS=USE_BLAS_DEV
+# BLASINC=../OpenBLAS/
+# BLASLIB=-L../OpenBLAS/ -lopenblas -lpthread
 ###################################
 
 ###################################
