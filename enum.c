@@ -38,7 +38,7 @@ solution_t solution;
 /**
  * Globals for enumeration
  */
-int MAX_DUAL_BOUNDS = 512;
+int MAX_DUAL_BOUNDS = 1024;
 int level_max;
 long loops;
 
@@ -87,7 +87,7 @@ void allocateEnum_data(enum_level_t** enum_data, DOUBLE **fipo, int columns, int
  * @brief Generate all enumeration nodes of a given level `level`.
  * The nodes are stored in `enum_data`.
  *
- * @param enum_data 
+ * @param enum_data
  * @param lattice 
  * @param us 
  * @param fipo 
