@@ -298,10 +298,10 @@ int main(int argc, char *argv[]) {
     }
 
     fprintf(stderr,"LLL deltas:\n");
-    fprintf(stderr,"\t low   =%lf\n", lattice.LLL_params.lll.delta_low);
-    fprintf(stderr,"\t med   =%lf\n", lattice.LLL_params.lll.delta_med);
-    fprintf(stderr,"\t high  =%lf\n", lattice.LLL_params.lll.delta_high);
-    fprintf(stderr,"\t higher=%lf\n", lattice.LLL_params.lll.delta_higher);
+    fprintf(stderr,"\t delta_low   =%lf\n", lattice.LLL_params.lll.delta_low);
+    fprintf(stderr,"\t delta_med   =%lf\n", lattice.LLL_params.lll.delta_med);
+    fprintf(stderr,"\t delta_high  =%lf\n", lattice.LLL_params.lll.delta_high);
+    fprintf(stderr,"\t delta_higher=%lf\n", lattice.LLL_params.lll.delta_higher);
 
     inputfile_name = argv[argc-1];
 
