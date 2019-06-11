@@ -22,6 +22,9 @@
     #define BLAS 1
     #include "common.h"
     #include "cblas.h"
+#elif defined(USE_BLAS_OLD)
+    #define BLAS 1
+    #include <cblas.h>
 #else
     #define BLAS 0
 #endif

@@ -22,6 +22,8 @@ CFLAGS= -O3 -Wall \
 	#-ffast-math
 	#-fprofile-generate -fprofile-use\
 
+#CFLAGS= -O3 -Wall
+
 #CFLAGS= -O3 -mcpu=i686 -march=i686 -fforce-addr -funroll-loops -frerun-cse-after-loop -frerun-loop-opt -malign-functions=4
 #CFLAGS= -g -Wall
 
@@ -36,8 +38,11 @@ VIMFLAGS=-c 'set printoptions=number:y,left:2pc,right:2pc' -c 'set printfont=Cou
 # BLASINC=.
 # BLASLIB=
 # Second option: use OpenBLAS as installed in ubuntu.
-# Uncomment these:
-BLAS=USE_BLAS
+# Uncomment BLAS, BLASINC and BLASLIB:
+# Modern machine:
+# BLAS=USE_BLAS
+# Old machine, needed for old UBT compute cluster:
+BLAS=USE_BLAS_OLD
 BLASINC=/usr/lib/x86_64-linux-gnu/
 BLASLIB=-L/usr/lib/x86_64-linux-gnu/ -lopenblas -lpthread
 # Third option: use OpenBLAS installed and compiled in a folder.
@@ -67,8 +72,8 @@ all: sd3 tags
 #	$(CC) $(CFLAGS) -o sd3 sd2.o dio2.o bkz.o dualbkz.o lll.o lattice.o lgs.o $(BLASLIB) -lm -static -lgmp $(GMPLIB) $(GMPINC) -lpthread
 sd3: sd2.o dio2.o lgs.o lattice.o lll.o bkz.o enum.o
 	$(CC) $(CFLAGS) -o sd3 sd2.o dio2.o bkz.o lll.o lattice.o lgs.o enum.o \
-	-lm -static $(BLASLIB) \
-	-lgmp $(GMPLIB) $(GMPINC)
+	-static $(BLASLIB) \
+	-lgmp $(GMPLIB) $(GMPINC) -lm -lc
 
 dio2.pdf: dio2.c
 	vim $(VIMFLAGS) -c 'hardcopy > dio2.ps' -c quit dio2.c
