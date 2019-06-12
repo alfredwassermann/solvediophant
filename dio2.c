@@ -62,7 +62,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 
     #if BLAS
         fprintf(stderr, "Use OpenBLAS\n");
-        openblas_set_num_threads(2);
+        openblas_set_num_threads(4);
     #endif
 
     if (!preprocess(LGS)) {

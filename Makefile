@@ -4,15 +4,15 @@ CC=gcc
 
 CFLAGS= -O3 -Wall \
     -funroll-all-loops    \
-		-flto \
+	-flto \
     -march=native -mtune=native -msse -msse2 -msse3 -mssse3 -m64 \
     -pipe  \
-		-finline-functions  \
+	-finline-functions  \
     -fomit-frame-pointer \
-		-ftree-vectorize \
-		-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4
+	-ftree-vectorize \
+	-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4
 
-# CFLAGS= -O3 -Wall -funroll-all-loops
+#CFLAGS= -O3 -Wall -funroll-all-loops
 
 	#	-fprofile-use \
 	#-ffinite-math-only -fno-trapping-math -fno-signaling-nans -fno-signed-zeros \
@@ -40,16 +40,16 @@ VIMFLAGS=-c 'set printoptions=number:y,left:2pc,right:2pc' -c 'set printfont=Cou
 # Second option: use OpenBLAS as installed in ubuntu.
 # Uncomment BLAS, BLASINC and BLASLIB:
 # Modern machine:
-# BLAS=USE_BLAS
+#BLAS=USE_BLAS
 # Old machine, needed for old UBT compute cluster:
-BLAS=USE_BLAS_OLD
-BLASINC=/usr/lib/x86_64-linux-gnu/
-BLASLIB=-L/usr/lib/x86_64-linux-gnu/ -lopenblas -lpthread
+#BLAS=USE_BLAS_OLD
+#BLASINC=/usr/lib/x86_64-linux-gnu/
+#BLASLIB=-L/usr/lib/x86_64-linux-gnu/ -lopenblas -lpthread
 # Third option: use OpenBLAS installed and compiled in a folder.
 # Uncomment these:
-# BLAS=USE_BLAS_DEV
-# BLASINC=../OpenBLAS/
-# BLASLIB=-L../OpenBLAS/ -lopenblas -lpthread
+BLAS=USE_BLAS_DEV
+BLASINC=../OpenBLAS/
+BLASLIB=-L../OpenBLAS/ -lopenblas -lpthread
 ###################################
 
 ###################################
