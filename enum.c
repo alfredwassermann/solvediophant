@@ -247,7 +247,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
             }
 
             if (ed->num >= MAX_DUAL_BOUNDS) {
-                fprintf(stderr, "enum_data too small! Exit\n", ed->num);
+                fprintf(stderr, "enum_data too small! Exit\n");
                 fflush(stderr);
                 exit(1);
             }
@@ -290,7 +290,29 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
         if (level == 0) {
             // Solution found
             if (final_test(ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us, lattice) == 1) {
+              #if TRUE
                 print_solution(lattice, ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us, lattice->num_cols);
+              #else
+                int f = 0;
+                for (int j = lattice->num_cols - 1 ; j >= 0; j--) {
+                    fprintf(stderr, "%d: %d of %d\t%0.0lf\t%d",
+                        j,
+                        enum_data[j].pos, enum_data[j].num,
+                        us[j],
+                        enum_data[j].is_leave_count
+                    );
+                    if (enum_data[j].pos > 1) {
+                        // fprintf(stderr, "%d,",enum_data[j].pos);
+                        fprintf(stderr, "\t*");
+                        f = 1;
+                    }
+                    fprintf(stderr, "\n");
+                    if (j == 0) {
+                        fprintf(stderr, "-------------------------------------\n");
+                    }
+                }
+                if (f == 1) fprintf(stderr, " ");
+              #endif
 
                 if (lattice->LLL_params.stop_after_solutions > 0 &&
                     lattice->LLL_params.stop_after_solutions <= num_solutions) {
@@ -366,10 +388,14 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
         return -1;
     }
 
+    // In this level there are no branches to enumerate
     if (ed->num == 0) {
         ed->is_leave_count++;
 
+        // There are still discrepancies available
         if (lds_k > 0) {
+            printf("HERE %d %d\n", level, lds_k);
+            fflush(stdout);
             exhausted = 2;
         } else {
             exhausted = 1;
@@ -487,6 +513,11 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
         // level_max is global!!!
         level_max = level;
     }
+    // if (exhausted == 2) {
+    //     printf("EXHAUSTED %d\n", level);
+    //     fflush(stdout);
+
+    // }
     return exhausted;
 }
 
@@ -745,7 +776,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice) {
             if (result == -1) {
                 fprintf(stderr, "max_solutions or max_loops reached for lds_k=%d\n\n", k);
                 break;
-            } else if (result == 2) {
+            } else if (result == -2) {
                 fprintf(stderr, "No more discrepancies possible than lds_k=%d\n\n", k);
                 break;
             }
