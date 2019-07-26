@@ -394,8 +394,8 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
 
         // There are still discrepancies available
         if (lds_k > 0) {
-            printf("HERE %d %d\n", level, lds_k);
-            fflush(stdout);
+            //printf("HERE %d %d\n", level, lds_k);
+            //fflush(stdout);
             exhausted = 2;
         } else {
             exhausted = 1;
