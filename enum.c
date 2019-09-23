@@ -41,7 +41,7 @@ solution_t solution;
 /**
  * Globals for enumeration
  */
-int MAX_DUAL_BOUNDS = 8192; //1024;
+int MAX_DUAL_BOUNDS = 512; //8192; //1024;
 int level_max;
 long loops;
 

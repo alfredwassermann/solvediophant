@@ -4,6 +4,7 @@ CC=gcc
 
 CFLAGS= -O3 -Wall \
     -funroll-all-loops    \
+    --param max-unroll-times=2 \
 	-flto \
     -march=native -mtune=native -msse -msse2 -msse3 -mssse3 -m64 \
     -pipe  \
@@ -11,6 +12,7 @@ CFLAGS= -O3 -Wall \
     -fomit-frame-pointer \
 	-ftree-vectorize \
 	-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4
+# -O3 -ffast-math -fno-cx-limited-range -funroll-loops --param max-unroll-times=2 -march=native
 
 #CFLAGS= -O3 -Wall -funroll-all-loops
 
