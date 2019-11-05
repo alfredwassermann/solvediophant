@@ -1394,6 +1394,7 @@ int lllfree(DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs, int s) @;
 @ Compute $\log D$ for a lattice $L$, see the LLL paper.
 @<compute $\log D$@>=
 double logD(COEFF **lattice, DOUBLE *c, int s, int z) {
+/*|
     double d = 0.0;
     int i;
     for (i=0;i<s;i++) {
@@ -1401,6 +1402,8 @@ double logD(COEFF **lattice, DOUBLE *c, int s, int z) {
     }
     d *= 0.5;
     return d;
+|*/
+    return 0.0;
 }
 
 @ The logarithm of the orthogonality defect of a lattice is computed:
@@ -2656,7 +2659,8 @@ enough solutions.
            }
 #endif
             if (isSideStep) {
-                compute_w2(w, bd, stepWidth, level, rows);
+                compute_w(w, bd, dum[level], level, rows);
+                /*BUG |compute_w2(w, bd, stepWidth, level, rows);|*/
             } else {
                 compute_w(w, bd, dum[level], level, rows);
             }
