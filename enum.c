@@ -175,7 +175,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
         if (node->cs >= Fd)  {
             goto_back = TRUE;
         } else if (fabs(coeff) > lattice->decomp.bd_1norm[level]) {
-            /* Use (1, -1, 0, ...) as values in Hoelder pruning */
+            /* Use (1, -1, 0, ...) as linear combination in Hoelder pruning */
             goto_back = TRUE;
             ++hoelder2_success;
         } else if (fabs(u) > fipo[0][level] ||

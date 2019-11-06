@@ -3,7 +3,8 @@
 
 * KM_PGGL_2_32_t7_k8.in:
 0/1 problem, 4996426 solutions, ca. 16 min
-./solvediophant -bkz -beta100 -p40 -silent Tests/KM_PGGL_2_32_t7_k8.in
+./solvediophant -bkz -beta100 -p40 -silent Tests/KM_PGGL_2_32_t7_k8.in (18 min, 13 min mit compute_w2)
+./sd2 -bkz -beta100 -silent Tests/KM_PGGL_2_32_t7_k8.in (18 min)
 
 * KM_PSL_2_23_7_8.in:
 0/1 problem, 2 solutions, ca. 1 min
@@ -26,4 +27,7 @@ but there are many
 
 * 4-arcs.txt
 32705 solution. sd3: 19 sec
+
+* in_sd.txt
+25 solutions. A buggy version found 24 solutions.
 
