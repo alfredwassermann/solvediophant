@@ -108,6 +108,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
     int i;
     int goto_back;
     int is_good;
+    int is_new_node = TRUE;
     int columns = lattice->num_cols;
     int rows = lattice->num_rows;
 
@@ -123,6 +124,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
     DOUBLE coeff = 0.0;
     DOUBLE y = 0.0;
     DOUBLE u;
+    DOUBLE u_previous = 0.0;
     long delta;
     long v;
     int eta;
@@ -144,6 +146,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
         u = v = ROUND(-y);
         d = (v > -y) ? -1 : 1;
     }
+
 
     do {
         /* increase loop counter */
@@ -183,7 +186,12 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
             dual_bound_success++;
             is_good = FALSE;
         } else {
-            norm1 = compute_w(node->w, parent_node->w, bd, coeff, level, rows);
+            if (is_new_node) {
+                norm1 = compute_w(node->w, parent_node->w, bd, coeff, level, rows);
+                is_new_node = FALSE;
+            } else {
+                norm1 = compute_w2(node->w, bd, u - u_previous, level, rows);
+            }
             if (level > 0) {
                 if (node->cs > Fqeps * norm1) {
                     ++hoelder_success;
@@ -194,6 +202,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                         eta = 1;
                         delta *= -1;
                         if (delta * d >= 0) delta += d;
+                        u_previous = u;
                         u = v + delta;
                         continue;
                     }
@@ -208,30 +217,6 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                         is_good = FALSE;
                     }
                 }
-
-                // i = prune_only_zeros(lattice, node->w, parent_node->w,
-                //         level, rows,
-                //         Fq, // first_nonzero_in_column, firstp,
-                //         bd, y, columns);
-                // if (i < 0) {
-                //     goto_back = TRUE;
-                // } else if (i > 0) {
-                //     is_good = FALSE;
-                // } else if (node->cs > Fqeps * norm1) {
-                //     //} else if (prune(node->w, node->cs, rows, Fqeps)) {
-                //     ++hoelder_success;
-                //     is_good = FALSE;
-                //     if (eta == 1) {
-                //         goto_back = TRUE;
-                //     } else {
-                //         eta = 1;
-                //         delta *= -1;
-                //         if (delta * d >= 0) delta += d;
-                //         u = v + delta;
-                //         // isSideStep = TRUE;
-                //         continue;
-                //     }
-                // }
             }
         }
 
@@ -241,6 +226,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
             node->us = u;
             ed->num++;
             node = &(ed->nodes)[ed->num];
+            is_new_node = TRUE;
 
             if (max_steps >= 0 && ed->num >= max_steps) {
                 return 0;
@@ -265,6 +251,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
         } else {
             delta += d * ((delta * d >= 0) ? 1: -1);
         }
+        u_previous = u;
         u = v + delta;
     } while (TRUE);
 
@@ -864,17 +851,21 @@ DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max) {
     #endif
 }
 
-void compute_w2(DOUBLE *w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
+DOUBLE compute_w2(DOUBLE *w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     #if BLAS
         cblas_daxpy(rows, alpha, bd[level], 1, w, 1);
+        return cblas_dasum(rows, w, 1);
     #else
         int i;
-        for (i = rows - 1; i >= 0; --i) {
-            w[i] += alpha * bd[level][i];
-        }
-    #endif
+        register DOUBLE norm1 = 0.0;
+        DOUBLE *b = &(bd[level][0]);
 
-    return;
+        for (i = rows - 1; i >= 0; --i) {
+            w[i] += alpha * b[i];
+            norm1 += fabs(w[i]);
+        }
+        return norm1;
+    #endif
 }
 
 DOUBLE compute_w(DOUBLE *w, DOUBLE *w1, DOUBLE **bd, DOUBLE alpha, int level, int rows) {

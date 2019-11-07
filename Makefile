@@ -44,6 +44,7 @@ VIMFLAGS=-c 'set printoptions=number:y,left:2pc,right:2pc' -c 'set printfont=Cou
 # Modern machine:
 #BLAS=USE_BLAS
 # Old machine, needed for old UBT compute cluster:
+# Compile it at btmdxe
 #BLAS=USE_BLAS_OLD
 #BLASINC=/usr/lib/x86_64-linux-gnu/
 #BLASLIB=-L/usr/lib/x86_64-linux-gnu/ -lopenblas -lpthread

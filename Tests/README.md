@@ -1,3 +1,5 @@
+# Test problems for solvediophant
+
 * KM_Id7_t2_k3.in:
 0/1 problem, 30 solutions, easy
 

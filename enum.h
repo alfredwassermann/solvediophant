@@ -17,7 +17,7 @@ typedef struct {
 extern DOUBLE explicit_enumeration(lattice_t *lattice);
 
 extern DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max);
-extern void compute_w2(DOUBLE *w, DOUBLE **bd, DOUBLE alpha, int level, int rows);
+extern DOUBLE compute_w2(DOUBLE *w, DOUBLE **bd, DOUBLE alpha, int level, int rows);
 extern DOUBLE compute_w(DOUBLE *w, DOUBLE *w1, DOUBLE **bd, DOUBLE alpha, int level, int rows);
 extern void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c);
 extern void givens(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c);
