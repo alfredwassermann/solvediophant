@@ -2658,9 +2658,11 @@ enough solutions.
                 goto side_step;
            }
 #endif
-            if (isSideStep) {
-                compute_w(w, bd, dum[level], level, rows);
+            if (isSideStep && level != 0) {
+                /*|compute_w(w, bd, dum[level], level, rows);|*/
                 /*BUG |compute_w2(w, bd, stepWidth, level, rows);|*/
+                /* The bug happens if |compute_w2| is called in |level==0| */
+                compute_w2(w, bd, stepWidth, level, rows);
             } else {
                 compute_w(w, bd, dum[level], level, rows);
             }

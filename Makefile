@@ -2,11 +2,12 @@ CC=gcc
 
 CFLAGS= -O3 -Wall -ffast-math \
         -funroll-all-loops    \
-        -march=native -mtune=native -msse -msse2 -msse3 -mssse3 -m64 \
         -pipe  \
+    	-march=native -mtune=native -msse -msse2 -msse3 -mssse3 -m64 \
         -fomit-frame-pointer -finline-functions  \
 		-ftree-vectorize \
 		-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4
+
 	#-ftree-vectorizer-verbose=2
 	#-mveclibabi=svml
 	#-mfpmath=sse+387  # unstable
@@ -18,7 +19,8 @@ CFLAGS= -O3 -Wall -ffast-math \
 #CFLAGS= -g -Wall
 #ASSEMBLERLIB=./GotoBLAS2/libgoto2.a
 #ASSEMBLERLIB=/usr/lib/openblas-base/libopenblas.a
-ASSEMBLERLIB=./OpenBLASsub/libopenblas.a
+#ASSEMBLERLIB=./OpenBLASsub/libopenblas.a
+ASSEMBLERLIB=-L/usr/lib/x86_64-linux-gnu/ -lopenblas -lpthread
 #ASSEMBLERLIB=./OpenBLASsub/libopenblas_sandybridgep-r0.2.8.a
 #GMPLIB=-L../gmp-4.2.1/bin/lib
 #GMPINC=-I../gmp-4.2.1/bin/include
