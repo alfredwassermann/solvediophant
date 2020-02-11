@@ -87,7 +87,7 @@ void read_linear_system(FILE *txt, lgs_t *LGS) {
     }
 
     if (!found_selcols) {
-        fprintf(stderr, "No SELECTCOLUMNS found \n");
+        fprintf(stderr, "No SELECTEDCOLUMNS found \n");
         LGS->num_original_cols = LGS->num_cols;
         LGS->original_cols = (int*)calloc(LGS->num_original_cols, sizeof(int));
         for (i = 0; i < LGS->num_original_cols; i++) {
