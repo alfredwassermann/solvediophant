@@ -33,11 +33,13 @@ but there are many
 With lds solutions are output quickly (lds_k=3)
 
 * 4-arcs.txt
-32705 solution. sd3: 19 sec
+32705 solution. sd3: 10 sec on btmdx2
 sd3:
-    dfs: 32704 solutions
-    lds: 32704 solutions
+    dfs: 32705 solutions
+    lds: 32705 solutions
+    17.2.2021: bug fix sd3, one solutions was missing
 
 * in_sd.txt
-25 solutions. A buggy version found 24 solutions.
+non 0/1 problem 25 solutions.
+A buggy version found 24 solutions.
 With lds: 13 solutions
