@@ -411,11 +411,11 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
         // if all discrepancies should be used.
         // Without this check, search trees for smaller
         // values of lds_k are repeated.
-        if (level - lds_threshold < lds_k) {
-            //printf("B %d %d, %d\n", level, lds_k, ed->num);
-            start = 1;
-            do_left_branch_last = 0;
-        }
+        // if (level - lds_threshold < lds_k) {
+        //     //printf("B %d %d, %d\n", level, lds_k, ed->num);
+        //     start = 1;
+        //     do_left_branch_last = 0;
+        // }
         if (lds_k > 0) {
             // Take all nodes per level:
             end = (lds_k < ed->num) ? lds_k + 1 : ed->num;
@@ -436,10 +436,12 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
         } // Otherwise we execute the leftmost branch at the end.
         ed->pos = pos = p % ed->num;
 
+        // printf("pos=%d\n", pos);
         us[level] = ed->nodes[pos].us;
         if (level == 0) {
             // Solution found
-            if (final_test(ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us, lattice) == 1) {
+            if (lds_k - pos == 0 &&
+                final_test(ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us, lattice) == 1) {
                 print_solution(lattice, ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us,
                     lattice->num_cols);
                 #if 0
@@ -1115,7 +1117,7 @@ int prune_only_zeros(lattice_t *lattice, DOUBLE *w, DOUBLE *w1,
             //     return -1;
             // }
 
-            if ( fabs(fabs(w[f]) - Fq) > EPSILON ) {
+            if ( fabs(fabs(w[f]) - Fq) > 1000* EPSILON ) {
                 only_zeros_success++;
                 return 1;
             }
