@@ -117,9 +117,9 @@ typedef struct {
     long denom;
 
     decomp_t decomp;
-    
+
     lll_params_t LLL_params;
-    
+
 } lattice_t;
 
 typedef struct {

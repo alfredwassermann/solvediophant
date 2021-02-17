@@ -225,8 +225,8 @@ void allocate_basis (lattice_t *lattice) {
     lattice->basis = (coeff_t**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(coeff_t*));
     lattice->basis_long = (long**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(long*));
     for (j = 0; j < lattice->num_cols + ADDITIONAL_COLS; j++) {
-        lattice->basis_long[j] = (long*)calloc(lattice->num_rows, sizeof(long));
-        lattice->basis[j] = (coeff_t*)calloc(lattice->num_rows + 1, sizeof(coeff_t));
+        lattice->basis_long[j] = (long*)calloc((unsigned int)lattice->num_rows, sizeof(long));
+        lattice->basis[j] = (coeff_t*)calloc((unsigned int)lattice->num_rows + 1, sizeof(coeff_t));
         for (i = 0; i <= lattice->num_rows; i++) {
             mpz_init(lattice->basis[j][i].c);
         }

@@ -11,7 +11,7 @@ void lgs_allocate_mem(lgs_t *LGS) {
     LGS->matrix = (mpz_t**)calloc(LGS->num_rows, sizeof(mpz_t*));
 
     for (j = 0; j < LGS->num_rows; j++) {
-        LGS->matrix[j] = (mpz_t*)calloc(LGS->num_cols, sizeof(mpz_t));
+        LGS->matrix[j] = (mpz_t*)calloc((unsigned int)LGS->num_cols, sizeof(mpz_t));
         for (i = 0; i < LGS->num_cols; i++)
            mpz_init(LGS->matrix[j][i]);
     }
@@ -369,10 +369,10 @@ int check_rows(lgs_t *LGS) {
 
 int preprocess(lgs_t *LGS) {
     int i, j, k, found_a_column = 0;
-    long p;
+    //long p;
     int cols = LGS->num_cols;
     int rows = LGS->num_rows;
-    int rnk1_a, rnk1_b, rnk2_a, rnk2_b;
+    //int rnk1_a, rnk1_b, rnk2_a, rnk2_b;
 
     mpz_t sum_neg;
 
