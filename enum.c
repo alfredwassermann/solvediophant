@@ -137,13 +137,15 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
 
     delta = eta = 0;
     if (level == level_max) {
-        u = v = 1.0;
+        u = 1.0;
+        v = 1;
         y = 0.0;
         d = 1;
         eta = 1;
     } else {
         y = compute_y(lattice->decomp.mu_trans, us, level, level_max);
-        u = v = ROUND(-y);
+        u = ROUND(-y);
+        v = (long)u;
         d = (v > -y) ? -1 : 1;
     }
 
@@ -180,13 +182,13 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
             /* Use (1, -1, 0, ...) as linear combination in Hoelder pruning */
             goto_back = TRUE;
             ++hoelder2_success;
-        } else if (fabs(u) > fipo[0][level] ||
-                   fabs(u + 1) > fipo[1][level]) {
+        } else if (fabs(u) > fipo[0][level] || fabs(u + 1) > fipo[1][level]) {
             dual_bound_success++;
             is_good = FALSE;
         } else {
             if (is_new_node) {
                 norm1 = compute_w(node->w, parent_node->w, bd, coeff, level, rows);
+                u_previous = u;
                 is_new_node = FALSE;
             } else {
                 norm1 = compute_w2(node->w, bd, u - u_previous, level, rows);
@@ -201,14 +203,13 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                         eta = 1;
                         delta *= -1;
                         if (delta * d >= 0) delta += d;
-                        u_previous = u;
                         u = v + delta;
                         continue;
                     }
                 } else {
                     i = prune_only_zeros(lattice, node->w, parent_node->w,
                         level, rows,
-                        Fq, //first_nonzero_in_column, firstp,
+                        Fq,
                         bd, y, columns);
                     // if (i < 0) {
                     //     goto_back = TRUE;
@@ -251,7 +252,6 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
         } else {
             delta += d * ((delta * d >= 0) ? 1: -1);
         }
-        u_previous = u;
         u = v + delta;
     } while (TRUE);
 
