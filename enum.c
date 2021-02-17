@@ -1201,9 +1201,9 @@ int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *u
             mpz_out_str(NULL, 10, solution.u);
         }
         printf("\n");
-        fflush(stdout);
+        /*fflush(stdout);*/
         fprintf(solution.fp, "\n");
-        fflush(solution.fp);
+        /*fflush(solution.fp);*/
     }
 
     num_solutions++;
