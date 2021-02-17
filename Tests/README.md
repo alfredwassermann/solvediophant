@@ -31,6 +31,7 @@ non 0/1 problem, 104 solutions
 solvediophant does not find solutions (at least in the first 5 minutes)
 but there are many
 With lds solutions are output quickly (lds_k=3)
+./sd3 -lds -bkz -beta36 Tests/KM_C11Id2X_t3_k4.txt
 
 * 4-arcs.txt
 32705 solution. sd3: 10 sec on btmdx2
@@ -38,6 +39,7 @@ sd3:
     dfs: 32705 solutions
     lds: 32705 solutions
     17.2.2021: bug fix sd3, one solutions was missing
+    STILL MISSING
 
 * in_sd.txt
 non 0/1 problem 25 solutions.

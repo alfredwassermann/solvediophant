@@ -1117,7 +1117,7 @@ int prune_only_zeros(lattice_t *lattice, DOUBLE *w, DOUBLE *w1,
             //     return -1;
             // }
 
-            if ( fabs(fabs(w[f]) - Fq) > 1000* EPSILON ) {
+            if ( fabs(fabs(w[f]) - Fq) > EPSILON ) {
                 only_zeros_success++;
                 return 1;
             }
@@ -1133,6 +1133,7 @@ int prune_only_zeros(lattice_t *lattice, DOUBLE *w, DOUBLE *w1,
             // }
 
             if (fabs(w[f]) > Fq * (1 + EPSILON)) {
+                only_zeros_success++;
                 return 1;
             }
         }
