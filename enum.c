@@ -211,9 +211,10 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                         level, rows,
                         Fq, //first_nonzero_in_column, firstp,
                         bd, y, columns);
-                    if (i < 0) {
-                        goto_back = TRUE;
-                    } else if (i > 0) {
+                    // if (i < 0) {
+                    //     goto_back = TRUE;
+                    // } else
+                    if (i > 0) {
                         is_good = FALSE;
                     }
                 }
@@ -1098,14 +1099,14 @@ int prune_only_zeros(lattice_t *lattice, DOUBLE *w, DOUBLE *w1,
     only_zeros_no++;
     for (i = 0; i < lattice->decomp.first_nonzero_in_column[lattice->decomp.firstp[level]]; i++) {
         f = lattice->decomp.first_nonzero_in_column[lattice->decomp.firstp[level] + 1 + i];
-        u1 = ( Fq - w1[f]) / bd[level][f] - y;
-        u2 = (-Fq - w1[f]) / bd[level][f] - y;
+        // u1 = ( Fq - w1[f]) / bd[level][f] - y;
+        // u2 = (-Fq - w1[f]) / bd[level][f] - y;
 
         if (lattice->is_zero_one) {
-            if (fabs(u1 - round(u1)) > EPSILON && fabs(u2 - round(u2)) > EPSILON) {
-                only_zeros_success++;
-                return -1;
-            }
+            // if (fabs(u1 - round(u1)) > EPSILON && fabs(u2 - round(u2)) > EPSILON) {
+            //     only_zeros_success++;
+            //     return -1;
+            // }
 
             if ( fabs(fabs(w[f]) - Fq) > EPSILON ) {
                 only_zeros_success++;
@@ -1115,14 +1116,14 @@ int prune_only_zeros(lattice_t *lattice, DOUBLE *w, DOUBLE *w1,
         } else {  /* Not zero-one */
 
             /* Here we have to be very conservative */
-            if (u2 - u1 <= 1.0 + EPSILON &&
-                    fabs(w[f]) < UINT32_MAX &&
-                    fabs(w[f] - round(w[f])) > 0.001) {
-                only_zeros_success++;
-                return -1;
-            }
+            // if (u2 - u1 <= 1.0 + EPSILON &&
+            //         fabs(w[f]) < UINT32_MAX &&
+            //         fabs(w[f] - round(w[f])) > 0.001) {
+            //     only_zeros_success++;
+            //     return -1;
+            // }
 
-            if (fabs(w[f]) > Fq * (1+EPSILON)) {
+            if (fabs(w[f]) > Fq * (1 + EPSILON)) {
                 return 1;
             }
         }
