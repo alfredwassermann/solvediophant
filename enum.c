@@ -147,7 +147,6 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
         d = (v > -y) ? -1 : 1;
     }
 
-
     do {
         /* increase loop counter */
         loops++;
@@ -344,14 +343,17 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
                 DOUBLE *us,
                 DOUBLE** fipo,
                 int level,
-                int lds_k, int lds_threshold) {
+                int lds_k,
+                int lds_threshold) {
 
     int start, end, pos, do_left_branch_last, p;
     int next_lds_k;
     int ret;
 
-    // 1 if we could reach lds_k = 0
-    // 2 otherwise. In this case we can stop enumeration.
+    // 1 if we still can reach lds_k = 0, 2 otherwise.
+    // In the latter case we can stop enumeration,
+    // because there are no enumerations left, but we will never
+    // reach lds_k == 0
     int exhausted = 2;
 
     // Controls the maximum values which are searched for in
@@ -361,6 +363,8 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
     int max_steps = -1;
 
     //int max_height = 0;
+
+    // Short cut for the parameter enum_data
     enum_level_t* ed = &(enum_data[level]);
 
     if (level >= lds_threshold && lds_k == 0) {
@@ -376,7 +380,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
         return -1;
     }
 
-    // In this level there are no branches to enumerate
+    // ed->num == 0 means that in this level there are no branches to enumerate
     if (ed->num == 0) {
         ed->is_leave_count++;
 
@@ -389,11 +393,13 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
             exhausted = 1;
         }
     }
+    // We are in ILDS mode
 
     start = 1;
     do_left_branch_last = 1;
     if (level < lds_threshold) {
-        // dfs branching
+        // lds_threshold is typically 0.lds_k=2
+        // If it is larger than 0, we do conventional dfs branching below this level.
         //
         start = 0;
         end = ed->num;
@@ -406,6 +412,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
         // Without this check, search trees for smaller
         // values of lds_k are repeated.
         if (level - lds_threshold < lds_k) {
+            //printf("B %d %d, %d\n", level, lds_k, ed->num);
             start = 1;
             do_left_branch_last = 0;
         }
@@ -420,8 +427,9 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
         }
     }
 
+    // printf("START lds level=%d end=%d num=%d do_left_branch_last=%d lds_k=%d\n", level, end, ed->num, do_left_branch_last, lds_k);
     for (p = start; p <= ed->num; p++) {
-        // Right branches first
+        // Right branches first:
         if (p >= end &&
             !(do_left_branch_last && p == ed->num)) {
                 continue;
@@ -476,7 +484,6 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
                     next_lds_k = (lds_k > p) ? lds_k - pos : 0;
                 }
             }
-
             ret = lds(enum_data, lattice,
                     us, fipo, level - 1,
                     next_lds_k, lds_threshold);
@@ -1094,7 +1101,7 @@ int prune_only_zeros(lattice_t *lattice, DOUBLE *w, DOUBLE *w1,
 
     int i;
     int f;
-    DOUBLE u1, u2;
+    // DOUBLE u1, u2;
 
     only_zeros_no++;
     for (i = 0; i < lattice->decomp.first_nonzero_in_column[lattice->decomp.firstp[level]]; i++) {
@@ -1145,14 +1152,19 @@ int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *u
         return 0;
     }
 
+    // for (k = 0; k < columns; k++) {
+    //     printf("%0.2lf ", us[k]);
+    // }
+    // printf("\n");
+
     if (!lattice->LLL_params.silent) {
         mpz_set_si(solution.upfac,1);
         mpz_set_si(solution.s,0);
-        for (k=0;k<columns;k++) {
+        for (k = 0; k < columns; k++) {
             if (ROUND(us[k])>0) {
                 mpz_addmul_ui(solution.s, get_entry(lattice->basis, k, rows-1), ROUND(us[k]));
             } else {
-            mpz_submul_ui(solution.s, get_entry(lattice->basis, k,rows-1), -ROUND(us[k]));
+                mpz_submul_ui(solution.s, get_entry(lattice->basis, k,rows-1), -ROUND(us[k]));
             }
         }
 
