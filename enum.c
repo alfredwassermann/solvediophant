@@ -188,11 +188,11 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
         } else {
             if (is_new_node) {
                 norm1 = compute_w(node->w, parent_node->w, bd, coeff, level, rows);
-                u_previous = u;
                 is_new_node = FALSE;
             } else {
                 norm1 = compute_w2(node->w, bd, u - u_previous, level, rows);
             }
+            u_previous = u;
             if (level > 0) {
                 if (node->cs > Fqeps * norm1) {
                     ++hoelder_success;
