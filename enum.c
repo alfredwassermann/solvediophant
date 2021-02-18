@@ -407,15 +407,18 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
     } else {
         // lds branching
         //
+        // This works for binary search trees only:
         // depth <= k: no more left branches are possible,
         // if all discrepancies should be used.
         // Without this check, search trees for smaller
         // values of lds_k are repeated.
+        // We now check this at level 0.
         // if (level - lds_threshold < lds_k) {
         //     //printf("B %d %d, %d\n", level, lds_k, ed->num);
         //     start = 1;
         //     do_left_branch_last = 0;
         // }
+
         if (lds_k > 0) {
             // Take all nodes per level:
             end = (lds_k < ed->num) ? lds_k + 1 : ed->num;
