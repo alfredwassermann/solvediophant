@@ -6,12 +6,12 @@
 * KM_PGGL_2_32_t7_k8.in:
 0/1 problem, 4996426 solutions, ca. 16 min
 ./solvediophant -bkz -beta100 -p40 -silent Tests/KM_PGGL_2_32_t7_k8.in (18 min, 13 min mit compute_w2)
-./sd2 -bkz -beta100 -silent Tests/KM_PGGL_2_32_t7_k8.in (18 min)
+./sd3 -bkz -beta40 -silent Tests/KM_PGGL_2_32_t7_k8.in (18 min)
 All solutions are found also with lds
 
 * KM_PSL_2_23_7_8.in:
 0/1 problem, 2 solutions, ca. 1 min
-./solvediophant -bkz -beta100 -p40 Tests/KM_PSL_2_23_7_8.in
+./sd3 -bkz -beta40 Tests/KM_PSL_2_23_7_8.in
 All solutions are found also with lds
 
 * unitals_v1.txt:
@@ -21,11 +21,11 @@ first solutions: 49 sec with dfs, 43 sec with lds
 
 * n8_279.txt:
 non 0/1 problem, 1848 solutions
-./solvediophant -c10000 -bkz -beta160 -p70 Tests/n8_279.txt
+./sd3 -c10000 -bkz -beta40 Tests/n8_279.txt
 
 * n8_282.txt:
 non 0/1 problem, 104 solutions
-./solvediophant -c10000 -bkz -beta160 -p70 Tests/n8_282.txt
+./sd3 -c10000 -bkz -beta40 Tests/n8_282.txt
 
 * KM_C11Id2X_t3_k4.txt:
 solvediophant does not find solutions (at least in the first 5 minutes)

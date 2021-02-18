@@ -51,6 +51,7 @@
 - `./sd2 -bkz -beta30 -p18 Bench/qdesign_2_8_4_217_q2_LS_prob2.txt`
 - No solution after several days
 - `./sd3 -c1000 -bkz -beta60 -p18 Bench/qdesign_2_8_4_217_q2_LS_prob2.txt`
+- GCD check gives contradiction
 
 ### !!! `arc_105_9_q13.txt`
 
@@ -65,35 +66,35 @@
 ### !!! `arc_28_3_q17.txt`
 
 - non 0/1 problem
-- `./sd2 -bkz -beta60 -p18 Bench/arc_28_3_q17.txt`
+- `./sd3 -bkz -beta60 Bench/arc_28_3_q17.txt`
 - No solution after 4 min 40sec
-- `./sd3 -bkz -beta60 -p18 Bench/arc_28_3_q17.txt`
+- `./sd3 -bkz -beta60 -lds20 Bench/arc_28_3_q17.txt`
 - ILDS early, threshold 1/6, 84 Mio loops, 14 sec, lds_k = 2
 
 ### `arc_204_12_q19.txt`
 
 - non 0/1 problem
-- `./sd2 -bkz -beta60 -p18 Bench/arc_204_12_q19.txt`
+- `./sd2 -bkz -beta60 Bench/arc_204_12_q19.txt`
 - First solution after 2456 Mio loops, 2min 26 sec
 - Small problem (39 cols), but first solution has 13 discrepancies
-- `./sd3 -bkz -beta30 -p18 Bench/arc_204_12_q19.txt`
+- `./sd3 -bkz -beta30 Bench/arc_204_12_q19.txt`
 - ILDS early, threshold 1/6, 776 Mio loops, 1min 4 sec (11 discrepancies)
 
 ### `4_18_9_56.txt`
 
 - 0/1 problem
-- `../sd3 -bkz -beta60 -dfs 4_18_9_56.txt`
+- `./sd3 -bkz -beta60 -dfs  Bench/4_18_9_56.txt`
 - Solution after 353 min, 100354  Mio loops
 - Old version: first solution after several weeks (according to Vedran and Mario)
-- `../sd3 -bkz -beta60 -lds10 4_18_9_56.txt`
+- `./sd3 -bkz -beta60 -lds10  Bench/4_18_9_56.txt`
 - Solution after 103 min, 12551 Mio loops, lds_k = 5
-- `../sd3 -bkz -beta150 -lds10 4_18_9_56.txt`
+- `./sd3 -bkz -beta150 -lds10  Bench/4_18_9_56.txt`
 - Solution after 31 min, 5084 Mio loops, lds_k = 5
 
 ### `qgdd_8_4_2_20_2.txt`
 
 - 0/1 problem
-- `../sd3 -bkz -beta48 -dfs qgdd_8_4_2_20_2.txt`
+- `./sd3 -bkz -beta48 -dfs  Bench/qgdd_8_4_2_20_2.txt`
 - Solution after 586 min,  178191 Mio loops
-- `../sd3 -bkz -beta48 -lds10 qgdd_8_4_2_20_2.txt`
+- `./sd3 -bkz -beta48 -lds10 Bench/qgdd_8_4_2_20_2.txt`
 - Solution after 1min 18sec, 242 Mio loops, lds_k = 4

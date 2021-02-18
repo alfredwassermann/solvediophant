@@ -771,7 +771,8 @@ DOUBLE explicit_enumeration(lattice_t *lattice) {
         for (k = 0; k < lattice->LLL_params.exhaustive_enum.lds_k_max; k++) {
             level_max = level;
             fprintf(stderr, "lds_k=%d\n", k); fflush(stderr);
-            result = lds(enum_data, lattice, us, fipo, level, k, 0);
+            result = lds(enum_data, lattice, us, fipo, level, k, lattice->num_cols / 6);
+            //result = lds(enum_data, lattice, us, fipo, level, k, 0);
 
             if (result == -1) {
                 fprintf(stderr, "max_solutions or max_loops reached for lds_k=%d\n\n", k);
