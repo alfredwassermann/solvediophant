@@ -449,18 +449,6 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
                 break;
             }
         }
-    // for (p = start; p <= ed->num; p++) {
-    //     if (do_left_branch_last) {
-    //         // Right branches first:
-    //         if (p == end) {
-    //             ed->pos = pos = 0;
-    //         }
-    //     } else {
-    //         // Left branch first:
-    //         if (p == end) {
-    //             break;
-    //         }
-    //     }
 
         // printf("pos=%d\n", pos);
         us[level] = ed->nodes[pos].us;
