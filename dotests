@@ -1,14 +1,16 @@
 #!/bin/bash
 
 PROG=./sd3
-PARAMS="-bkz -beta20 -o/dev/null -lds20"
+PARAMS="-bkz -beta40 -o/dev/null"
 DIR=Tests
 
+# Colors
 BAD='\033[1;33m'
 GOOD='\033[0;32m'
 NC='\033[0m'
 
-############### Test files ###############################
+############### Test files ########	!!!!!!!!! FAILURE mendelsohn.txt: 583 solutions
+#######################
 FILES="KM_Id7_t2_k3.in,30
 in_sd.txt,25
 in_sd2.txt,3
@@ -25,7 +27,6 @@ unitals_v1.txt,78
 function run_code {
     echo $PROG $PARAMS $DIR/$1
     numsolutions=`$PROG $PARAMS $DIR/$1 2>/dev/null | awk 'BEGIN { s=0 } { s+=1; } END { print s }'`
-    # $PROG $PARAMS $1 | awk 'BEGIN { s=0 } { s+=1; } END { print s }'
     if [[ "$numsolutions" == "$2" ]]; then
         echo -e "\t${GOOD}CORRECT${NC} $1: $numsolutions solutions"
     else
