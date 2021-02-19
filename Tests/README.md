@@ -3,9 +3,12 @@
 * KM_Id7_t2_k3.in:
 0/1 problem, 30 solutions, easy
 
+* KM_Id9_t2_k3.in:
+0/1 problem, 840 solutions, easy
+
 * KM_PGGL_2_32_t7_k8.in:
 0/1 problem, 4996426 solutions, ca. 16 min
-./solvediophant -bkz -beta100 -p40 -silent Tests/KM_PGGL_2_32_t7_k8.in (18 min, 13 min mit compute_w2)
+./solvediophant -bkz -beta100 -p40 -silent Tests/KM_PGGL_2_32_t7_k8.in (18 min, 13 min mit compute_w2, 10min with btmdx2 using compute_w2)
 ./sd3 -bkz -beta40 -silent Tests/KM_PGGL_2_32_t7_k8.in (18 min)
 All solutions are found also with lds
 
@@ -39,7 +42,7 @@ sd3:
     dfs: 32705 solutions
     lds: 32705 solutions
     17.2.2021: bug fix sd3, one solutions was missing
-    STILL MISSING
+    18.2.2021: bug fixed.
 
 * in_sd.txt
 non 0/1 problem 25 solutions.
