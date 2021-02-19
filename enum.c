@@ -398,7 +398,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
     start = 1;
     do_left_branch_last = 1;
     if (level < lds_threshold) {
-        // lds_threshold is typically 0.lds_k=2
+        // lds_threshold is typically 0.
         // If it is larger than 0, we do conventional dfs branching below this level.
         //
         start = 0;
@@ -431,13 +431,36 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
     }
 
     // printf("START lds level=%d end=%d num=%d do_left_branch_last=%d lds_k=%d\n", level, end, ed->num, do_left_branch_last, lds_k);
+
     for (p = start; p <= ed->num; p++) {
-        // Right branches first:
-        if (p >= end &&
-            !(do_left_branch_last && p == ed->num)) {
+        if (do_left_branch_last) {
+            // Right branches first:
+            // if (p >= end &&
+            //     !(do_left_branch_last && p == ed->num)) {
+            //     continue;
+            // } // Otherwise we execute the leftmost branch at the end.
+            if (p >= end && p < ed->num) {
                 continue;
-        } // Otherwise we execute the leftmost branch at the end.
-        ed->pos = pos = p % ed->num;
+            }
+            // At the end, we execute the leftmost branch at the end.
+            ed->pos = pos = p % ed->num;
+        } else {
+            if (p == end) {
+                break;
+            }
+        }
+    // for (p = start; p <= ed->num; p++) {
+    //     if (do_left_branch_last) {
+    //         // Right branches first:
+    //         if (p == end) {
+    //             ed->pos = pos = 0;
+    //         }
+    //     } else {
+    //         // Left branch first:
+    //         if (p == end) {
+    //             break;
+    //         }
+    //     }
 
         // printf("pos=%d\n", pos);
         us[level] = ed->nodes[pos].us;
@@ -497,7 +520,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
         }
     }
     if (level == lds_threshold) {
-        if (lds_k - end > 0) {
+        if (lds_k - ed->num > 0) {
             exhausted = 2;
         } else {
             exhausted = 1;
@@ -774,8 +797,8 @@ DOUBLE explicit_enumeration(lattice_t *lattice) {
         for (k = 0; k < lattice->LLL_params.exhaustive_enum.lds_k_max; k++) {
             level_max = level;
             fprintf(stderr, "lds_k=%d\n", k); fflush(stderr);
-            //result = lds(enum_data, lattice, us, fipo, level, k, lattice->num_cols / 6);
-            result = lds(enum_data, lattice, us, fipo, level, k, 0);
+            result = lds(enum_data, lattice, us, fipo, level, k, lattice->num_cols / 6);
+            //result = lds(enum_data, lattice, us, fipo, level, k, 0);
 
             if (result == -1) {
                 fprintf(stderr, "max_solutions or max_loops reached for lds_k=%d\n\n", k);
