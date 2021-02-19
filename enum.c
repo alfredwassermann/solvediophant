@@ -371,6 +371,10 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
         max_steps = 1;
     }
 
+    // if (level < lds_threshold && lds_k > 0) {
+    //     return exhausted;
+    // }
+
     if (-1 == enumLevel(enum_data, lattice,
             us,
             fipo,
@@ -386,8 +390,6 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
 
         // There are still discrepancies available
         if (lds_k > 0) {
-            //printf("HERE %d %d\n", level, lds_k);
-            //fflush(stdout);
             exhausted = 2;
         } else {
             exhausted = 1;
@@ -439,7 +441,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
             //     !(do_left_branch_last && p == ed->num)) {
             //     continue;
             // } // Otherwise we execute the leftmost branch at the end.
-            if (p >= end && p < ed->num) {
+            if (end <= p && p < ed->num) {
                 continue;
             }
             // At the end, we execute the leftmost branch at the end.
@@ -785,8 +787,9 @@ DOUBLE explicit_enumeration(lattice_t *lattice) {
         for (k = 0; k < lattice->LLL_params.exhaustive_enum.lds_k_max; k++) {
             level_max = level;
             fprintf(stderr, "lds_k=%d\n", k); fflush(stderr);
-            result = lds(enum_data, lattice, us, fipo, level, k, lattice->num_cols / 6);
-            //result = lds(enum_data, lattice, us, fipo, level, k, 0);
+            // result = lds(enum_data, lattice, us, fipo, level, k, lattice->num_cols / 6);
+            // result = lds(enum_data, lattice, us, fipo, level, k, 3);
+            result = lds(enum_data, lattice, us, fipo, level, k, 0);
 
             if (result == -1) {
                 fprintf(stderr, "max_solutions or max_loops reached for lds_k=%d\n\n", k);
