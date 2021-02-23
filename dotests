@@ -10,7 +10,7 @@ GOOD='\033[0;32m'
 NC='\033[0m'
 
 ############### Test files ###############################
-FILES="KM_Id7_t2_k3.in,30
+FILESQUICK="KM_Id7_t2_k3.in,30
 KM_Id9_t2_k3.txt,840
 in_sd.txt,25
 in_sd2.txt,3
@@ -18,10 +18,12 @@ mendelsohn.txt,1829
 eqs,16
 KM_PSL_2_23_7_8.in,2
 n8_282.txt,104
-n8_279.txt,1848
 unitals_v1.txt,78
-4-arcs.txt,32705"
-# KM_PGGL_2_32_t7_k8.in,4996426"
+4-arcs.txt,32708"
+###############          #################################
+# FILESLONG="KM_PGGL_2_32_t7_k8.in,4996426
+# n8_279.txt,1848
+# unitals_v2.txt,??!"
 ##########################################################
 
 function run_code {
@@ -34,7 +36,7 @@ function run_code {
     fi
 }
 
-for f in $FILES ; do
+for f in $FILESQUICK ; do
     # Split pairs: filename / number of solutions
     OLDIFS=$IFS; IFS=','; set -- $f; IFS=$OLDIFS
     run_code $1 $2

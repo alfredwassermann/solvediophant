@@ -22,8 +22,13 @@ All solutions are found also with lds
 ./sd3 -bkz -beta32 Tests/unitals_v1.txt
 first solutions: 49 sec with dfs, 43 sec with lds
 
+* unitals_v2.txt:
+0/1 problems, >= 77 solutions
+./sd3 -bkz -beta40 Tests/unitals_v2.txt
+
 * n8_279.txt:
 non 0/1 problem, 1848 solutions
+Takes very long time
 ./sd3 -c10000 -bkz -beta40 Tests/n8_279.txt
 
 * n8_282.txt:
@@ -41,8 +46,8 @@ With lds solutions are output quickly (lds_k=3)
 sd3:
     dfs: 32705 solutions
     lds: 32705 solutions
-    17.2.2021: bug fix sd3, one solutions was missing
-    18.2.2021: bug fixed.
+    17.2.2021: bug fix sd3, 32704 solutions
+    18.2.2021: bug fixed. 32708 solutions
 
 * in_sd.txt
 non 0/1 problem 25 solutions.
