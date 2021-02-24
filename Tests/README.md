@@ -23,7 +23,7 @@ All solutions are found also with lds
 first solutions: 49 sec with dfs, 43 sec with lds
 
 * unitals_v2.txt:
-0/1 problems, >= 77 solutions
+0/1 problems, >= 78 solutions (5:10 h on btmdx2)
 ./sd3 -bkz -beta40 Tests/unitals_v2.txt
 
 * n8_279.txt:
