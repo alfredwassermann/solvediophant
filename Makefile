@@ -83,6 +83,11 @@ dio2.pdf: dio2.c
 	ps2pdf dio2.ps
 	rm dio2.ps
 
+enum.pdf: enum.c
+	vim $(VIMFLAGS) -c 'hardcopy > enum.ps' -c quit enum.c
+	ps2pdf enum.ps
+	rm enum.ps
+
 lattice.pdf: lattice.c
 	vim $(VIMFLAGS) -c 'hardcopy > lattice.ps' -c quit lattice.c
 	ps2pdf lattice.ps
