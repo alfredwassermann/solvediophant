@@ -323,13 +323,13 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
 }
 
 /**
- * @brief Recursive procedure for "least discrepancy search"
+ * @brief Recursive procedure for "limited discrepancy search"
  * 
  * @param enum_data 
- * @param lattice 
+ * @param lattice
  * @param us 
  * @param fipo 
- * @param level 
+ * @param level
  * @param lds_k
  * @param lds_threshold
  * @return int

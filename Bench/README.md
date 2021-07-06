@@ -57,9 +57,9 @@
 
 - non 0/1 problem
 - at least one solution
-- `./sd2 -bkz -beta30 -p18 Bench/arc_105_9_q13.txt`
+- `./sd3 -bkz -beta30 Bench/arc_105_9_q13.txt`
 - First solution after 609 Mio loops, 38 sec
-- `./sd3 -bkz -beta30 -p18 Bench/arc_105_9_q13.txt`
+- `./sd3 -bkz -beta30  -lds10 Bench/arc_105_9_q13.txt`
 - ILDS early: 85 Mio loops, 8 sec
 - ILDS early, threshold 1/6: 54 Mio loops, 5 sec
 
@@ -74,7 +74,7 @@
 ### `arc_204_12_q19.txt`
 
 - non 0/1 problem
-- `./sd2 -bkz -beta60 Bench/arc_204_12_q19.txt`
+- `./sd3 -bkz -beta60 Bench/arc_204_12_q19.txt`
 - First solution after 2456 Mio loops, 2min 26 sec
 - Small problem (39 cols), but first solution has 13 discrepancies
 - `./sd3 -bkz -beta30 Bench/arc_204_12_q19.txt`
