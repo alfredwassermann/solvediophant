@@ -783,8 +783,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice) {
     fprintf(stderr, "Start enumeration at level=%d\n", level); fflush(stderr);
     /* the loop of the exhaustive enumeration */
     if (lattice->LLL_params.exhaustive_enum.lds == 1) {
-        //for (i = 0; i <= columns / 2; i++) {
-        //for (k = 0; k <= 8/*lattice->num_cols*/; k++) {
+        /* -------- LDS -------- */
         for (k = 0; k < lattice->LLL_params.exhaustive_enum.lds_k_max; k++) {
             level_max = level;
             fprintf(stderr, "lds_k=%d\n", k); fflush(stderr);
@@ -801,6 +800,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice) {
             }
         }
     } else {
+        /* -------- DFS -------- */
         while (0 <= level && level < lattice->num_cols) {
             level = dfs(enum_data, lattice, us, fipo, level);
         }

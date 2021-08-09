@@ -179,6 +179,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
                         lattice->LLL_params.lll.delta_higher,
                         block_size, lattice->LLL_params.bkz.p,
+                        ENUM_BLOCK, 2000,
                         solutiontest, solutiontest_long);
             fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
         }

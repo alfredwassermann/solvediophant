@@ -536,3 +536,39 @@ void copy_lattice_to_mpz(lattice_t *lattice) {
         coeffinit(lattice->basis[i], lattice->num_rows);
     }
 }
+
+void print_gsa(DOUBLE **R, int n) {
+    int i, m;
+    DOUBLE b1;
+    FILE* f = fopen("gsa.tmp", "w");
+    FILE* f2 = fopen("gsa1.tmp", "w");
+
+    m = 4 * n / 5;
+    DOUBLE sx = 0.0;
+    DOUBLE sx2 = 0.0;
+    DOUBLE sy = 0.0;
+    DOUBLE sxy = 0.0;
+    for (i = 0; i < m; i++) {
+        sx += i;
+        sy += log(R[i][i] * R[i][i]);
+        sxy += i * log(R[i][i] * R[i][i]);
+        sx2 += i * i;
+    }
+    double a = (m * sxy - sx * sy) / (m * sx2 - sx * sx);
+    double b = (sy - a * sx) / m;
+    printf("%lf %lf\n", a, b);
+
+    b1 = log(R[0][0] * R[0][0]);
+    for (i = 0; i < n; i++) {
+        // fprintf(f, "%d %lf\n", i, b1 - log(R[i][i] * R[i][i]));
+        // fprintf(f2, "%d %lf\n", i, b1 - log(R[n-1][n-1] * R[n-1][n-1]));
+        fprintf(f, "%d %lf\n", i, log(R[i][i] * R[i][i]));
+        fprintf(f2, "%d %lf\n", i, a * i + b);
+    }
+    fclose(f);
+    fclose(f2);
+    system("mv gsa.tmp gsa.out");
+    system("mv gsa1.tmp gsa1.out");
+
+
+}
