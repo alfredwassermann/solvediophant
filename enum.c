@@ -328,7 +328,7 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
  * @param enum_data 
  * @param lattice
  * @param us 
- * @param fipo 
+ * @param fipo
  * @param level
  * @param lds_k
  * @param lds_threshold
@@ -497,6 +497,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
                     next_lds_k = (lds_k > p) ? lds_k - pos : 0;
                 }
             }
+
             ret = lds(enum_data, lattice,
                     us, fipo, level - 1,
                     next_lds_k, lds_threshold);
