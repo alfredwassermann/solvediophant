@@ -199,9 +199,9 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         #endif
 
         if (norm != norm || norm < 0.5) {  // nan or < 0.5
-            //print_lattice(lattice);
-            fprintf(stderr, "lllH: Zero vector at %d\n", k);
-            fflush(stderr);
+            // print_lattice(lattice);
+            // fprintf(stderr, "lllH: Zero vector at %d\n", k);
+            // fflush(stderr);
 
             swapvl = b[k];
             //for (i = k + 1; i < up; i++) {
@@ -666,9 +666,9 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         // Zero vector detected.
         // Swap it to the end of the whole lattice
         if (norm != norm || norm < 0.5) {  // NaN or < 0.5
-            //print_lattice(lattice);
-            fprintf(stderr, "lllH_long: Zero vector at %d\n", k);
-            fflush(stderr);
+            // print_lattice(lattice);
+            // fprintf(stderr, "lllH_long: Zero vector at %d\n", k);
+            // fflush(stderr);
 
             swap = b[k];
             //for (i = k + 1; i < up; i++) {

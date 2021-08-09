@@ -97,7 +97,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
         copy_lattice_to_long(lattice);
         lllH_long(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest_long);
     } else {
-        lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
+        lllH     (lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
     }
 
     allocate_bkz_enum(&bkz_enum, s);
@@ -168,9 +168,9 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
             */
 
             if (bit_size < bit_size_threshold) {
-                lllH_long(lattice, R, h_beta, H, start_block - 1, 0, lattice->num_cols /* h + 1 */, z, delta, CLASSIC_LLL, bit_size, solutiontest_long);
+                lllH_long(lattice, R, h_beta, H, start_block - 1, 0, /*lattice->num_cols */ h + 1, z, delta, POT_LLL, bit_size, solutiontest_long);
             } else {
-                lllH     (lattice, R, h_beta, H, start_block - 1, 0, lattice->num_cols /* h + 1 */, z, delta, CLASSIC_LLL, bit_size, solutiontest);
+                lllH     (lattice, R, h_beta, H, start_block - 1, 0, /*lattice->num_cols */ h + 1, z, delta, POT_LLL, bit_size, solutiontest);
             }
             //lllH(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
             //lattice->num_cols--;
