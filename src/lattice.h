@@ -44,6 +44,6 @@ extern void shufflelattice(lattice_t *lattice);
 extern void copy_lattice_to_long(lattice_t *lattice);
 extern void copy_lattice_to_mpz(lattice_t *lattice);
 
-extern void print_gsa(DOUBLE **R, int n);
+extern void print_gsa(DOUBLE **R, int n, int start);
 
 #endif

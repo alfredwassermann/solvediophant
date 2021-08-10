@@ -127,7 +127,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         #endif
         handle_signals(lattice, R);
 
-        #if 0
+        #if FALSE
         // Look ahead
         i = householder_column(b, R, H, beta, k, s, z, bit_size);
         if (i > k) {
@@ -157,7 +157,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 mu_all_zero = FALSE;
 
                 if (cnt_tricol > 1000) {
-                    fprintf(stderr, "Possible tricol error: %d: eta=%0.2lf, theta=%0.2lf, %0.2lf, %lf %lf %lf\n\t %lf\n", 
+                    fprintf(stderr, "Possible tricol error: %d: eta=%0.2lf, theta=%0.2lf, %0.2lf, %lf %lf %lf\n\t %lf\n",
                         j, eta, theta, mus,
                         R[k][j], R[j][j], R[k][k],
                         eta * fabs(R[j][j]) + theta * fabs(R[k][k]));
@@ -298,196 +298,6 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
 }
 
-void householder_column_inner(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int l, int z, int bit_size) {
-    int i, j;
-    DOUBLE zeta;
-    DOUBLE w, w_beta;
-    DOUBLE norm;
-    DOUBLE eps =  1.0e-15; // 0.0000000001;
-    #if !BLAS
-        DOUBLE x;
-    #endif
-
-    // Compute R[k]
-    for (i = 0; i < k; ++i) {
-        #if BLAS
-            w = cblas_ddot(z - i, &(R[k][i]), 1, &(H[i][i]), 1);
-        #else
-            for (j = i, w = 0.0; j < z; ++j) {
-                w += R[k][j] * H[i][j];
-            }
-        #endif
-
-        w_beta = w * beta[i];
-        
-        #if BLAS
-            cblas_daxpy(z - i, -w_beta, &(H[i][i]), 1, &(R[k][i]), 1);
-        #else
-            for (j = i; j < z; ++j) {
-                R[k][j] -= w_beta * H[i][j];
-            }
-        #endif
-    }
-    // |R[k]|
-    if (bit_size < 27) {
-        #if BLAS
-            norm = cblas_dnrm2(z - k, &(R[k][k]), 1);
-        #else
-            for (j = k, norm = 0.0; j < z; ++j) {
-                norm += R[k][j] * R[k][j];
-            }
-            norm = SQRT(norm);
-        #endif
-    } else {
-        // Use zeta for stability
-        #if BLAS
-            j = cblas_idamax(z - k, &(R[k][k]), 1);
-            zeta = fabs(R[k][k + j]);
-        #else
-            for (j = k, zeta = 0.0; j < z; ++j) {
-                if (fabs(R[k][j]) > zeta) {
-                    zeta = fabs(R[k][j]);
-                }
-            }
-        #endif
-        
-        #if BLAS
-            cblas_dscal(z - k, 1 / zeta, &(R[k][k]), 1);
-            norm = zeta * cblas_dnrm2(z - k, &(R[k][k]), 1);
-            cblas_dscal(z - k, zeta, &(R[k][k]), 1);
-        #else
-            for (j = k, norm = 0.0; j < z; ++j) {
-                x = R[k][j] / zeta;
-                norm += x * x;
-            }
-            norm = zeta * SQRT(norm);
-        #endif
-    }
-    // H[k] = R[k] / |R[k]|
-    #if BLAS
-        cblas_dcopy(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
-        cblas_dscal(z - k, 1 / norm, &(H[k][k]), 1);
-    #else
-        for (j = k; j < z; ++j) {
-            H[k][j] = R[k][j] / norm;
-        }
-    #endif
-    
-    H[k][k] += (R[k][k] >= -eps) ? 1.0 : -1.0;
-    beta[k] = 1.0 / (1.0 + fabs(R[k][k]) / norm);
-    // w = <R[k], H[k]>
-    #if BLAS
-        w = cblas_ddot(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
-    #else
-        for (j = k, w = 0.0; j < z; ++j) {
-            w += R[k][j] * H[k][j];
-        }
-    #endif
-    w_beta = w * beta[k];
-    // R[k] -= w * beta * H[k]
-    #if BLAS
-        cblas_daxpy(z - k, -w_beta, &(H[k][k]), 1, &(R[k][k]), 1);
-    #else
-        for (j = k; j < z; ++j) {
-            R[k][j] -= w_beta * H[k][j];
-        }
-    #endif
-}
-
-int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int s, int z, int bit_size) {
-    int l, j;
-    DOUBLE min_val = 0.0;
-    DOUBLE min_idx = -1;
-
-    for (l = k; l < s; l++) {
-        for (j = 0; j < z; ++j) {
-            R[k][j] = (DOUBLE)mpz_get_d(b[l][j+1].c);
-        }
-
-        householder_column_inner(R, H, beta, k, l, z, bit_size);
-
-        if (l == k || R[k][k] * R[k][k] < min_val) {
-            min_val = R[k][k] * R[k][k];
-            min_idx = l;
-        }
-    }
-    return min_idx;
-}
-
-void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, int j) {
-    int i, ii, iii;
-    coeff_t *bb;
-
-    switch (mpz_get_si(musvl)) {
-    case 1:
-        /* $\lceil\mu_{k,j}\rfloor = 1$ */
-        i = b[j][0].p;
-        while (i != 0) {
-                bb = &(b[k][i]);
-                mpz_sub(bb->c, bb->c, b[j][i].c);
-                iii = bb->p;
-                if ((b[k][i-1].p != i) && (mpz_sgn(bb->c) != 0))
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == iii); ii--)
-                        b[k][ii].p = i;
-                else if (mpz_sgn(bb->c) == 0) {
-                    for (ii = i - 1;  (ii >= 0) && (b[k][ii].p == i); ii--)
-                        b[k][ii].p = iii;
-                }
-                i = b[j][i].p;
-        }
-    #if BLAS
-        cblas_daxpy(j, -1.0, mu[j], 1, mu[k], 1);
-    #else
-        for (i = 0; i < j; i++) mu[k][i] -= mu[j][i];
-    #endif
-
-        break;
-
-    case -1:
-        /* $\lceil\mu_{k,j}\rfloor = -1$ */
-        i = b[j][0].p;
-        while (i != 0) {
-                bb = &(b[k][i]);
-                mpz_add(bb->c, bb->c, b[j][i].c);
-                iii = bb->p;
-                if ((b[k][i-1].p!=i)&&(mpz_sgn(bb->c)!=0))
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == iii); ii--) b[k][ii].p = i;
-                else if (mpz_sgn(bb->c)==0) {
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--) b[k][ii].p = iii;
-                }
-                i = b[j][i].p;
-        }
-
-    #if BLAS
-        cblas_daxpy(j, 1.0, mu[j], 1, mu[k], 1);
-    #else
-        for (i = 0; i < j; i++) mu[k][i] += mu[j][i];
-    #endif
-        break;
-
-    default:
-        /* $\lceil\mu_{k,j}\rfloor \neq \pm 1$ */
-        i = b[j][0].p;
-        while (i != 0) {
-                bb = &(b[k][i]);
-                mpz_submul(bb->c, b[j][i].c, musvl);
-                iii = bb->p;
-                if ((b[k][i-1].p != i) && (mpz_sgn(bb->c) != 0))
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p ==  iii); ii--) b[k][ii].p = i;
-                else if (mpz_sgn(bb->c) == 0) {
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--) b[k][ii].p = iii;
-                }
-                i = b[j][i].p;
-        }
-    #if BLAS
-        cblas_daxpy(j, -mus, mu[j], 1, mu[k], 1);
-    #else
-        for (i = 0; i < j; i++) mu[k][i] -= mu[j][i] * mus;
-    #endif
-
-    }
-}
-
 /**
  * @brief LLL reduction algorithm of a basis consisting of
  * basis vectors of type *long.
@@ -519,7 +329,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             int (*solutiontest)(lattice_t *lattice, int k)) {
 
     long **b = lattice->basis_long;
-    int i, j, k;
+    int i, j, k, min_idx;
     int cnt_tricol;
     DOUBLE norm;
     int mu_all_zero;
@@ -598,7 +408,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         #endif
         handle_signals(lattice, R);
 
-        #if 0
+        #if FALSE
         // Look ahead
         i = householder_column(b, R, H, beta, k, s, z, bit_size);
         if (i > k) {
@@ -616,7 +426,11 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         cnt_tricol = 0;
     start_tricol:
         /* Recompute column k of R */
-        i = householder_column_long(b, R, H, beta, k, k + 1, z, bit_size);
+        min_idx = householder_column_long(b, R, H, beta, k, k + 1, z, bit_size);
+
+        if (fabs(R[k][k]) < 1.0e-12) {
+            goto swap_zero_vector;
+        }
 
         /* size reduction of $b_k$ */
         mu_all_zero = TRUE;
@@ -666,6 +480,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         // Zero vector detected.
         // Swap it to the end of the whole lattice
         if (norm != norm || norm < 0.5) {  // NaN or < 0.5
+swap_zero_vector:
             // print_lattice(lattice);
             // fprintf(stderr, "lllH_long: Zero vector at %d\n", k);
             // fflush(stderr);
@@ -761,14 +576,196 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
 }
 
-int householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int s, int z, int bit_size) {
+void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, int j) {
+    int i, ii, iii;
+    coeff_t *bb;
+
+    switch (mpz_get_si(musvl)) {
+    case 1:
+        /* $\lceil\mu_{k,j}\rfloor = 1$ */
+        i = b[j][0].p;
+        while (i != 0) {
+                bb = &(b[k][i]);
+                mpz_sub(bb->c, bb->c, b[j][i].c);
+                iii = bb->p;
+                if ((b[k][i-1].p != i) && (mpz_sgn(bb->c) != 0))
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == iii); ii--)
+                        b[k][ii].p = i;
+                else if (mpz_sgn(bb->c) == 0) {
+                    for (ii = i - 1;  (ii >= 0) && (b[k][ii].p == i); ii--)
+                        b[k][ii].p = iii;
+                }
+                i = b[j][i].p;
+        }
+    #if BLAS
+        cblas_daxpy(j, -1.0, mu[j], 1, mu[k], 1);
+    #else
+        for (i = 0; i < j; i++) mu[k][i] -= mu[j][i];
+    #endif
+
+        break;
+
+    case -1:
+        /* $\lceil\mu_{k,j}\rfloor = -1$ */
+        i = b[j][0].p;
+        while (i != 0) {
+                bb = &(b[k][i]);
+                mpz_add(bb->c, bb->c, b[j][i].c);
+                iii = bb->p;
+                if ((b[k][i-1].p!=i)&&(mpz_sgn(bb->c)!=0))
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == iii); ii--) b[k][ii].p = i;
+                else if (mpz_sgn(bb->c)==0) {
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--) b[k][ii].p = iii;
+                }
+                i = b[j][i].p;
+        }
+
+    #if BLAS
+        cblas_daxpy(j, 1.0, mu[j], 1, mu[k], 1);
+    #else
+        for (i = 0; i < j; i++) mu[k][i] += mu[j][i];
+    #endif
+        break;
+
+    default:
+        /* $\lceil\mu_{k,j}\rfloor \neq \pm 1$ */
+        i = b[j][0].p;
+        while (i != 0) {
+                bb = &(b[k][i]);
+                mpz_submul(bb->c, b[j][i].c, musvl);
+                iii = bb->p;
+                if ((b[k][i-1].p != i) && (mpz_sgn(bb->c) != 0))
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p ==  iii); ii--) b[k][ii].p = i;
+                else if (mpz_sgn(bb->c) == 0) {
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--) b[k][ii].p = iii;
+                }
+                i = b[j][i].p;
+        }
+    #if BLAS
+        cblas_daxpy(j, -mus, mu[j], 1, mu[k], 1);
+    #else
+        for (i = 0; i < j; i++) mu[k][i] -= mu[j][i] * mus;
+    #endif
+
+    }
+}
+
+void householder_column_inner(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int l, int z, int bit_size) {
+    int i, j;
+    DOUBLE zeta;
+    DOUBLE w, w_beta;
+    DOUBLE norm;
+    DOUBLE eps =  1.0e-15; // 0.0000000001;
+    #if !BLAS
+        DOUBLE x;
+    #endif
+
+    // Compute R[k]
+    for (i = 0; i < k; ++i) {
+        #if BLAS
+            w = cblas_ddot(z - i, &(R[k][i]), 1, &(H[i][i]), 1);
+        #else
+            for (j = i, w = 0.0; j < z; ++j) {
+                w += R[k][j] * H[i][j];
+            }
+        #endif
+
+        w_beta = w * beta[i];
+        
+        #if BLAS
+            cblas_daxpy(z - i, -w_beta, &(H[i][i]), 1, &(R[k][i]), 1);
+        #else
+            for (j = i; j < z; ++j) {
+                R[k][j] -= w_beta * H[i][j];
+            }
+        #endif
+    }
+
+    // Compute |R[k]|
+    if (bit_size < 27) {
+        #if BLAS
+            norm = cblas_dnrm2(z - k, &(R[k][k]), 1);
+        #else
+            for (j = k, norm = 0.0; j < z; ++j) {
+                norm += R[k][j] * R[k][j];
+            }
+            norm = SQRT(norm);
+        #endif
+    } else {
+        // Use zeta for stability
+        #if BLAS
+            j = cblas_idamax(z - k, &(R[k][k]), 1);
+            zeta = fabs(R[k][k + j]);
+        #else
+            for (j = k, zeta = 0.0; j < z; ++j) {
+                if (fabs(R[k][j]) > zeta) {
+                    zeta = fabs(R[k][j]);
+                }
+            }
+        #endif
+        
+        #if BLAS
+            cblas_dscal(z - k, 1 / zeta, &(R[k][k]), 1);
+            norm = zeta * cblas_dnrm2(z - k, &(R[k][k]), 1);
+            cblas_dscal(z - k, zeta, &(R[k][k]), 1);
+        #else
+            for (j = k, norm = 0.0; j < z; ++j) {
+                x = R[k][j] / zeta;
+                norm += x * x;
+            }
+            norm = zeta * SQRT(norm);
+        #endif
+    }
+
+    // Compute H[k] = R[k] / |R[k]|
+    #if BLAS
+        cblas_dcopy(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
+        cblas_dscal(z - k, 1 / norm, &(H[k][k]), 1);
+    #else
+        for (j = k; j < z; ++j) {
+            H[k][j] = R[k][j] / norm;
+        }
+    #endif
+
+    H[k][k] += (R[k][k] >= -eps) ? 1.0 : -1.0;
+    beta[k] = 1.0 / (1.0 + fabs(R[k][k]) / norm);
+
+    // Compute w = <R[k], H[k]>
+    #if BLAS
+        w = cblas_ddot(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
+    #else
+        for (j = k, w = 0.0; j < z; ++j) {
+            w += R[k][j] * H[k][j];
+        }
+    #endif
+    w_beta = w * beta[k];
+
+    // Compute R[k] -= w * beta * H[k]
+    #if BLAS
+        cblas_daxpy(z - k, -w_beta, &(H[k][k]), 1, &(R[k][k]), 1);
+    #else
+        for (j = k; j < z; ++j) {
+            R[k][j] -= w_beta * H[k][j];
+        }
+    #endif
+
+    // if (isnan(R[k][k])) {
+    //     fprintf(stderr, "%d> ", k);
+    //     for (j = k; j < k + 1; ++j) {
+    //         fprintf(stderr, "%lf ", R[k][j]);
+    //     }
+    //     fprintf(stderr, "%lf %lf %lf\n", w_beta, H[k][k], norm);
+    // }
+}
+
+int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int s, int z, int bit_size) {
     int l, j;
     DOUBLE min_val = 0.0;
     DOUBLE min_idx = -1;
 
     for (l = k; l < s; l++) {
         for (j = 0; j < z; ++j) {
-            R[k][j] = b[l][j];
+            R[k][j] = (DOUBLE)mpz_get_d(b[l][j+1].c);
         }
 
         householder_column_inner(R, H, beta, k, l, z, bit_size);
@@ -777,7 +774,26 @@ int householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int 
             min_val = R[k][k] * R[k][k];
             min_idx = l;
         }
+    }
+    return min_idx;
+}
 
+int householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int s, int z, int bit_size) {
+    int l, j;
+    DOUBLE min_val = 0.0;
+    DOUBLE min_idx = -1;
+
+    for (l = k; l < s; l++) {
+        for (j = 0; j < z; ++j) {
+            R[k][j] = (DOUBLE)b[l][j];
+        }
+
+        householder_column_inner(R, H, beta, k, l, z, bit_size);
+
+        if (l == k || R[k][k] * R[k][k] < min_val) {
+            min_val = R[k][k] * R[k][k];
+            min_idx = l;
+        }
     }
     return min_idx;
 }

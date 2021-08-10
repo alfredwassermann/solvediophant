@@ -106,7 +106,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
     tour_cnt = 0;
     enum_cnt = 0;
 
-    // print_gsa(R, s);
+    print_gsa(R, s, start_block);
 
     while (cnt < last && tour_cnt < max_tours) {
         start_block++;
@@ -142,7 +142,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
         r_tt *= r_tt;
         if (delta * r_tt > new_cj) {
             #if FALSE
-            if (beta > 20) {
+            if (beta > 0) {
                 fprintf(stderr, "enum %d successful %d %lf improvement: %lf\n",
                                     beta, start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
                 fflush(stderr);
@@ -158,34 +158,21 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
                 insert_vector     (lattice, u, start_block, end_block, z, hv);
             }
 
-            /*
-            i = householder_column_long(lattice->basis_long, R, H, h_beta, start_block, start_block + 1, z, bit_size);
-            new_cj2 = R[i][i] * R[i][i];
-            if (fabs(new_cj2 - new_cj) > EPSILON) {
-                fprintf(stderr, "???????????????? We have a problem: %lf %lf\n", new_cj2, new_cj);
-                fflush(stdout);
-            }
-            */
-
             if (bit_size < bit_size_threshold) {
-                lllH_long(lattice, R, h_beta, H, start_block - 1, 0, /*lattice->num_cols */ h + 1, z, delta, POT_LLL, bit_size, solutiontest_long);
+                lllH_long(lattice, R, h_beta, H, start_block - 1, 0, lattice->num_cols /* h + 1*/, z, delta, POT_LLL, bit_size, solutiontest_long);
             } else {
-                lllH     (lattice, R, h_beta, H, start_block - 1, 0, /*lattice->num_cols */ h + 1, z, delta, POT_LLL, bit_size, solutiontest);
+                lllH     (lattice, R, h_beta, H, start_block - 1, 0, lattice->num_cols /* h + 1 */, z, delta, POT_LLL, bit_size, solutiontest);
             }
-            //lllH(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
-            //lattice->num_cols--;
-
-            //start_block = lllH(lattice, R, h_beta, H, start_block - 1, 0, h + 1, z, delta, CLASSIC_LLL, bit_size);
-            //fprintf(stderr, "%d\n", start_block);
 
             if (enum_type == ENUM_LDS_FULL2) {
                 start_block--;
                 if (enum_cnt > 30000) {
+                    fprintf(stderr, "Stop ENUM_LDS_FULL2 after %d tours", 30000);
                     break;
                 }
             }
 
-            // print_gsa(R, s);
+            // print_gsa(R, s, start_block);
             cnt = -1;
 
         } else {
@@ -204,6 +191,8 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
 
     } /* end of |while| */
 
+    print_gsa(R, s, start_block);
+
     if (bit_size < bit_size_threshold) {
         copy_lattice_to_mpz(lattice);
     }
@@ -211,9 +200,9 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
     lD = log_potential(R, s, z);
     free_bkz_enum(&bkz_enum);
 
-    #if 0
-    fprintf(stderr, "bkz: log(D)= %f\n", lD);
-    fflush(stderr);
+    #if FALSE
+        fprintf(stderr, "bkz: log(D)= %f\n", lD);
+        fflush(stderr);
     #endif
 
     free(u);
@@ -430,7 +419,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     int len, k;
     double alpha, radius;
 
-    int SCHNITT = 2000;
+    int SCHNITT = 30;
 
     c = bkz_enum->c;
     y = bkz_enum->y;

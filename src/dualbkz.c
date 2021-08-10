@@ -18,22 +18,25 @@
 
 DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
                      int (*solutiontest)(lattice_t *lattice, int k)) {
-    DOUBLE **R = lattice->decomp.R;
-    DOUBLE *beta = lattice->decomp.c;
-    DOUBLE *N = lattice->decomp.N;
-    DOUBLE **H = lattice->decomp.H;
+    DOUBLE **R     = lattice->decomp.R;
+    DOUBLE *h_beta = lattice->decomp.c;
+    DOUBLE *N      = lattice->decomp.N;
+    DOUBLE **H     = lattice->decomp.H;
 
     DOUBLE r_tt;
     DOUBLE new_cj;
     DOUBLE lD;
 
     static mpz_t hv;
-    int zaehler = 0;
+    int cnt = 0;
     int h, i, last, h_end;
     int start_block, end_block;
     int bit_size = get_bit_size(lattice);
 
     long *u;
+
+    // Helper arrays for enumerate()
+    bkz_enum_t bkz_enum;
 
     mpz_init(hv);
 
@@ -53,11 +56,10 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
     for (i = 0; i < s; i++) {
         u[i] = 0;
     }
-
-    //decomp_alloc(&R, &h_beta, &N, &H, s, z);
+    allocate_bkz_enum(&bkz_enum, s);
 
     while (1) {
-        fprintf(stderr, "Start tour #no %d\n", zaehler);
+        fprintf(stderr, "Start tour #no %d\n", cnt);
         lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
 
         fprintf(stderr, "Primal\n");
@@ -67,7 +69,7 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
             end_block = start_block + beta - 1;
             if (end_block > last) end_block = last;
 
-            new_cj = enumerate(lattice, R, u, s, start_block, end_block, delta, p);
+            new_cj = enumerate(lattice, R, u, s, start_block, end_block, delta, p, &bkz_enum);
             h = (start_block - 1 < 0) ? 0 : start_block - 1;
             h_end = (end_block + 1 <= last) ? end_block + 1 : last;
 
@@ -89,7 +91,7 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
         for (start_block = last - beta + 1; start_block > 0; --start_block) {
             end_block = start_block + beta - 1;
 
-            new_cj = dual_enumerate(lattice, R, u, s, start_block, end_block, delta, p);
+            new_cj = dual_enumerate(lattice, R, u, s, start_block, end_block, delta, p, &bkz_enum);
             h = (start_block - 1 < 0) ? 0 : start_block - 1;
             h_end = (end_block + 1 <= last) ? end_block + 1 : last;
 
@@ -106,9 +108,8 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
             }
         }
 
-        zaehler++;
-        if (zaehler > 3) break;
-
+        cnt++;
+        if (cnt > 3) break;
     } /* end of |while| */
 
     lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
@@ -120,8 +121,8 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
     fflush(stderr);
     #endif
 
-    //lllfree(R, h_beta, N, H, s);
     free(u);
+    free_bkz_enum(&bkz_enum);
     mpz_clear(hv);
 
     return lD;
@@ -129,22 +130,24 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
 
 DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
                 int (*solutiontest)(lattice_t *lattice, int k)) {
-    DOUBLE **R = lattice->decomp.R;
-    DOUBLE *beta = lattice->decomp.c;
-    DOUBLE *N = lattice->decomp.N;
-    DOUBLE **H = lattice->decomp.H;
+    DOUBLE **R     = lattice->decomp.R;
+    DOUBLE *h_beta = lattice->decomp.c;
+    DOUBLE *N      = lattice->decomp.N;
+    DOUBLE **H     = lattice->decomp.H;
 
     DOUBLE r_tt;
     DOUBLE new_cj, new_cj2;
     DOUBLE lD;
 
     static mpz_t hv;
-    int zaehler;
+    int cnt;
     int h, i, last, h_end;
     int start_block, end_block;
     int bit_size = get_bit_size(lattice);
 
     long *u;
+    // Helper arrays for enumerate()
+    bkz_enum_t bkz_enum;
 
     mpz_init(hv);
 
@@ -164,14 +167,15 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
     for (i = 0; i < s; i++) {
         u[i] = 0;
     }
+    allocate_bkz_enum(&bkz_enum, s);
 
     //decomp_alloc(&R, &h_beta, &N, &H, s, z);
     lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
 
-    zaehler = -1;
+    cnt = -1;
     end_block = last + 1;
     //start_block = 0;
-    while (zaehler < last) {
+    while (cnt < last) {
         end_block--;
         if (end_block < 2) {
             break;
@@ -181,7 +185,7 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
         start_block = end_block - beta + 1;
         start_block = (start_block >= 0) ? start_block : 0;
 
-        new_cj = dual_enumerate(lattice, R, u, s, start_block, end_block, delta, p);
+        new_cj = dual_enumerate(lattice, R, u, s, start_block, end_block, delta, p, &bkz_enum);
         h = (start_block - 1 < 0) ? 0 : start_block - 1;
 
         r_tt = 1.0 / R[end_block][end_block];
@@ -204,10 +208,10 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
                 exit(1);
             }
             lllH(lattice, R, h_beta, H, h, 0, h_end, z, delta, CLASSIC_LLL, bit_size, solutiontest);
-            //zaehler = -1;
-            zaehler++;
+            //cnt = -1;
+            cnt++;
         } else {
-            zaehler++;
+            cnt++;
         }
     } /* end of |while| */
 
@@ -215,42 +219,43 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
 
     lD = log_potential(R, s, z);
 
-    #if 0
+    #if FALSE
     fprintf(stderr, "bkz: log(D)= %f\n", lD);
     fflush(stderr);
     #endif
 
-    //lllfree(R, h_beta, N, H, s);
     free(u);
+    free_bkz_enum(&bkz_enum);
+
     mpz_clear(hv);
 
     return lD;
 }
 
 DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
-                      int start_block, int end_block, DOUBLE improve_by, DOUBLE p) {
+                      int start_block, int end_block, DOUBLE improve_by, DOUBLE p,
+                      bkz_enum_t *bkz_enum) {
 
     DOUBLE *y, *c, *a;
+    long *delta, *d, *v;
+    DOUBLE *u_loc;
     DOUBLE c_min;
 
     int i, j;
     int t, t_min;
     int found_improvement = 0;
 
-    long *delta, *d, *v;
-    DOUBLE *u_loc;
     int len, k;
     double alpha, radius;
     int SCHNITT = 2000;
 
-    //fprintf(stderr, "-----------\n");
-    c = (DOUBLE*)calloc(s + 1, sizeof(DOUBLE));
-    y = (DOUBLE*)calloc(s + 1, sizeof(DOUBLE));
+    c = bkz_enum->c;
+    y = bkz_enum->y;
+    d = bkz_enum->d;
+    v = bkz_enum->v;
+    delta = bkz_enum->delta;
+    u_loc = bkz_enum->u_loc;
     a = (DOUBLE*)calloc(s + 1, sizeof(DOUBLE));
-    d = (long*)calloc(s + 1, sizeof(long));
-    v = (long*)calloc(s + 1, sizeof(long));
-    u_loc = (DOUBLE*)calloc(s + 1, sizeof(DOUBLE));
-    delta = (long*)calloc(s + 1, sizeof(long));
 
     len = end_block + 1 - start_block;
     for (i = start_block; i <= end_block; i++) {
@@ -342,13 +347,7 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
         }
     }
 
-    free(delta);
-    free(u_loc);
-    free(v);
-    free(d);
     free(a);
-    free(y);
-    free(c);
 
     if (!found_improvement) {
         c_min = 1.0 / R[end_block][end_block];
@@ -380,55 +379,55 @@ void dual_insert_vector(lattice_t *lattice, long *u, int start, int end, int z, 
     }
     coeffinit(lattice->swap, z);
 
-    #if 0
-    swapvl = b[lattice->num_cols];
-    for (i = lattice->num_cols; i > start; i--)
-        b[i] = b[i - 1];
-    b[start] = lattice->swap;
-    lattice->swap = swapvl;
-    lattice->num_cols++;
+    #if TRUE
+        swapvl = b[lattice->num_cols];
+        for (i = lattice->num_cols; i > start; i--)
+            b[i] = b[i - 1];
+        b[start] = lattice->swap;
+        lattice->swap = swapvl;
+        lattice->num_cols++;
     #else
-    g = start;
-    while (u[g] == 0) g++;
-    i = g + 1;
-    while (labs(u[g]) > 1) {
-        while (u[i] == 0) i++;
-        q = (long)ROUND((1.0 * u[g]) / u[i]);
-        ui = u[i];
-        u[i] = u[g] - q * u[i];
-        u[g] = ui;
+        g = start;
+        while (u[g] == 0) g++;
+        i = g + 1;
+        while (labs(u[g]) > 1) {
+            while (u[i] == 0) i++;
+            q = (long)ROUND((1.0 * u[g]) / u[i]);
+            ui = u[i];
+            u[i] = u[g] - q * u[i];
+            u[g] = ui;
 
-        // (b[g], b[i]) = (b[g] * q + b[i], b[g])
-        for (j = 1; j <= z; j++) {
-            mpz_set(hv, b[g][j].c);
-            mpz_mul_si(b[g][j].c, b[g][j].c, (long)q);
-            mpz_add(b[g][j].c, b[g][j].c, b[i][j].c);
-            mpz_set(b[i][j].c, hv);
+            // (b[g], b[i]) = (b[g] * q + b[i], b[g])
+            for (j = 1; j <= z; j++) {
+                mpz_set(hv, b[g][j].c);
+                mpz_mul_si(b[g][j].c, b[g][j].c, (long)q);
+                mpz_add(b[g][j].c, b[g][j].c, b[i][j].c);
+                mpz_set(b[i][j].c, hv);
+            }
+            coeffinit(b[g], z);
+            coeffinit(b[i], z);
         }
-        coeffinit(b[g], z);
-        coeffinit(b[i], z);
-    }
-
-    // (b[g], b[g+1], ... , b[end]) -> (b[g+1], ... , b[end], b[g])
-    swapvl = b[g];
-    for (i = g; i < end; i++) {
-        b[i] = b[i + 1];
-    }
-    b[end] = lattice->swap;
-    coeffinit(b[end], z);
-
-    lattice->swap = swapvl;
-    for (j = 1; j <= z; j++)
-        mpz_set_si(lattice->swap[j].c, 0);
-    coeffinit(lattice->swap, z);
-
-        #if 0
-    for (j = 0; j < z; j++) {
-        mpz_out_str(stderr, 10, get_entry(lattice->basis, start, j));
-        fprintf(stderr, " ");
-    }
-    fprintf(stderr, "\n");
-    fflush(stderr);
+    
+        // (b[g], b[g+1], ... , b[end]) -> (b[g+1], ... , b[end], b[g])
+        swapvl = b[g];
+        for (i = g; i < end; i++) {
+            b[i] = b[i + 1];
+        }
+        b[end] = lattice->swap;
+        coeffinit(b[end], z);
+    
+        lattice->swap = swapvl;
+        for (j = 1; j <= z; j++)
+            mpz_set_si(lattice->swap[j].c, 0);
+        coeffinit(lattice->swap, z);
+    
+        #if FALSE
+            for (j = 0; j < z; j++) {
+                mpz_out_str(stderr, 10, get_entry(lattice->basis, start, j));
+                fprintf(stderr, " ");
+            }
+            fprintf(stderr, "\n");
+            fflush(stderr);
         #endif
     #endif
 }
