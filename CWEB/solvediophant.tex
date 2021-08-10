@@ -1,0 +1,667 @@
+\input cwebmac
+\datethis
+
+\N{1}{1}solvediophant -- Solving Diophantine Linear Systems using GMP.
+
+Return values:
+
+-- 0: normal program flow (reduction plus exhaustive enumeration)
+
+-- 1: Input error or internal error
+
+-- 2: Solution not possible, system not solvable over the reals. This may also
+come from
+parameter -c being too small
+
+-- 3: Program has been called with parameters -? or -h
+
+-- 8: Stopped after finding a random solution in phase one (''\% stopafter: 1''
+has been set in the problem file)
+
+-- 9: Stopped after the maximum number of solutions (''\% stopafter: n'' has
+been set in the problem file)
+
+-- 10: Stopped after reaching the maximum number of loops (''\% stoploops: n''
+has been set in the problem file)
+
+\fi
+
+\M{2}The main program.
+\Y\B\F\\{mpz\_t} \5
+\\{long}\par
+\B\F\.{DOUBLE} \5
+\\{double}\par
+\B\F\.{COEFF} \5
+\\{int}\par
+\B\4\D$\\{zlength}$ \5
+\T{16000}\par
+\Y\B\X3:include header files\X;\6
+\X19:run time measurements\X;\7
+\&{int} \\{main}(\&{int} \\{argc}${},\39{}$\&{char} ${}{*}\\{argv}[\,]){}$\1\1%
+\2\2\6
+${}\{{}$\1\6
+\&{int} \|i${},{}$ \|j${},{}$ \\{flag};\7
+\X4:variables\X;\6
+\X6:read command line parameters\X;\6
+\X11:read the system size\X;\6
+\X12:allocate the matrix\X;\6
+\X13:read the linear system\X;\6
+\X14:read upper bounds\X;\6
+\X15:search preselected variables\X;\6
+\8\#\&{if} \T{0}\C{ Not longer in use. Now, if $u=0$, we multiply the column by
+$R_{\max}$ instead of $c$ }\6
+\X16:delete zero-bound variables\X;\6
+\8\#\&{endif}\6
+${}\\{solfile}\K\\{fopen}(\\{solfilename},\39\.{"w"});{}$\6
+${}\\{time\_0}\K\\{os\_ticks}(\,);{}$\6
+${}\\{diophant}(\|A,\39\\{rhs},\39\\{upperb},\39\\{no\_columns},\39\\{no%
+\_rows},\39\\{factor\_input},\39\\{norm\_input},\39\\{scalelastlinefactor},\39%
+\\{silent},\39\\{iterate},\39\\{iterate\_no},\39\\{bkz\_beta\_input},\39\\{bkz%
+\_p\_input},\39\\{stop\_after\_solutions},\39\\{stop\_after\_loops},\39\\{free%
+\_RHS},\39\\{original\_columns},\39\\{no\_original\_columns},\39\\{cut\_after},%
+\39\\{nboundedvars},\39\\{solfile});{}$\6
+${}\\{time\_1}\K\\{os\_ticks}(\,);{}$\6
+\\{fclose}(\\{solfile});\6
+\X23:final output of the run time\X;\6
+\X5:free the memory\X;\6
+\&{return} \T{0};\6
+\4${}\}{}$\2\par
+\fi
+
+\M{3}\B\X3:include header files\X${}\E{}$\6
+\8\#\&{include} \.{<signal.h>}\6
+\8\#\&{include} \.{<stdio.h>}\6
+\8\#\&{include} \.{<gmp.h>}\6
+\8\#\&{include} \.{<stdlib.h>}\6
+\8\#\&{include} \.{<string.h>}\6
+\8\#\&{include} \.{<sys/times.h>}\C{ For run time measurements }\6
+\8\#\&{include} \.{<unistd.h>}\6
+\8\#\&{include} \.{"diophant.h"}\par
+\U2.\fi
+
+\M{4}The variables. Global variables are not longer used in order to avoid
+conflicts with the global variables of \PB{\\{diophant}}.
+\Y\B\4\X4:variables\X${}\E{}$\6
+\&{mpz\_t} \\{factor\_input};\6
+\&{mpz\_t} \\{norm\_input};\6
+\&{mpz\_t} \\{scalelastlinefactor};\6
+\&{mpz\_t} ${}{*}\\{upperb};{}$\6
+\&{mpz\_t} ${}{*}{*}\|A,{}$ ${}{*}\\{rhs};{}$\6
+\&{int} \\{bkz\_beta\_input}${}\K\T{0};{}$\6
+\&{int} \\{bkz\_p\_input}${}\K\T{0};{}$\6
+\&{int} \\{iterate}${}\K\T{0};{}$\6
+\&{int} \\{iterate\_no}${}\K\T{0};{}$\6
+\&{int} \\{silent};\6
+\&{int} \\{maxruntime}${}\K\T{0};{}$\6
+\&{int} \\{no\_rows}${},{}$ \\{no\_columns};\6
+\&{long} \\{stop\_after\_solutions};\6
+\&{long} \\{stop\_after\_loops};\6
+\&{int} \\{cut\_after};\6
+\&{int} \\{free\_RHS};\6
+\&{FILE} ${}{*}\\{txt};{}$\6
+\&{char} ${}{*}\\{inputfile\_name},{}$ ${}{*}\\{rowp};{}$\6
+\&{char} \\{zeile}[\\{zlength}];\6
+\&{char} \\{detectstring}[\T{100}];\6
+\&{int} ${}{*}\\{original\_columns};{}$\6
+\&{int} \\{no\_original\_columns};\6
+\&{int} \\{res}${}\K\T{1};{}$\6
+\&{int} \\{nboundedvars};\6
+\&{FILE} ${}{*}\\{solfile};{}$\6
+\&{char} \\{solfilename}[\T{1024}];\7
+\\{mpz\_init}(\\{factor\_input});\6
+\\{mpz\_init}(\\{norm\_input});\6
+\\{mpz\_init}(\\{scalelastlinefactor});\par
+\As7\ET17.
+\U2.\fi
+
+\M{5}\B\X5:free the memory\X${}\E{}$\6
+\\{mpz\_clear}(\\{factor\_input});\6
+\\{mpz\_clear}(\\{norm\_input});\6
+\\{mpz\_clear}(\\{scalelastlinefactor});\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{no\_rows};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{no\_columns};{}$ ${}\|i\PP){}$\1\5
+\\{mpz\_clear}(\|A[\|j][\|i]);\2\6
+\\{free}(\|A[\|j]);\6
+\4${}\}{}$\2\6
+\\{free}(\|A);\6
+${}\\{rhs}\K{}$(\&{mpz\_t} ${}{*}){}$ \\{calloc}${}(\\{no\_rows},\39\&{sizeof}(%
+\&{mpz\_t}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{no\_rows};{}$ ${}\|i\PP){}$\1\5
+\\{mpz\_clear}(\\{rhs}[\|i]);\2\6
+\\{free}(\\{rhs});\6
+\&{if} ${}(\\{upperb}\I\NULL){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{nboundedvars};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\\{mpz\_clear}(\\{upperb}[\|i]);\6
+\4${}\}{}$\2\6
+\\{free}(\\{upperb});\6
+\4${}\}{}$\2\par
+\U2.\fi
+
+\M{6}\B\X6:read command line parameters\X${}\E{}$\6
+$\\{strcpy}(\\{solfilename},\39\.{"solutions"});{}$\6
+${}\\{iterate}\K{-}\T{1};{}$\6
+${}\\{bkz\_beta\_input}\K\\{bkz\_p\_input}\K{-}\T{1};{}$\6
+${}\\{mpz\_set\_si}(\\{factor\_input},\39{-}\T{1});{}$\6
+${}\\{mpz\_set\_si}(\\{norm\_input},\39{-}\T{1});{}$\6
+${}\\{mpz\_set\_si}(\\{scalelastlinefactor},\39{-}\T{1});{}$\6
+${}\\{silent}\K\T{0};{}$\6
+\&{for} ${}(\|i\K\T{1};{}$ ${}\|i<\\{argc};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\X8:analyse the options\X;\6
+\4${}\}{}$\2\6
+\X9:test command line parameters\X;\6
+${}\\{inputfile\_name}\K\\{argv}[\\{argc}-\T{1}];{}$\6
+\X10:start alarm\X;\par
+\U2.\fi
+
+\M{7}\B\X4:variables\X${}\mathrel+\E{}$\6
+\&{char} \\{suffix}[\T{1024}];\par
+\fi
+
+\M{8}\B\X8:analyse the options\X${}\E{}$\6
+\&{if} ${}(\\{strcmp}(\\{argv}[\|i],\39\.{"-silent"})\E\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{silent}\K\T{1};{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+${}\\{fprintf}(\\{stderr},\39\.{"No\ output\ of\ soluti}\)\.{ons,\ just\
+counting.\\}\)\.{n"});{}$\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\&{else} \&{if} ${}(\\{strncmp}(\\{argv}[\|i],\39\.{"-iterate"},\39\T{8})\E%
+\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{strcpy}(\\{suffix},\39\\{argv}[\|i]+\T{8});{}$\6
+${}\\{iterate\_no}\K\\{atoi}(\\{suffix});{}$\6
+${}\\{iterate}\K\T{1};{}$\6
+\4${}\}{}$\2\6
+\&{else} \&{if} ${}(\\{strncmp}(\\{argv}[\|i],\39\.{"-bkz"},\39\T{4})\E%
+\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{iterate}\K\T{0};{}$\6
+\4${}\}{}$\2\6
+\&{else} \&{if} ${}(\\{strncmp}(\\{argv}[\|i],\39\.{"-beta"},\39\T{5})\E%
+\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{strcpy}(\\{suffix},\39\\{argv}[\|i]+\T{5});{}$\6
+${}\\{bkz\_beta\_input}\K\\{atoi}(\\{suffix});{}$\6
+\4${}\}{}$\2\6
+\&{else} \&{if} ${}(\\{strncmp}(\\{argv}[\|i],\39\.{"-p"},\39\T{2})\E\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{strcpy}(\\{suffix},\39\\{argv}[\|i]+\T{2});{}$\6
+${}\\{bkz\_p\_input}\K\\{atoi}(\\{suffix});{}$\6
+\4${}\}{}$\2\6
+\&{else} \&{if} ${}(\\{strncmp}(\\{argv}[\|i],\39\.{"-time"},\39\T{5})\E%
+\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{strcpy}(\\{suffix},\39\\{argv}[\|i]+\T{5});{}$\6
+${}\\{maxruntime}\K\\{atoi}(\\{suffix});{}$\6
+\4${}\}{}$\2\6
+\&{else} \&{if} ${}(\\{strncmp}(\\{argv}[\|i],\39\.{"-c"},\39\T{2})\E\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{strcpy}(\\{suffix},\39\\{argv}[\|i]+\T{2});{}$\6
+\8\#\&{if} \T{1}\6
+${}\\{mpz\_set\_str}(\\{factor\_input},\39\\{suffix},\39\T{10}){}$;\C{ Regular
+version }\6
+\8\#\&{else}\6
+${}\\{mpz\_ui\_pow\_ui}(\\{factor\_input},\39\T{10},\39\\{atoi}(%
+\\{suffix})){}$;\C{ Version for the NTL output }\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\&{else} \&{if} ${}(\\{strncmp}(\\{argv}[\|i],\39\.{"-maxnorm"},\39\T{8})\E%
+\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{strcpy}(\\{suffix},\39\\{argv}[\|i]+\T{8});{}$\6
+${}\\{mpz\_set\_str}(\\{norm\_input},\39\\{suffix},\39\T{10});{}$\6
+\4${}\}{}$\2\6
+\&{else} \&{if} ${}(\\{strncmp}(\\{argv}[\|i],\39\.{"-scalelastline"},\39%
+\T{14})\E\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{strcpy}(\\{suffix},\39\\{argv}[\|i]+\T{14});{}$\6
+${}\\{mpz\_set\_str}(\\{scalelastlinefactor},\39\\{suffix},\39\T{10});{}$\6
+\4${}\}{}$\2\6
+\&{else} \&{if} ${}(\\{strncmp}(\\{argv}[\|i],\39\.{"-i"},\39\T{2})\E\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{strcpy}(\\{suffix},\39\\{argv}[\|i]+\T{2});{}$\6
+\4${}\}{}$\2\6
+\&{else} \&{if} ${}(\\{strncmp}(\\{argv}[\|i],\39\.{"-o"},\39\T{2})\E\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{strcpy}(\\{solfilename},\39\\{argv}[\|i]+\T{2});{}$\6
+\4${}\}{}$\2\6
+\&{else} \&{if} ${}(\\{strcmp}(\\{argv}[\|i],\39\.{"-?"})\E\T{0}\V\\{strcmp}(%
+\\{argv}[\|i],\39\.{"-h"})\E\T{0}){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{fprintf}(\\{stderr},\39\.{"\\nsolvediophant\ ---}\)\.{\ multiple\
+precision\ }\)\.{version\ ---\ \\n"});{}$\6
+${}\\{fprintf}(\\{stderr},\39\.{"solvediophant"});{}$\6
+${}\\{fprintf}(\\{stderr},\39\.{"\ -iterate*|(-bkz\ -b}\)\.{eta*\ -p*)\ [-c*]\
+[-ma}\)\.{xnorm*]\ [-scalelastl}\)\.{ine*]\ [-time*]\ [-sil}\)\.{ent]\
+[-o*]"});{}$\6
+${}\\{fprintf}(\\{stderr},\39\.{"\ inputfile\\n\\n"});{}$\6
+\8\#\&{endif}\6
+\\{exit}(\T{3});\6
+\4${}\}{}$\2\par
+\U6.\fi
+
+\M{9}\B\X9:test command line parameters\X${}\E{}$\6
+\&{if} ${}(\\{argc}<\T{2}\V\\{strncmp}(\\{argv}[\\{argc}-\T{1}],\39\.{"-"},\39%
+\T{1})\E\T{0}){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{fprintf}(\\{stderr},\39\.{"The\ last\ parameter\ }\)\.{on\ the\ command\
+line\\}\)\.{n"});{}$\6
+${}\\{fprintf}(\\{stderr},\39\.{"has\ to\ be\ the\ input}\)\.{\ file\ name.%
+\\n"});{}$\6
+\8\#\&{endif}\6
+\\{exit}(\T{1});\6
+\4${}\}{}$\2\6
+\&{if} ${}(\\{iterate}\E{-}\T{1}){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{fprintf}(\\{stderr},\39\.{"No\ reduction\ was\ ch}\)\.{osen.\\n"});{}$\6
+${}\\{fprintf}(\\{stderr},\39\.{"It\ is\ set\ to\ iterat}\)\.{e=1.\\n"});{}$\6
+\8\#\&{endif}\6
+${}\\{iterate}\K\T{1};{}$\6
+${}\\{iterate\_no}\K\T{1};{}$\6
+\4${}\}{}$\2\6
+\&{if} ${}(\\{iterate}\E\T{0}\W(\\{bkz\_beta\_input}\E{-}\T{1}\V\\{bkz\_p%
+\_input}\E{-}\T{1})){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{fprintf}(\\{stderr},\39\.{"You\ have\ chosen\ bkz}\)\.{\ reduction.\ You\
+also}\)\.{\ have\ to\ specify\ the}\)\.{\ parameters"});{}$\6
+${}\\{fprintf}(\\{stderr},\39\.{"\ -beta*\ -p*\\n"});{}$\6
+\8\#\&{endif}\6
+\\{exit}(\T{1});\6
+\4${}\}{}$\2\6
+\&{if} ${}(\\{mpz\_cmp\_si}(\\{factor\_input},\39\T{0})\Z\T{0}){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{fprintf}(\\{stderr},\39\.{"You\ did\ not\ supply\ }\)\.{the\ options\
+-c*.\ "});{}$\6
+${}\\{fprintf}(\\{stderr},\39\.{"It\ is\ set\ to\ 100000}\)\.{00000000.%
+\\n"});{}$\6
+\8\#\&{endif}\6
+${}\\{mpz\_set\_str}(\\{factor\_input},\39\.{"10000000000000"},\39\T{10});{}$\6
+\4${}\}{}$\2\6
+\&{if} ${}(\\{mpz\_cmp\_si}(\\{norm\_input},\39\T{0})\Z\T{0}){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{fprintf}(\\{stderr},\39\.{"You\ did\ not\ supply\ }\)\.{the\ options\
+-maxnorm}\)\.{*.\ "});{}$\6
+${}\\{fprintf}(\\{stderr},\39\.{"It\ is\ set\ to\ 1.\\n"});{}$\6
+\8\#\&{endif}\6
+${}\\{mpz\_set\_si}(\\{norm\_input},\39\T{1});{}$\6
+\4${}\}{}$\2\6
+\&{if} ${}(\\{mpz\_cmp\_si}(\\{scalelastlinefactor},\39\T{0})\Z\T{0}){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{fprintf}(\\{stderr},\39\.{"You\ did\ not\ supply\ }\)\.{the\ options\
+-scalela}\)\.{stline*.\ "});{}$\6
+${}\\{fprintf}(\\{stderr},\39\.{"It\ is\ set\ to\ 1.\\n"});{}$\6
+\8\#\&{endif}\6
+${}\\{mpz\_set\_si}(\\{scalelastlinefactor},\39\T{1});{}$\6
+\4${}\}{}$\2\par
+\U6.\fi
+
+\M{10}With alarm a maximal run time can be given.
+\Y\B\4\X10:start alarm\X${}\E{}$\6
+\&{if} ${}(\\{maxruntime}>\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{signal}(\.{SIGALRM},\39\\{stopProgram});{}$\6
+\\{alarm}(\\{maxruntime});\6
+\4${}\}{}$\2\par
+\U6.\fi
+
+\M{11}Open the input file and read the size of the
+Diophantine linear system and some other control parameters.
+\Y\B\4\X11:read the system size\X${}\E{}$\6
+$\\{txt}\K\\{fopen}(\\{inputfile\_name},\39\.{"r"});{}$\6
+\&{if} ${}(\\{txt}\E\NULL){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{printf}(\.{"Could\ not\ open\ file}\)\.{\ '\%s'!\\n"},\39\\{inputfile%
+\_name});{}$\6
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\\{exit}(\T{1});\6
+\4${}\}{}$\2\6
+${}\\{flag}\K\T{0};{}$\6
+${}\\{free\_RHS}\K\T{0};{}$\6
+${}\\{stop\_after\_loops}\K\T{0};{}$\6
+${}\\{stop\_after\_solutions}\K\T{0};{}$\6
+${}\\{cut\_after}\K{-}\T{1};{}$\6
+\&{do}\5
+${}\{{}$\1\6
+${}\\{fgets}(\\{zeile},\39\\{zlength},\39\\{txt});{}$\6
+\&{if} ${}(\\{strstr}(\\{zeile},\39\.{"\%\ stopafter"})\I\NULL){}$\5
+${}\{{}$\1\6
+${}\\{sscanf}(\\{zeile},\39\.{"\%\%\ stopafter\ \%ld"},\39{\AND}\\{stop\_after%
+\_solutions});{}$\6
+\4${}\}{}$\2\6
+\&{if} ${}(\\{strstr}(\\{zeile},\39\.{"\%\ stoploops"})\I\NULL){}$\5
+${}\{{}$\1\6
+${}\\{sscanf}(\\{zeile},\39\.{"\%\%\ stoploops\ \%ld"},\39{\AND}\\{stop\_after%
+\_loops});{}$\6
+\4${}\}{}$\2\6
+\&{if} ${}(\\{strstr}(\\{zeile},\39\.{"\%\ cutafter"})\I\NULL){}$\5
+${}\{{}$\1\6
+${}\\{sscanf}(\\{zeile},\39\.{"\%\%\ cutafter\ \%d"},\39{\AND}\\{cut%
+\_after});{}$\6
+\4${}\}{}$\2\6
+\&{if} ${}(\\{strstr}(\\{zeile},\39\.{"\%\ FREERHS"})\I\NULL){}$\5
+${}\{{}$\1\6
+${}\\{free\_RHS}\K\T{1};{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\5
+\&{while} ${}(\\{zeile}[\T{0}]\E\.{'\%'});{}$\6
+${}\\{sscanf}(\\{zeile},\39\.{"\%d\%d\%d"},\39{\AND}\\{no\_rows},\39{\AND}\\{no%
+\_columns},\39{\AND}\\{flag}){}$;\par
+\U2.\fi
+
+\M{12}\B\X12:allocate the matrix\X${}\E{}$\6
+$\|A\K{}$(\&{mpz\_t} ${}{*}{*}){}$ \\{calloc}${}(\\{no\_rows},\39{}$\&{sizeof}(%
+\&{mpz\_t} ${}{*}));{}$\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{no\_rows};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+${}\|A[\|j]\K{}$(\&{mpz\_t} ${}{*}){}$ \\{calloc}${}(\\{no\_columns},\39%
+\&{sizeof}(\&{mpz\_t}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{no\_columns};{}$ ${}\|i\PP){}$\1\5
+\\{mpz\_init}(\|A[\|j][\|i]);\2\6
+\4${}\}{}$\2\6
+${}\\{rhs}\K{}$(\&{mpz\_t} ${}{*}){}$ \\{calloc}${}(\\{no\_rows},\39\&{sizeof}(%
+\&{mpz\_t}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{no\_rows};{}$ ${}\|i\PP){}$\1\5
+\\{mpz\_init}(\\{rhs}[\|i]);\2\par
+\U2.\fi
+
+\M{13}\B\X13:read the linear system\X${}\E{}$\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{no\_rows};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{no\_columns};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_inp\_str}(\|A[\|j][\|i],\39\\{txt},\39\T{10});{}$\6
+\&{if} ${}(\\{res}\E\T{0}){}$\5
+${}\{{}$\1\6
+\X18:incorrect input file\X;\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+${}\\{res}\K\\{mpz\_inp\_str}(\\{rhs}[\|j],\39\\{txt},\39\T{10});{}$\6
+\&{if} ${}(\\{res}\E\T{0}){}$\5
+${}\{{}$\1\6
+\X18:incorrect input file\X;\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\par
+\U2.\fi
+
+\M{14}After searching for upper bounds the input file is closed
+and opened again.
+\Y\B\4\X14:read upper bounds\X${}\E{}$\6
+$\\{upperb}\K\NULL;{}$\6
+\\{fclose}(\\{txt});\6
+${}\\{txt}\K\\{fopen}(\\{inputfile\_name},\39\.{"r"});{}$\6
+\&{if} ${}(\\{txt}\E\NULL){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{printf}(\.{"Could\ not\ open\ file}\)\.{\ \%s\ !\\n"},\39\\{inputfile%
+\_name});{}$\6
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\\{exit}(\T{1});\6
+\4${}\}{}$\2\6
+${}\\{zeile}[\T{0}]\K\.{'\\0'};{}$\6
+${}\\{sprintf}(\\{detectstring},\39\.{"BOUNDS"});{}$\6
+\&{do}\5
+${}\{{}$\1\6
+${}\\{rowp}\K\\{fgets}(\\{zeile},\39\\{zlength},\39\\{txt});{}$\6
+\4${}\}{}$\2\5
+\&{while} ${}((\\{rowp}\I\NULL)\W(\\{strstr}(\\{zeile},\39\\{detectstring})\E%
+\NULL));{}$\6
+\&{if} ${}(\\{rowp}\E\NULL){}$\5
+${}\{{}$\1\6
+${}\\{upperb}\K\NULL;{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+${}\\{printf}(\.{"No\ \%s\ \\n"},\39\\{detectstring}){}$;\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+${}\\{nboundedvars}\K\\{no\_columns};{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{nboundedvars}\K\\{no\_columns};{}$\6
+${}\\{sscanf}(\\{zeile},\39\.{"BOUNDS\ \%d"},\39{\AND}\\{nboundedvars});{}$\6
+\&{if} ${}(\\{nboundedvars}>\T{0}){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{fprintf}(\\{stderr},\39\.{"Nr.\ bounded\ variabl}\)\.{es=\%d\\n"},\39%
+\\{nboundedvars});{}$\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{nboundedvars}\K\T{0};{}$\6
+\4${}\}{}$\2\6
+${}\\{upperb}\K{}$(\&{mpz\_t} ${}{*}){}$ \\{calloc}${}(\\{no\_columns},\39%
+\&{sizeof}(\&{mpz\_t}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{nboundedvars};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\\{mpz\_init}(\\{upperb}[\|i]);\6
+${}\\{mpz\_inp\_str}(\\{upperb}[\|i],\39\\{txt},\39\T{10});{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\\{fclose}(\\{txt});\6
+${}\\{txt}\K\\{fopen}(\\{inputfile\_name},\39\.{"r"});{}$\6
+\&{if} ${}(\\{txt}\E\NULL){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{printf}(\.{"Could\ not\ open\ file}\)\.{\ \%s\ !\\n"},\39\\{inputfile%
+\_name});{}$\6
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\\{exit}(\T{1});\6
+\4${}\}{}$\2\par
+\U2.\fi
+
+\M{15}Search for preselected variables and close the input file.
+\Y\B\4\X15:search preselected variables\X${}\E{}$\6
+$\\{sprintf}(\\{detectstring},\39\.{"SELECTEDCOLUMNS"});{}$\6
+\&{do}\5
+${}\{{}$\1\6
+${}\\{rowp}\K\\{fgets}(\\{zeile},\39\\{zlength},\39\\{txt});{}$\6
+\4${}\}{}$\2\5
+\&{while} ${}((\\{rowp}\I\NULL)\W(\\{strstr}(\\{zeile},\39\\{detectstring})\E%
+\NULL));{}$\6
+\&{if} ${}(\\{rowp}\I\NULL){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+\\{printf}(\.{"SELECTEDCOLUMNS\ det}\)\.{ected\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+${}\\{res}\K\\{fscanf}(\\{txt},\39\.{"\%d"},\39{\AND}(\\{no\_original%
+\_columns}));{}$\6
+\&{if} ${}(\\{res}\E{}$(\&{long}) ${}\NULL\V\\{res}\E{}$(\&{long}) \.{EOF})\5
+${}\{{}$\1\6
+\X18:incorrect input file\X;\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{else}\1\5
+${}\\{no\_original\_columns}\K\\{no\_columns};{}$\2\6
+${}\\{original\_columns}\K{}$(\&{int} ${}{*}){}$ \\{calloc}${}(\\{no\_original%
+\_columns},\39\&{sizeof}(\&{int}));{}$\6
+\&{if} ${}(\\{rowp}\I\NULL){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{no\_original\_columns};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{res}\K\\{fscanf}(\\{txt},\39\.{"\%d"},\39{\AND}(\\{original\_columns}[%
+\|i]));{}$\6
+\&{if} ${}(\\{res}\E{}$(\&{long}) ${}\NULL\V\\{res}\E{}$(\&{long}) \.{EOF})\5
+${}\{{}$\1\6
+\X18:incorrect input file\X;\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{no\_original\_columns};{}$ ${}\|i\PP){}$\1%
+\5
+${}\\{original\_columns}[\|i]\K\T{1};{}$\2\6
+\4${}\}{}$\2\6
+\\{fclose}(\\{txt});\par
+\U2.\fi
+
+\M{16}
+\Y\B\4\X16:delete zero-bound variables\X${}\E{}$\6
+\&{if} ${}(\\{upperb}\I\NULL){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\\{nboundedvars}-\T{1};{}$ ${}\|i\G\T{1};{}$ ${}\|i\MM){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{mpz\_cmp\_si}(\\{upperb}[\|i],\39\T{0})\E\T{0}){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|j\K\|i+\T{1};{}$ ${}\|j<{}$\\{no\_columns}\C{\PB{%
+\\{nboundedvars}}}\6
+; ${}\|j\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|k\K\T{0};{}$ ${}\|k<\\{no\_rows};{}$ ${}\|k\PP){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_set}(\|A[\|k][\|j-\T{1}],\39\|A[\|k][\|j]);{}$\6
+\4${}\}{}$\2\6
+${}\\{mpz\_set}(\\{upperb}[\|j-\T{1}],\39\\{upperb}[\|j]);{}$\6
+\4${}\}{}$\2\6
+\&{if} ${}(\|i<\\{nboundedvars}){}$\1\5
+${}\\{nboundedvars}\MM;{}$\2\6
+${}\\{no\_columns}\MM;{}$\6
+${}\|k\K\|l\K\T{0};{}$\6
+\&{while} ${}(\|k<\|i){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{original\_columns}[\|l]\E\T{1}){}$\5
+${}\{{}$\1\6
+${}\|k\PP;{}$\6
+\4${}\}{}$\2\6
+${}\|l\PP;{}$\6
+\4${}\}{}$\2\6
+${}\\{original\_columns}[\|l]\K\T{0};{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+${}\\{fprintf}(\\{stderr},\39\.{"cols=\%d\\n"},\39\\{nboundedvars});{}$\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\par
+\U2.\fi
+
+\M{17}\B\X4:variables\X${}\mathrel+\E{}$\6
+;\6
+\8\#\&{if} \T{0}\7
+\&{int} \|k${},{}$ \|l;\6
+\8\#\&{endif}\par
+\fi
+
+\M{18}Incorrect or incomplete input file. We stop immediately.
+\Y\B\4\X18:incorrect input file\X${}\E{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+$\\{fprintf}(\\{stderr},\39\.{"Incomplete\ input\ fi}\)\.{le\ ->\ exit%
+\\n"});{}$\6
+\\{fflush}(\\{stderr});\6
+\8\#\&{endif}\6
+\\{exit}(\T{1});\par
+\Us13\ET15.\fi
+
+\M{19}Global variables and subroutines to measure the run time of the
+algorithm. The time is measured by calling \PB{\\{os\_ticks}(\,)} before and
+after
+running \PB{\\{diophant}(\,)}. \PB{\\{print\_delta\_time}(\,)} prints the run
+time.
+The other subroutines are just for
+formatting purposes.
+\Y\B\4\X19:run time measurements\X${}\E{}$\6
+\&{int} \\{user\_time}${},{}$ \\{time\_0}${},{}$ \\{time\_1};\6
+\&{char} \\{timestring}[\T{256}];\7
+\X20:system calls\X;\6
+\X21:convert ticks to seconds\X;\6
+\X22:give time string\X;\par
+\U2.\fi
+
+\M{20}These are the system calls. \PB{\\{os\_ticks}(\,)} gives the system
+ticks.
+\PB{\\{os\_ticks\_per\_second}(\,)} gives the system dependent relation
+ticks vs. seconds.
+\Y\B\4\X20:system calls\X${}\E{}$\6
+\&{int} \\{os\_ticks}(\,)\1\1\2\2\6
+${}\{{}$\1\6
+\&{struct} \\{tms} \\{tms\_buffer};\7
+\&{if} ${}({-}\T{1}\E\\{times}({\AND}\\{tms\_buffer})){}$\1\5
+\&{return} ${}({-}\T{1});{}$\2\6
+\&{return} ${}(\\{tms\_buffer}.\\{tms\_utime});{}$\6
+\4${}\}{}$\2\7
+\&{int} \\{os\_ticks\_per\_second}(\,)\1\1\2\2\6
+${}\{{}$\1\6
+\&{int} \\{clk\_tck}${}\K\T{1};{}$\7
+${}\\{clk\_tck}\K\\{sysconf}(\.{\_SC\_CLK\_TCK});{}$\6
+\&{return} (\\{clk\_tck});\6
+\4${}\}{}$\2\par
+\U19.\fi
+
+\M{21}\PB{\\{tps}} contains the system dependent number ``ticks per second.''
+The number of ticks are converted into seconds, minutes and hours.
+\Y\B\4\X21:convert ticks to seconds\X${}\E{}$\6
+\&{int} \\{os\_ticks\_to\_hms\_tps}(\&{int} \\{ticks}${},\39{}$\&{int} %
+\\{tps}${},\39{}$\&{int} ${}{*}\|h,\39{}$\&{int} ${}{*}\|m,\39{}$\&{int} ${}{*}%
+\|s){}$\1\1\2\2\6
+${}\{{}$\1\6
+\&{int} \\{l1};\7
+${}\\{l1}\K\\{ticks}/\\{tps}{}$;\C{ \PB{\\{l1}} is set to overall the number of
+seconds. }\6
+${}{*}\|s\K\\{l1}\MOD\T{60}{}$;\C{ number of seconds }\6
+${}\\{l1}\MRL{-{\K}}{*}\|s;{}$\6
+${}\\{l1}\MRL{{/}{\K}}\T{60};{}$\6
+${}{*}\|m\K\\{l1}\MOD\T{60}{}$;\C{ number of minutes }\6
+${}\\{l1}\MRL{-{\K}}{*}\|m;{}$\6
+${}\\{l1}\MRL{{/}{\K}}\T{60}{}$;\C{ number of hours }\6
+${}{*}\|h\K\\{l1};{}$\6
+\&{return} (\T{1});\6
+\4${}\}{}$\2\7
+\&{int} \\{os\_ticks\_to\_hms}(\&{int} \\{ticks}${},\39{}$\&{int} ${}{*}\|h,%
+\39{}$\&{int} ${}{*}\|m,\39{}$\&{int} ${}{*}\|s){}$\1\1\2\2\6
+${}\{{}$\1\6
+${}\\{os\_ticks\_to\_hms\_tps}(\\{ticks},\39\\{os\_ticks\_per\_second}(\,),\39%
+\|h,\39\|m,\39\|s);{}$\6
+\&{return} (\T{1});\6
+\4${}\}{}$\2\par
+\U19.\fi
+
+\M{22}\B\X22:give time string\X${}\E{}$\6
+\&{void} \\{print\_delta\_time\_tps}(\&{int} \|l${},\39{}$\&{int} \\{tps}${},%
+\39{}$\&{char} ${}{*}\\{str}){}$\1\1\2\2\6
+${}\{{}$\1\6
+\&{int} \|h${},{}$ \|m${},{}$ \|s;\7
+${}\\{os\_ticks\_to\_hms\_tps}(\|l,\39\\{tps},\39{\AND}\|h,\39{\AND}\|m,\39{%
+\AND}\|s);{}$\6
+${}\\{sprintf}(\\{str},\39\.{"\%d:\%02d:\%02d"},\39\|h,\39\|m,\39\|s);{}$\6
+\4${}\}{}$\2\7
+\&{void} \\{print\_delta\_time}(\&{int} \|l${},\39{}$\&{char} ${}{*}\\{str}){}$%
+\1\1\2\2\6
+${}\{{}$\1\6
+${}\\{print\_delta\_time\_tps}(\|l,\39\\{os\_ticks\_per\_second}(\,),\39%
+\\{str});{}$\6
+\4${}\}{}$\2\par
+\U19.\fi
+
+\M{23}\B\X23:final output of the run time\X${}\E{}$\6
+$\\{user\_time}\K\\{time\_1}-\\{time\_0};{}$\6
+${}\\{timestring}[\T{0}]\K\T{0};{}$\6
+${}\\{print\_delta\_time}(\\{user\_time},\39\\{timestring});{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+${}\\{fprintf}(\\{stderr},\39\.{"total\ enumeration\ t}\)\.{ime:\ \%s\\n"},\39%
+\\{timestring}){}$;\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\par
+\U2.\fi
+
+\N{1}{24}Index.
+\fi
+
+\inx
+\fin
+\con

@@ -1,0 +1,4490 @@
+\input cwebmac
+\datethis
+
+\N{1}{1}diophant -- Solving Diophantine Linear Systems.
+The library {\tt diophant} enables the solution of
+Diophantine Linear Systems based on LLL reduction.
+The user has to provide an integer matrix $A$, a right hand side
+vector $b$, optionally a vector $u$ of upper bounds on the solution vector $x$.
+{\tt diophant} computes all integer solutions $x$, such that
+$$A\cdot x = b, \hbox{ where } 0\leq x\leq u.$$
+An example is the following $3\times 13$-system, to be solved with a
+0/1-vector:
+$$
+\left(\matrix{
+5&5&5&5&5&1&1&1&0&0&0&0&0\cr
+0&4&4&8&0&0&0&0&4&4&4&0&0\cr
+2&1&4&3&2&1&1&1&2&5&2&3&1\cr}\right) \cdot x =
+\left(\matrix{12\cr 12\cr 12\cr}\right)
+$$
+One 0/1-solution is
+$$x= (1,0,0,1,0,1,0,1,1,0,0,1,0)^\top.$$
+
+\fi
+
+\M{2}Initial definitions.
+The LLL and BKZ algorithms can be controlled by the following
+declarations.
+\Y\B\4\D$\.{BLAS}$ \5
+\T{1}\par
+\B\4\D$\.{USE\_SSE}$ \5
+\T{0}\par
+\B\4\D$\.{DEEPINSERT}$ \5
+\T{1}\par
+\B\4\D$\.{DEEPINSERT\_CONST}$ \5
+\T{100}\par
+\B\4\D$\.{VERBOSE}$ \5
+\T{1}\par
+\B\4\D$\.{GIVENS}$ \5
+\T{1}\par
+\B\4\D$\.{LASTLINESFACTOR}$ \5
+\.{"1000000"}\C{ "100000000" }\par
+\B\4\D$\.{EPSILON}$ \5
+\T{0.00001}\C{ 0.0001  }\par
+\B\4\D$\.{LLLCONST\_LOW}$ \5
+\T{0.75}\C{ 0.75}\par
+\B\4\D$\.{LLLCONST\_HIGH}$ \5
+\T{0.90}\C{ 0.99 }\par
+\B\4\D$\.{LLLCONST\_HIGHER}$ \5
+\T{0.999}\par
+\B\4\D$\.{SQRT}$ \5
+\\{sqrt}\par
+\B\4\D$\&{DOUBLE}$ \5
+\&{double}\par
+\B\4\D$\&{COEFF}$ \5
+\&{struct} \\{coe}\par
+\B\F\\{mpz\_t} \5
+\\{long}\par
+\B\F\.{DOUBLE} \5
+\\{double}\par
+\B\F\.{COEFF} \5
+\\{int}\par
+\Y\B\X5:include header files\X;\6
+\X6:definition of the lattice data structures\X;\6
+\X7:global variables\X;\6
+\X10:inline functions\X;\6
+\X28:basic subroutines\X;\6
+\X47:lattice basis reduction algorithms\X;\par
+\fi
+
+\M{3}The main routine {\tt diophant()}:
+\Y\B\&{long} \\{diophant}(\&{mpz\_t} ${}{*}{*}\\{a\_input},\39{}$\&{mpz\_t}
+${}{*}\\{b\_input},\39{}$\&{mpz\_t} ${}{*}\\{upperbounds\_input},\39{}$\&{int} %
+\\{no\_columns}${},\39{}$\&{int} \\{no\_rows}${},\39{}$\&{mpz\_t} \\{factor%
+\_input}${},\39{}$\&{mpz\_t} \\{norm\_input}${},\39{}$\&{mpz\_t} %
+\\{scalelastlinefactor}${},\39{}$\&{int} \\{silent}${},\39{}$\&{int} %
+\\{iterate}${},\39{}$\&{int} \\{iterate\_no}${},\39{}$\&{int} \\{bkz\_beta%
+\_input}${},\39{}$\&{int} \\{bkz\_p\_input}${},\39{}$\&{long} \\{stop\_after%
+\_sol\_input}${},\39{}$\&{long} \\{stop\_after\_loops\_input}${},\39{}$\&{int} %
+\\{free\_RHS\_input}${},\39{}$\&{int} ${}{*}\\{org\_col\_input},\39{}$\&{int} %
+\\{no\_org\_col\_input}${},\39{}$\&{int} \\{cut\_after}${},\39{}$\&{int} %
+\\{nboundedvars}${},\39{}$\&{FILE} ${}{*}\\{solfile}){}$\7
+${}\{{}$\1\6
+\&{int} \|i${},{}$ \|j;\6
+\&{DOUBLE} \\{lD}${},{}$ \\{lDnew};\6
+\&{COEFF} ${}{*}\\{swap\_vec};{}$\7
+\X11:initialize some globals\X;\6
+\8\#\&{if} \.{BLAS}\C{\PB{\\{goto\_set\_num\_threads}(\T{1});}}\6
+\8\#\&{endif}\C{ In case, a time limit as been set by -time        the
+execution is stopped and        the number of solutions is printed     }\6
+\X13:set the lattice dimension\X;\6
+\X14:allocate memory\X;\6
+\X15:read the system\X;\6
+\X16:handle upper bounds\X;\6
+\X17:handle preselected columns\X;\6
+\X18:append the other parts of lattice\X;\6
+\X117:open solution file\X;\6
+\8\#\&{if} \T{0}\6
+\\{printf}(\.{"Before\ scaling\\n"});\6
+\\{print\_lattice}(\,);\6
+\8\#\&{endif}\6
+\X19:scale lattice\X;\6
+\8\#\&{if} \T{0}\6
+\\{printf}(\.{"After\ scaling\\n"});\6
+\\{print\_lattice}(\,);\6
+\8\#\&{endif}\6
+\8\#\&{if} \T{1}\6
+\8\#\&{if} \T{0}\6
+\\{print\_NTL\_lattice}(\,);\C{ Version for the NTL output }\6
+\&{return} \T{0};\6
+\8\#\&{endif}\6
+\X20:permute lattice columns\X;\6
+\8\#\&{if} \T{0}\6
+\\{printf}(\.{"After\ permute\\n"});\6
+\\{print\_lattice}(\,);\6
+\8\#\&{endif}\6
+\\{shufflelattice}(\,);\6
+\X21:first reduction\X;\6
+\8\#\&{if} \T{0}\6
+\\{printf}(\.{"After\ first\ reducti}\)\.{on\\n"});\6
+\\{print\_lattice}(\,);\6
+\8\#\&{endif}\6
+\X23:cut the lattice\X;\6
+\8\#\&{if} \T{0}\6
+\\{printf}(\.{"After\ cutting\\n"});\6
+\\{print\_lattice}(\,);\6
+\8\#\&{endif}\6
+\8\#\&{if} \T{1}\6
+\\{shufflelattice}(\,);\6
+\X22:second reduction\X;\6
+\8\#\&{endif}\6
+\8\#\&{if} \T{0}\6
+\\{printf}(\.{"After\ second\ reduct}\)\.{ion\\n"});\6
+\\{print\_lattice}(\,);\6
+\8\#\&{endif}\6
+\8\#\&{if} \T{1}\6
+\X24:scale last rows\X;\6
+\X26:third reduction\X;\6
+\X25:undo scaling of last rows\X;\6
+\8\#\&{endif}\6
+\8\#\&{else}\6
+\\{read\_NTL\_lattice}(\,);\6
+\8\#\&{endif}\6
+\8\#\&{if} \T{0}\6
+\\{printf}(\.{"Before\ enumeration\\}\)\.{n"});\C{\PB{\\{print\_NTL\_lattice}(%
+\,);}}\C{ Version for the NTL output }\6
+\\{print\_lattice}(\,);\6
+\8\#\&{endif}\6
+\X27:explicit enumeration\X;\6
+\X118:close solution file\X;\6
+\X12:free multiprecision memory\X;\6
+\&{return} \\{nosolutions};\6
+\4${}\}{}$\2\par
+\fi
+
+\M{4}The header file {\tt diophant.h}. It is needed if one wants to include
+\PB{\\{diophant}(\,)} in his program.
+\Y\B\4\X4:\.{diophant.h }\X${}\E{}$\6
+\8\#\&{ifndef} \.{\_DIOPHANT\_H}\6
+\8\#\&{define} \.{\_DIOPHANT\_H}\6
+\8\#\&{include} \.{<gmp.h>}\6
+\&{extern} \&{long} \\{diophant}(\&{mpz\_t} ${}{*}{*}\\{a\_input},\39{}$\&{mpz%
+\_t} ${}{*}\\{b\_input},\39{}$\&{mpz\_t} ${}{*}\\{upperbounds\_input},\39{}$%
+\&{int} \\{no\_columns}${},\39{}$\&{int} \\{no\_rows}${},\39{}$\&{mpz\_t} %
+\\{factor\_input}${},\39{}$\&{mpz\_t} \\{norm\_input}${},\39{}$\&{mpz\_t} %
+\\{scalelastlinefactor}${},\39{}$\&{int} \\{silent}${},\39{}$\&{int} %
+\\{iterate}${},\39{}$\&{int} \\{iterate\_no}${},\39{}$\&{int} \\{bkz\_beta%
+\_input}${},\39{}$\&{int} \\{bkz\_p\_input}${},\39{}$\&{long} \\{stop\_after%
+\_sol\_input}${},\39{}$\&{long} \\{stop\_after\_loops\_input}${},\39{}$\&{int} %
+\\{free\_RHS\_input}${},\39{}$\&{int} ${}{*}\\{org\_col\_input},\39{}$\&{int} %
+\\{no\_org\_col\_input}${},\39{}$\&{int} \\{cut\_after}${},\39{}$\&{int} %
+\\{nboundedvars}${},\39{}$\&{FILE} ${}{*}\\{solfile});{}$\6
+\&{extern} \&{void} \\{stopProgram}(\,);\6
+\&{extern} \&{long} \\{nosolutions};\6
+\8\#\&{endif}\par
+\A88.\fi
+
+\M{5}The following header files are included.
+\Y\B\4\X5:include header files\X${}\E{}$\6
+\8\#\&{include} \.{<stdio.h>}\6
+\8\#\&{include} \.{<time.h>}\6
+\8\#\&{include} \.{<stdlib.h>}\6
+\8\#\&{include} \.{<stdint.h>}\6
+\8\#\&{include} \.{<string.h>}\6
+\8\#\&{include} \.{<malloc.h>}\6
+\8\#\&{include} \.{<math.h>}\6
+\8\#\&{include} \.{<gmp.h>}\6
+\8\#\&{include} \.{"diophant.h"}\6
+\8\#\&{if} \.{USE\_SSE}\C{ Intrinsic SSE }\6
+$\#$ \&{include} $<$ $\\{pmmintrin}.\|h$ $>{}$\6
+\8\#\&{endif}\6
+\8\#\&{if} \.{BLAS}\6
+\8\#\&{include} \.{"OpenBLASsub/common.}\)\.{h"}\6
+\8\#\&{include} \.{"OpenBLASsub/cblas.h}\)\.{"}\6
+\8\#\&{endif}\par
+\U2.\fi
+
+\M{6}The data structure of the lattice:
+\Y\B\4\X6:definition of the lattice data structures\X${}\E{}$\6
+\&{struct} \&{coe} ${}\{{}$\1\6
+\&{mpz\_t} \|c;\6
+\&{int} \|p;\2\6
+${}\}{}$;\par
+\U2.\fi
+
+\M{7}The global variables.
+We start with the
+variables which control the scaling of the lattice.
+\PB{\\{max\_norm}} resembles the $\lambda$ in design problems.
+\Y\B\4\X7:global variables\X${}\E{}$\6
+\&{mpz\_t} \\{matrix\_factor};\6
+\&{mpz\_t} \\{max\_norm};\6
+\&{mpz\_t} \\{max\_norm\_initial};\6
+\&{mpz\_t} \\{max\_up};\6
+\&{mpz\_t} \\{dummy};\6
+\&{long} \\{nom}${},{}$ \\{denom};\6
+\&{mpz\_t} \\{lastlines\_factor};\6
+\&{mpz\_t} \\{snd\_q}${},{}$ \\{snd\_r}${},{}$ \\{snd\_s};\par
+\As8, 9, 41\ETs119.
+\U2.\fi
+
+\M{8}The variables which define the lattice and its dimensions.
+\Y\B\4\X7:global variables\X${}\mathrel+\E{}$\6
+\&{int} \\{system\_rows}${},{}$ \\{system\_columns};\6
+\&{int} \\{lattice\_rows}${},{}$ \\{lattice\_columns};\6
+\&{COEFF} ${}{*}{*}\\{lattice};{}$\6
+\&{int} \\{free\_RHS};\6
+\&{int} \\{iszeroone};\6
+\&{mpz\_t} ${}{*}\\{upperbounds};{}$\6
+\&{mpz\_t} \\{upperbounds\_max};\6
+\&{mpz\_t} \\{upfac};\par
+\fi
+
+\M{9}Other variables.
+\Y\B\4\X7:global variables\X${}\mathrel+\E{}$\6
+\&{int} ${}{*}\\{original\_columns};{}$\6
+\&{int} \\{no\_original\_columns};\6
+\&{int} \\{cut\_after\_coeff};\6
+\&{long} \\{stop\_after\_solutions};\6
+\&{long} \\{stop\_after\_loops};\6
+\&{long} \\{nosolutions};\6
+\&{int} \\{iterate};\6
+\&{int} \\{no\_iterates};\6
+\&{int} \\{bkz\_beta}${},{}$ \\{bkz\_p};\6
+\&{int} \.{SILENT};\6
+\&{int} \\{nboundvars};\par
+\fi
+
+\M{10}The access to the lattice is done via inline functions.
+The rounding function is defined as
+\Y\B\4\D$\.{ROUND}(\|r)$ \5
+$\\{ceil}(\|r-\T{0.5}){}$\par
+\Y\B\4\X10:inline functions\X${}\E{}$\6
+\8\#\&{define} ${}\\{put\_to}(\|i,\39\|j,\39\\{val}) \5\\{mpz\_set}(%
+\\{lattice}[\|i][\|j+\T{1}].\|c,\39\\{val}){}$\6
+\8\#\&{define} ${}\\{smult\_lattice}(\|i,\39\|j,\39\\{factor}) \5\\{mpz\_mul}(%
+\\{lattice}[\|i][\|j+\T{1}].\|c,\39\\{lattice}[\|i][\|j+\T{1}].\|c,\39%
+\\{factor}){}$\6
+\8\#\&{define} ${}\\{get\_entry}(\|i,\39\|j) \5\\{lattice}[\|i][\|j+\T{1}].%
+\|c{}$\par
+\U2.\fi
+
+\M{11}Read the parameters of {\tt diophant} and initialize some
+global variables.
+\Y\B\4\X11:initialize some globals\X${}\E{}$\6
+$\\{mpz\_init\_set}(\\{matrix\_factor},\39\\{factor\_input});{}$\6
+${}\\{mpz\_init\_set}(\\{max\_norm},\39\\{norm\_input});{}$\6
+\\{mpz\_init}(\\{lastlines\_factor});\6
+\\{mpz\_init}(\\{upfac});\6
+\\{mpz\_init}(\\{snd\_q});\6
+\\{mpz\_init}(\\{snd\_r});\6
+\\{mpz\_init}(\\{snd\_s});\6
+\&{if} (\\{iterate})\5
+${}\{{}$\1\6
+${}\\{no\_iterates}\K\\{iterate\_no};{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{bkz\_beta}\K\\{bkz\_beta\_input};{}$\6
+${}\\{bkz\_p}\K\\{bkz\_p\_input};{}$\6
+\4${}\}{}$\2\6
+${}\.{SILENT}\K\\{silent};{}$\6
+${}\\{stop\_after\_solutions}\K\\{stop\_after\_sol\_input};{}$\6
+${}\\{stop\_after\_loops}\K\\{stop\_after\_loops\_input};{}$\6
+${}\\{free\_RHS}\K\\{free\_RHS\_input};{}$\6
+${}\\{nom}\K\T{1};{}$\6
+${}\\{denom}\K\T{2};{}$\6
+${}\\{system\_rows}\K\\{no\_rows};{}$\6
+${}\\{system\_columns}\K\\{no\_columns};{}$\6
+${}\\{nboundvars}\K\\{nboundedvars}{}$;\par
+\A42.
+\U3.\fi
+
+\M{12}\B\X12:free multiprecision memory\X${}\E{}$\6
+\\{mpz\_clear}(\\{matrix\_factor});\6
+\\{mpz\_clear}(\\{max\_norm});\6
+\\{mpz\_clear}(\\{lastlines\_factor});\6
+\\{mpz\_clear}(\\{upfac});\6
+\\{mpz\_clear}(\\{max\_norm\_initial});\6
+\\{mpz\_clear}(\\{max\_up});\6
+\\{mpz\_clear}(\\{soltest\_u});\6
+\\{mpz\_clear}(\\{soltest\_s});\6
+\\{mpz\_clear}(\\{soltest\_upfac});\6
+\\{mpz\_clear}(\\{upperbounds\_max});\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{lattice\_columns};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i\Z\\{lattice\_rows};{}$ ${}\|i\PP){}$\1\5
+${}\\{mpz\_clear}(\\{lattice}[\|j][\|i].\|c);{}$\2\6
+\4${}\}{}$\2\6
+\\{free}(\\{lattice});\6
+\&{if} ${}(\\{upperbounds}\I\NULL){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{system\_columns};{}$ ${}\|i\PP){}$\1\5
+\\{mpz\_clear}(\\{upperbounds}[\|i]);\2\6
+\\{free}(\\{upperbounds});\6
+\4${}\}{}$\2\par
+\U3.\fi
+
+\M{13}The lattice has two more columns than the original system.
+The number of rows is the number of columns plus number of rows
+plus one of the original system.
+If the right hand side is free (e.g. for design problems)
+there is an additional column and an additional row.
+\Y\B\4\X13:set the lattice dimension\X${}\E{}$\6
+$\\{lattice\_rows}\K\\{system\_rows}+\\{system\_columns}+\T{1};{}$\6
+${}\\{lattice\_columns}\K\\{system\_columns}+\T{2};{}$\6
+\&{if} (\\{free\_RHS})\5
+${}\{{}$\1\6
+${}\\{lattice\_rows}\PP;{}$\6
+${}\\{lattice\_columns}\PP;{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{fprintf}(\\{stderr},\39\.{"The\ RHS\ is\ fixed\ !\\}\)\.{n"}){}$;\5
+\\{fflush}(\\{stderr});\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+${}\\{cut\_after\_coeff}\K\\{cut\_after}{}$;\par
+\U3.\fi
+
+\M{14}Allocate memory for the lattice array and fill it with zero.
+\Y\B\4\X14:allocate memory\X${}\E{}$\6
+$\\{lattice}\K{}$(\&{COEFF} ${}{*}{*}){}$ \\{calloc}${}(\\{lattice\_columns},%
+\39{}$\&{sizeof}(\&{COEFF} ${}{*}));{}$\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{lattice\_columns};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+${}\\{lattice}[\|j]\K{}$(\&{COEFF} ${}{*}){}$ \\{calloc}${}(\\{lattice\_rows}+%
+\T{1},\39\&{sizeof}(\&{COEFF}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i\Z\\{lattice\_rows};{}$ ${}\|i\PP){}$\1\5
+${}\\{mpz\_init}(\\{lattice}[\|j][\|i].\|c);{}$\2\6
+\4${}\}{}$\2\par
+\U3.\fi
+
+\M{15}The input matrix and the right hand side
+vector are copied row by row into the lattice.
+\Y\B\4\X15:read the system\X${}\E{}$\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{system\_rows};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{system\_columns};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_mul}(\\{lattice}[\|i][\|j+\T{1}].\|c,\39\\{a\_input}[\|j][\|i],\39%
+\\{matrix\_factor});{}$\6
+\4${}\}{}$\2\6
+${}\\{mpz\_mul}(\\{lattice}[\\{system\_columns}][\|j+\T{1}].\|c,\39\\{b%
+\_input}[\|j],\39\\{matrix\_factor});{}$\6
+\4${}\}{}$\2\par
+\U3.\fi
+
+\M{16}The upper bounds are copied. If the input vector points to \PB{$\NULL$},
+a
+0/1 system is assumed. The variable
+\PB{\\{upperbounds\_max}} contains the least common multiple
+of the upper bounds, let's call it $u_{\max}$.
+Starting from $u_{\max}=1$
+it is computed with $0\le i<n$:
+$$
+u_{\max} \leftarrow u_{\max}\cdot {u_i\over \gcd(u_{\max},u_i)}.
+$$
+It is needed for an
+appropiate scaling of the lattice, see section \PB{$\X19:scale lattice\X$}.
+Further, this determines if we have a 0/1 system, i.~e. if
+$\PB{\\{upperbounds\_max}}=1$.
+\Y\B\4\X16:handle upper bounds\X${}\E{}$\6
+$\\{mpz\_init\_set\_si}(\\{upperbounds\_max},\39\T{1});{}$\6
+${}\\{iszeroone}\K\T{1};{}$\6
+\&{if} ${}(\\{upperbounds\_input}\E\NULL){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+\\{printf}(\.{"No\ upper\ bounds:\ 0/}\)\.{1\ variables\ are\ assu}\)\.{med\ %
+\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{upperbounds}\K{}$(\&{mpz\_t} ${}{*}){}$ \\{calloc}${}(\\{system%
+\_columns},\39\&{sizeof}(\&{mpz\_t}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{system\_columns};{}$ ${}\|i\PP){}$\1\5
+${}\\{mpz\_init\_set\_si}(\\{upperbounds}[\|i],\39\T{1});{}$\2\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<{}$\\{nboundvars}\C{\PB{\\{system\_columns}}}%
+\6
+; ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_set}(\\{upperbounds}[\|i],\39\\{upperbounds\_input}[\|i]);{}$\6
+\&{if} ${}(\\{mpz\_sgn}(\\{upperbounds}[\|i])\I\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_lcm}(\\{upperbounds\_max},\39\\{upperbounds\_max},\39%
+\\{upperbounds}[\|i]);{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{if} ${}(\\{mpz\_cmp\_si}(\\{upperbounds\_max},\39\T{1})>\T{0}){}$\1\5
+${}\\{iszeroone}\K\T{0};{}$\2\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+${}\\{fprintf}(\\{stderr},\39\.{"upper\ bounds\ found.}\)\.{\ Max="});{}$\6
+${}\\{mpz\_out\_str}(\\{stderr},\39\T{10},\39\\{upperbounds\_max});{}$\6
+${}\\{fprintf}(\\{stderr},\39\.{"\\n"}){}$;\5
+\\{fflush}(\\{stderr});\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\par
+\U3.\fi
+
+\M{17}Handle the original columns. This is used for preselected columns.
+If the array points to \PB{$\NULL$}, we fill the array completely with 1's.
+This is of course only useful in case of 0/1 problems.
+The non-0/1 case has still to be handled.
+\Y\B\4\X17:handle preselected columns\X${}\E{}$\6
+\&{if} ${}(\\{org\_col\_input}\I\NULL){}$\1\5
+${}\\{no\_original\_columns}\K\\{no\_org\_col\_input};{}$\2\6
+\&{else}\1\5
+${}\\{no\_original\_columns}\K\\{system\_columns};{}$\2\6
+${}\\{original\_columns}\K{}$(\&{int} ${}{*}){}$ \\{calloc}${}(\\{no\_original%
+\_columns},\39\&{sizeof}(\&{int}));{}$\6
+\&{if} ${}(\\{org\_col\_input}\I\NULL){}$\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{no\_original\_columns};{}$ ${}\|i\PP){}$\1%
+\5
+${}\\{original\_columns}[\|i]\K\\{org\_col\_input}[\|i];{}$\2\2\6
+\&{else}\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{no\_original\_columns};{}$ ${}\|i\PP){}$\1%
+\5
+${}\\{original\_columns}[\|i]\K\T{1};{}$\2\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+\\{printf}(\.{"No\ preselected\ colu}\)\.{mns\ \\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\par
+\U3.\fi
+
+\M{18}The matrix of unity, the last columns and rows are appended.
+The diagonal (unity) matrix is set to
+$\PB{\\{denom}}*\PB{\\{max\_norm}}$ which is $2\cdot\lambda$ in design problems
+and $2$ in problems with fixed right hand side.
+The second last column (the column corresponding to the right hand side)
+is set to
+$\PB{\\{nom}}*\PB{\\{max\_norm}}$ which is $\lambda$ in design problems
+and $1$ in problems with fixed right hand side.
+\Y\B\4\X18:append the other parts of lattice\X${}\E{}$\6
+\&{for} ${}(\|j\K\\{system\_rows};{}$ ${}\|j<\\{lattice\_rows};{}$ ${}\|j%
+\PP){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_mul\_si}(\\{lattice}[\|j-\\{system\_rows}][\|j+\T{1}].\|c,\39\\{max%
+\_norm},\39\\{denom});{}$\6
+${}\\{mpz\_mul\_si}(\\{lattice}[\\{lattice\_columns}-\T{2}][\|j+\T{1}].\|c,\39%
+\\{max\_norm},\39\\{nom});{}$\6
+\4${}\}{}$\2\6
+${}\\{mpz\_set}(\\{lattice}[\\{system\_columns}+\\{free\_RHS}][\\{lattice%
+\_rows}].\|c,\39\\{max\_norm});{}$\6
+\&{if} (\\{free\_RHS})\5
+${}\{{}$\1\6
+${}\\{mpz\_set\_si}(\\{lattice}[\\{system\_columns}][\\{lattice\_rows}-\T{1}].%
+\|c,\39\T{1});{}$\6
+${}\\{mpz\_set\_si}(\\{lattice}[\\{system\_columns}+\T{1}][\\{lattice\_rows}-%
+\T{1}].\|c,\39\T{0});{}$\6
+\4${}\}{}$\2\6
+${}\\{mpz\_set}(\\{lattice}[\\{system\_columns}+\\{free\_RHS}][\\{lattice%
+\_rows}].\|c,\39\\{max\_norm});{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{lattice\_columns}-\T{1};{}$ ${}\|i\PP){}$%
+\1\5
+${}\\{coeffinit}(\\{lattice}[\|i],\39\\{lattice\_rows}){}$;\2\par
+\U3.\fi
+
+\M{19}The lower parts of the lattice are multiplied by factors stemming
+from the upper bounds. This is only necessary if we have non-0/1 bounds.
+Each row in the lower part of the lattice corresponds to a variable.
+We multiply the diagonal entry in row $j$ (of the lower part,
+therefore in the whole system it is row  $j+ \PB{\\{system\_rows}}$) by
+${u_{\max}\over u_j}$.
+The right hand side column entry in row $j$ is multiplied by
+$u_{\max}$.
+\Y\B\4\X19:scale lattice\X${}\E{}$\6
+$\\{mpz\_init\_set}(\\{max\_norm\_initial},\39\\{max\_norm});{}$\6
+${}\\{mpz\_init\_set\_si}(\\{max\_up},\39\T{1});{}$\6
+\&{if} ${}(\R\\{iszeroone}){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<{}$\\{nboundvars}\C{\PB{\\{system\_columns}}}%
+\6
+; ${}\|j\PP){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{mpz\_sgn}(\\{upperbounds}[\|j])\I\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_divexact}(\\{upfac},\39\\{upperbounds\_max},\39\\{upperbounds}[%
+\|j]);{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{mpz\_mul}(\\{upfac},\39\\{upperbounds\_max},\39\\{upperbounds\_max});{}$\6
+${}\\{mpz\_mul\_si}(\\{upfac},\39\\{upfac},\39\T{10000});{}$\6
+\4${}\}{}$\2\6
+${}\\{smult\_lattice}(\|j,\39\|j+\\{system\_rows},\39\\{upfac});{}$\6
+${}\\{smult\_lattice}(\\{system\_columns}+\\{free\_RHS},\39\|j+\\{system%
+\_rows},\39\\{upperbounds\_max});{}$\6
+\4${}\}{}$\2\6
+${}\\{mpz\_set}(\\{max\_up},\39\\{upperbounds\_max});{}$\6
+${}\\{mpz\_mul}(\\{max\_norm},\39\\{max\_norm},\39\\{max\_up});{}$\6
+\&{if} (\\{free\_RHS})\1\5
+${}\\{smult\_lattice}(\\{system\_columns},\39\\{lattice\_rows}-\T{2},\39\\{max%
+\_up});{}$\2\6
+${}\\{smult\_lattice}(\\{system\_columns}+\\{free\_RHS},\39\\{lattice\_rows}-%
+\T{1},\39\\{max\_up});{}$\6
+\4${}\}{}$\2\par
+\Q16.
+\U3.\fi
+
+\M{20}The lattice columns are cyclically shifted:
+the second last column becomes the first column,
+the first column becomes the second, $\ldots$
+\Y\B\4\X20:permute lattice columns\X${}\E{}$\6
+$\\{swap\_vec}\K\\{lattice}[\\{lattice\_columns}-\T{2}];{}$\6
+\&{for} ${}(\|i\K\\{lattice\_columns}-\T{2};{}$ ${}\|i>\T{0};{}$ ${}\|i\MM){}$%
+\1\5
+${}\\{lattice}[\|i]\K\\{lattice}[\|i-\T{1}];{}$\2\6
+${}\\{lattice}[\T{0}]\K\\{swap\_vec}{}$;\par
+\U3.\fi
+
+\M{21}The first reduction: Pure LLL to compute
+the kernel.
+\Y\B\4\X21:first reduction\X${}\E{}$\6
+$\\{mpz\_set\_ui}(\\{lastlines\_factor},\39\T{1});{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+\\{printf}(\.{"\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+${}\\{lll}(\\{lattice},\39\\{lattice\_columns}-\T{1},\39\\{lattice\_rows},\39%
+\.{LLLCONST\_LOW}){}$;\par
+\U3.\fi
+
+\M{22}The second reduction: Pure LLL with higher quality.
+This is done in order to find solutions by chance.
+\Y\B\4\X22:second reduction\X${}\E{}$\6
+$\\{mpz\_set\_ui}(\\{lastlines\_factor},\39\T{1});{}$\6
+${}\\{lll}(\\{lattice},\39\\{lattice\_columns}-\T{1},\39\\{lattice\_rows},\39%
+\.{LLLCONST\_HIGH});{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+\\{printf}(\.{"Second\ reduction\ su}\)\.{ccessful\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\par
+\U3.\fi
+
+\M{23}Delete the unnecessary parts of the reduced lattice, multiply the last
+row(s) by an appropiate factor, such that
+there is only one entry in these rows after the next reduction.
+This is done after first lattice basis reduction.
+If it was not successful in computing a complete basis of the kernel
+we leave \PB{\\{diophant}(\,)}.
+The function \PB{\\{cutlattice}(\,)} is defined in section
+\PB{$\X36:cut lattice\X$}.
+\Y\B\4\X23:cut the lattice\X${}\E{}$\6
+\&{if} (\\{cutlattice}(\,))\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+\\{printf}(\.{"First\ reduction\ suc}\)\.{cessful\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+\\{printf}(\.{"First\ reduction\ not}\)\.{\ successful\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\&{return} \T{0};\6
+\4${}\}{}$\2\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{lattice\_columns}-\T{1};{}$ ${}\|j\PP){}$%
+\1\5
+\\{solutiontest}(\|j);\2\par
+\U3.\fi
+
+\M{24}The last row or in case of a free right hand side the two last rows
+are multiplied by a large factor given ba the commandline option \PB{${-}%
+\\{scalelastline}$ $*$}. Then
+it easier to search with the exhaustive enumeration for
+nonhomogeneous solutions because the columns corresponding to the
+right hand side (and the additional column in case of a free right hand side)
+appear only once in the basis vectors.
+{bf Attention:} It only works for fixed right hand side
+
+\Y\B\4\X24:scale last rows\X${}\E{}$\C{\PB{$\\{mpz\_set\_str}(\\{lastlines%
+\_factor},\.{LASTLINESFACTOR},\T{10});$}}\6
+$\\{mpz\_set}(\\{lastlines\_factor},\39\\{scalelastlinefactor});{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{lattice\_columns};{}$ ${}\|i\PP){}$\1\5
+${}\\{mpz\_mul}(\\{lattice}[\|i][\\{lattice\_rows}].\|c,\39\\{lattice}[\|i][%
+\\{lattice\_rows}].\|c,\39\\{lastlines\_factor});{}$\2\6
+\&{if} (\\{free\_RHS})\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{lattice\_columns};{}$ ${}\|i\PP){}$\1\5
+${}\\{mpz\_mul}(\\{lattice}[\|i][\\{lattice\_rows}-\T{1}].\|c,\39\\{lattice}[%
+\|i][\\{lattice\_rows}-\T{1}].\|c,\39\\{lastlines\_factor});{}$\2\2\6
+\8\#\&{if} \T{0}\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{lattice\_columns};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\T{40};{}$ ${}\|j\PP){}$\1\5
+${}\\{mpz\_mul\_ui}(\\{lattice}[\|i][\|j+\T{1}].\|c,\39\\{lattice}[\|i][\|j+%
+\T{1}].\|c,\39\T{9});{}$\2\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\par
+\Q25.
+\U3.\fi
+
+\M{25}Undo the scaling of section \PB{$\X24:scale last rows\X$}
+after the third reduction.
+\Y\B\4\X25:undo scaling of last rows\X${}\E{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{lattice\_columns};{}$ ${}\|i\PP){}$\1\5
+${}\\{mpz\_divexact}(\\{lattice}[\|i][\\{lattice\_rows}].\|c,\39\\{lattice}[%
+\|i][\\{lattice\_rows}].\|c,\39\\{lastlines\_factor});{}$\2\6
+\&{if} (\\{free\_RHS})\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{lattice\_columns};{}$ ${}\|i\PP){}$\1\5
+${}\\{mpz\_divexact}(\\{lattice}[\|i][\\{lattice\_rows}-\T{1}].\|c,\39%
+\\{lattice}[\|i][\\{lattice\_rows}-\T{1}].\|c,\39\\{lastlines\_factor});{}$\2\2%
+\6
+\8\#\&{if} \T{0}\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{lattice\_columns};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\T{40};{}$ ${}\|j\PP){}$\1\5
+${}\\{mpz\_divexact\_ui}(\\{lattice}[\|i][\|j+\T{1}].\|c,\39\\{lattice}[\|i][%
+\|j+\T{1}].\|c,\39\T{9});{}$\2\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\par
+\U3.\fi
+
+\M{26}The third reduction is done with blockwise Korkine Zolotareff reduction.
+The last column of \PB{\\{lattice}} is a zero vector.
+\Y\B\4\X26:third reduction\X${}\E{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+\\{printf}(\.{"\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\&{if} (\\{iterate})\5
+${}\{{}$\1\6
+${}\\{iteratedlll}(\\{lattice},\39\\{lattice\_columns}-\T{1},\39\\{lattice%
+\_rows},\39\\{no\_iterates},\39\.{LLLCONST\_HIGH});{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+\\{shufflelattice}(\,);\6
+${}\\{lDnew}\K\\{bkz}(\\{lattice},\39\\{lattice\_columns},\39\\{lattice\_rows},%
+\39\.{LLLCONST\_HIGHER},\39\T{40},\39\\{bkz\_p});{}$\6
+${}\|i\K\T{0};{}$\6
+\&{do}\5
+${}\{{}$\1\6
+${}\\{lD}\K\\{lDnew};{}$\6
+\\{shufflelattice}(\,);\6
+${}\\{lDnew}\K\\{bkz}(\\{lattice},\39\\{lattice\_columns},\39\\{lattice\_rows},%
+\39\.{LLLCONST\_HIGH},\39\\{bkz\_beta},\39\\{bkz\_p});{}$\6
+${}\\{printf}(\.{"\%0.3lf\ \%0.3lf\ \%0.3l}\)\.{f\\n"},\39\\{lD},\39\\{lDnew},%
+\39\\{lD}-\\{lDnew});{}$\6
+${}\|i\PP;{}$\6
+\4${}\}{}$\2\5
+\&{while} ${}(\|i<\T{1}\W\\{fabs}(\\{lDnew}-\\{lD})>\T{0.01});{}$\6
+\4${}\}{}$\2\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+\\{printf}(\.{"Third\ reduction\ suc}\)\.{cessful\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\par
+\U3.\fi
+
+\M{27}The exhaustive enumeration of all solutions.
+\Y\B\4\X27:explicit enumeration\X${}\E{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+\\{printf}(\.{"\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+${}\\{nosolutions}\K\\{explicit\_enumeration}(\\{lattice},\39\\{lattice%
+\_columns}-\T{1},\39\\{lattice\_rows}){}$;\par
+\U3.\fi
+
+\N{1}{28}Subroutines for {\tt diophant}.
+\Y\B\4\X28:basic subroutines\X${}\E{}$\6
+\X135:stop program\X \X29:debug print\X;\6
+\X30:print the lattice\X;\6
+\X37:shuffle lattice columns\X;\6
+\X31:print NTL lattice\X;\6
+\X34:gcd\X;\6
+\X35:Initialize the lattice\X;\6
+\X32:read lattice written by NTL\X;\6
+\X36:cut lattice\X;\6
+\X40:solutiontest\X;\par
+\U2.\fi
+
+\M{29}\B\X29:debug print\X${}\E{}$\6
+\&{void} \\{debug\_print}(\&{char} ${}{*}\|m,\39{}$\&{int} \|l)\1\1\2\2\6
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+\&{if} ${}(\.{VERBOSE}\G\|l){}$\5
+${}\{{}$\1\6
+${}\\{printf}(\.{"debug>>\ \%s\\n"},\39\|m){}$;\5
+\\{fflush}(\\{stdout});\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+\&{return};\6
+\4${}\}{}$\2\par
+\U28.\fi
+
+\M{30}Print the lattice for debugging purposes.
+The lattice is printed columnwise (i.e.~in transposed form).
+\Y\B\4\X30:print the lattice\X${}\E{}$\6
+\8\#\&{if} \T{1}\6
+\&{void} \\{print\_lattice}(\,)\1\1\2\2\6
+${}\{{}$\1\6
+\&{int} \|i${},{}$ \|j;\7
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{lattice\_columns};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{lattice\_rows};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_out\_str}(\NULL,\39\T{10},\39\\{get\_entry}(\|i,\39\|j));{}$\6
+\\{printf}(\.{"\ "});\6
+\4${}\}{}$\2\6
+\\{printf}(\.{"\\n"});\6
+\4${}\}{}$\2\6
+\\{printf}(\.{"\\n"});\5
+\\{fflush}(\\{stdout});\6
+\&{return};\6
+\4${}\}{}$\2\6
+\8\#\&{else}\7
+\&{void} \\{print\_lattice}(\,)\1\1\2\2\6
+${}\{{}$\1\6
+\&{int} \|i${},{}$ \|j;\7
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{lattice\_rows};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{lattice\_columns};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_out\_str}(\NULL,\39\T{10},\39\\{get\_entry}(\|i,\39\|j));{}$\6
+\\{printf}(\.{"\ "});\6
+\4${}\}{}$\2\6
+\\{printf}(\.{"\\n"});\6
+\4${}\}{}$\2\6
+\\{printf}(\.{"\\n"});\5
+\\{fflush}(\\{stdout});\6
+\&{return};\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\par
+\U28.\fi
+
+\M{31}Print the lattice in NTL format.
+The lattice is printed columnwise (i.e.~in transposed form).
+\Y\B\4\X31:print NTL lattice\X${}\E{}$\6
+\&{void} \\{print\_NTL\_lattice}(\,)\1\1\2\2\6
+${}\{{}$\1\6
+\&{int} \|i${},{}$ \|j;\6
+\8\#\&{if} \T{1}\7
+${}\\{fprintf}(\\{stderr},\39\.{"\%d\ \%d\\n"},\39\\{lattice\_columns},\39%
+\\{lattice\_rows});{}$\6
+${}\\{printf}(\.{"\%d\\n"},\39\\{system\_rows});{}$\6
+\\{printf}(\.{"\\n["});\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{lattice\_columns}-\T{1};{}$ ${}\|i\PP){}$\5
+${}\{{}$\C{ Don't print the last vector (only zeroes). }\1\6
+\\{printf}(\.{"["});\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{lattice\_rows};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_out\_str}(\NULL,\39\T{10},\39\\{get\_entry}(\|i,\39\|j));{}$\6
+\\{printf}(\.{"\ "});\6
+\4${}\}{}$\2\6
+\\{printf}(\.{"]"});\6
+\\{printf}(\.{"\\n"});\6
+\4${}\}{}$\2\6
+\\{printf}(\.{"]\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{if} \T{1}\6
+\\{printf}(\.{"\\n"});\6
+${}\\{printf}(\.{"\%d\ "},\39\\{lattice\_columns}-\T{2});{}$\6
+${}\\{mpz\_out\_str}(\NULL,\39\T{10},\39\\{upperbounds\_max});{}$\6
+\\{printf}(\.{"\\n\\n["});\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{lattice\_columns}-\T{2};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_out\_str}(\NULL,\39\T{10},\39\\{upperbounds}[\|i]);{}$\6
+\\{printf}(\.{"\ "});\6
+\4${}\}{}$\2\6
+\\{printf}(\.{"]\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\8\#\&{endif}\6
+\&{return};\6
+\4${}\}{}$\2\par
+\U28.\fi
+
+\M{32}Read lattice written by NTL.
+First line: number of lattice vectors, lattice length.
+
+Then follows the lattice, each row is a lattice vector.
+
+Number of bounds, Maximum bound
+
+Vector of bounds.
+
+\Y\B\4\X32:read lattice written by NTL\X${}\E{}$\6
+\&{void} \\{read\_NTL\_lattice}(\,)\1\1\2\2\6
+${}\{{}$\1\6
+\&{int} \|i${},{}$ \|j${},{}$ \\{cols}${},{}$ \\{rows}${},{}$ \\{nbounds};\7
+${}\\{scanf}(\.{"\%d\ \%d\\n"},\39{\AND}\\{rows},\39{\AND}\\{cols});{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{rows};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{cols};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_inp\_str}(\\{lattice}[\|i][\|j+\T{1}].\|c,\39\NULL,\39\T{10});{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{cols};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_set\_ui}(\\{lattice}[\\{rows}][\|j+\T{1}].\|c,\39\T{0});{}$\6
+\4${}\}{}$\2\6
+${}\\{scanf}(\.{"\%d"},\39{\AND}\\{nbounds});{}$\6
+${}\\{mpz\_inp\_str}(\\{upperbounds\_max},\39\NULL,\39\T{10});{}$\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{nbounds};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_inp\_str}(\\{upperbounds}[\|j],\39\NULL,\39\T{10});{}$\6
+\4${}\}{}$\2\6
+${}\\{lattice\_columns}\K\\{rows}+\T{1};{}$\6
+${}\\{lattice\_rows}\K\\{cols};{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{lattice\_columns};{}$ ${}\|i\PP){}$\1\5
+${}\\{coeffinit}(\\{lattice}[\|j],\39\\{lattice\_rows});{}$\2\6
+\&{return};\6
+\4${}\}{}$\2\par
+\U28.\fi
+
+\M{33}Write uni-modular transformation to file.
+\Y\B\4\X33:write tranformation matrix\X${}\E{}$\6
+\&{void} \\{write\_transform}(\,)\1\1\2\2\6
+${}\{{}$\1\6
+\&{FILE} ${}{*}\|f;{}$\6
+\&{int} \|i${},{}$ \|j${},{}$ \|n;\7
+${}\|f\K\\{fopen}(\.{"sdb\_transform.txt"},\39\.{"w"});{}$\6
+${}\|n\K\\{lattice\_columns}-\T{1};{}$\6
+${}\\{fwrite}(\.{"\%d\\n"},\39\|n);{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|n;{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\|n;{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_out\_str}(\|f,\39\T{10},\39\\{get\_entry}(\|i+\\{system\_rows},\39%
+\|j));{}$\6
+${}\\{fprintf}(\|f,\39\.{"\ "});{}$\6
+\4${}\}{}$\2\6
+${}\\{fprintf}(\|f,\39\.{"\\n"});{}$\6
+\4${}\}{}$\2\6
+\\{fclose}(\|f);\6
+\4${}\}{}$\2\par
+\fi
+
+\M{34}Compute GCD in case of single precision arithmetics.
+This piece of code was written by Brendan McKay.
+\Y\B\4\X34:gcd\X${}\E{}$\6
+\&{long} \\{gcd}(\&{long} \\{n1}${},\39{}$\&{long} \\{n2})\1\1\2\2\6
+${}\{{}$\1\6
+\&{long} \|a${},{}$ \|b${},{}$ \|c;\7
+\&{if} ${}(\\{n1}>\\{n2}){}$\5
+${}\{{}$\1\6
+${}\|a\K\\{n1}{}$;\5
+${}\|b\K\\{n2};{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\|a\K\\{n2}{}$;\5
+${}\|b\K\\{n1};{}$\6
+\4${}\}{}$\2\6
+\&{while} ${}((\|c\K\|a\MOD\|b)>\T{0}){}$\5
+${}\{{}$\1\6
+${}\|a\K\|b{}$;\5
+${}\|b\K\|c;{}$\6
+\4${}\}{}$\2\6
+\&{return} \|b;\6
+\4${}\}{}$\2\par
+\U28.\fi
+
+\M{35}Construct the information of the sparse structure of the lattice.
+\Y\B\4\X35:Initialize the lattice\X${}\E{}$\6
+\&{void} \\{coeffinit}(\&{COEFF} ${}{*}\|v,\39{}$\&{int} \|z)\1\1\2\2\6
+${}\{{}$\1\6
+\&{short} \|r${}\K\T{0};{}$\6
+\&{short} \|i;\7
+\&{for} ${}(\|i\K\|z;{}$ ${}\|i\G\T{0};{}$ ${}\|i\MM){}$\5
+${}\{{}$\1\6
+${}\|v[\|i].\|p\K\|r;{}$\6
+\&{if} ${}(\\{mpz\_sgn}(\|v[\|i].\|c)\I\T{0}){}$\1\5
+${}\|r\K\|i;{}$\2\6
+\4${}\}{}$\2\6
+\&{return};\6
+\4${}\}{}$\2\par
+\U28.\fi
+
+\M{36}Delete the unnecessary columns and rows of the lattice after
+the first reduction, i.e.~only the basis of the kernel remains.
+Returns $0$ if it is not possible to achieve a solution.
+Finally, the unnecessary rows are deleted and the sparse structure of the
+lattice is updated.
+\Y\B\4\X36:cut lattice\X${}\E{}$\6
+\&{int} \\{cutlattice}(\,)\1\1\2\2\6
+${}\{{}$\1\6
+\&{int} \|j${},{}$ \|i${},{}$ \\{flag};\7
+\X38:delete unnecessary columns\X;\6
+\X39:test for right hand side columns\X;\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{lattice\_columns};{}$ ${}\|j\PP){}$\5
+${}\{{}$\C{ Now the rows are deleted. }\1\6
+\&{if} ${}(\\{nboundvars}\E\T{0}){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\\{system\_rows};{}$ ${}\|i<\\{lattice\_rows};{}$ ${}\|i%
+\PP){}$\1\5
+${}\\{put\_to}(\|j,\39\|i-\\{system\_rows},\39\\{get\_entry}(\|j,\39\|i));{}$\2%
+\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\\{system\_rows};{}$ ${}\|i<\\{system\_rows}+%
+\\{nboundvars};{}$ ${}\|i\PP){}$\1\5
+${}\\{put\_to}(\|j,\39\|i-\\{system\_rows},\39\\{get\_entry}(\|j,\39\|i));{}$\2%
+\6
+\&{for} ${}(\|i\K\\{system\_rows}+\\{system\_columns};{}$ ${}\|i<\\{lattice%
+\_rows};{}$ ${}\|i\PP){}$\1\5
+${}\\{put\_to}(\|j,\39\|i-\\{system\_rows}-\\{system\_columns}+\\{nboundvars},%
+\39\\{get\_entry}(\|j,\39\|i));{}$\2\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+${}\\{lattice\_rows}\MRL{-{\K}}\\{system\_rows};{}$\6
+${}\\{lattice\_rows}\MRL{-{\K}}(\\{system\_columns}-\\{nboundvars});{}$\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{lattice\_columns};{}$ ${}\|j\PP){}$\1\5
+${}\\{coeffinit}(\\{lattice}[\|j],\39\\{lattice\_rows});{}$\2\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\par
+\Q23.
+\U28.\fi
+
+\M{37}Shuffle the columns of the lattice.
+\Y\B\4\X37:shuffle lattice columns\X${}\E{}$\6
+\&{void} \\{shufflelattice}(\,)\1\1\2\2\6
+${}\{{}$\1\6
+\&{COEFF} ${}{*}\\{tmp};{}$\6
+\&{int} \|i${},{}$ \|j${},{}$ \|r;\6
+\&{unsigned} \&{int} \|s;\6
+\8\#\&{if} \T{1}\7
+${}\|s\K(\&{unsigned})(\\{time}(\T{0}))*\\{getpid}(\,);{}$\6
+\8\#\&{else}\6
+${}\|s\K\T{1300964772};{}$\6
+\8\#\&{endif}\6
+${}\\{fprintf}(\\{stderr},\39\.{"Seed=\%u\\n"},\39\|s);{}$\6
+\\{srand}(\|s);\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\T{100};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\\{lattice\_columns}-\T{2};{}$ ${}\|i>\T{0};{}$ ${}\|i\MM){}$\5
+${}\{{}$\1\6
+${}\|r\K\\{rand}(\,)\MOD\|i;{}$\6
+${}\\{tmp}\K\\{lattice}[\|r];{}$\6
+${}\\{lattice}[\|r]\K\\{lattice}[\|i];{}$\6
+${}\\{lattice}[\|i]\K\\{tmp};{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{return};\6
+\4${}\}{}$\2\par
+\U28.\fi
+
+\M{38}Delete the columns which do not belong to the kernel.
+\Y\B\4\X38:delete unnecessary columns\X${}\E{}$\6
+$\|j\K\T{0};{}$\6
+\&{do}\5
+${}\{{}$\1\6
+\&{if} ${}(\\{lattice}[\|j][\T{0}].\|p>\\{system\_rows}){}$\1\5
+${}\|j\PP;{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\|j+\T{1};{}$ ${}\|i<\\{lattice\_columns};{}$ ${}\|i\PP){}$\1\5
+${}\\{lattice}[\|i-\T{1}]\K\\{lattice}[\|i];{}$\2\6
+${}\\{lattice\_columns}\MM;{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\5
+\&{while} ${}(\|j<\\{lattice\_columns}-\T{1}){}$;\par
+\U36.\fi
+
+\M{39}Test if the remaining columns contain a nonzero entry
+in the last row. Otherwise a nonhomogenous solution is not possible.
+
+\Y\B\4\X39:test for right hand side columns\X${}\E{}$\6
+$\\{flag}\K\T{0};{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{lattice\_columns};{}$ ${}\|i\PP){}$\1\6
+\&{if} ${}(\\{mpz\_sgn}(\\{get\_entry}(\|i,\39\\{lattice\_rows}-\T{1}))\I%
+\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{flag}\K\T{1};{}$\6
+\&{break};\6
+\4${}\}{}$\2\2\6
+\&{if} ${}(\\{flag}\E\T{0}){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+\\{printf}(\.{"Nonhomogenous\ solut}\)\.{ion\ not\ possible.\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\\{exit}(\T{2});\6
+\&{return} \T{0};\C{ Just for the compiler }\6
+\4${}\}{}$\2\par
+\U36.\fi
+
+\M{40}Test of column \PB{\\{position}} for a solution during the reduction
+phase.
+\Y\B\4\X40:solutiontest\X${}\E{}$\6
+\&{int} \\{solutiontest}(\&{int} \\{position})\1\1\2\2\6
+${}\{{}$\1\6
+\&{int} \|i${},{}$ \|j;\6
+\&{int} \\{low}${},{}$ \\{up};\6
+\&{int} \\{end};\7
+\X43:test the last two rows\X;\6
+\X44:test, if column is a solution\X;\6
+${}\\{mpz\_set\_si}(\\{upfac},\39\T{1});{}$\6
+${}\\{mpz\_divexact}(\\{soltest\_s},\39\\{get\_entry}(\\{position},\39%
+\\{lattice\_rows}-\T{1}),\39\\{lastlines\_factor});{}$\6
+\X45:write a solution with blanks\X;\6
+\X46:test if one solution is enough\X;\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\par
+\U28.\fi
+
+\M{41}\B\X7:global variables\X${}\mathrel+\E{}$\6
+\&{mpz\_t} \\{soltest\_u};\6
+\&{mpz\_t} \\{soltest\_s};\6
+\&{mpz\_t} \\{soltest\_upfac};\par
+\fi
+
+\M{42}\B\X11:initialize some globals\X${}\mathrel+\E{}$\6
+\\{mpz\_init}(\\{soltest\_u});\6
+\\{mpz\_init}(\\{soltest\_s});\6
+${}\\{mpz\_init\_set\_ui}(\\{soltest\_upfac},\39\T{1}){}$;\par
+\fi
+
+\M{43}Test the last two rows.
+\Y\B\4\X43:test the last two rows\X${}\E{}$\6
+\&{if} ${}(\\{mpz\_cmpabs}(\\{get\_entry}(\\{position},\39\\{lattice\_rows}-%
+\T{1}),\39\\{max\_norm})\I\T{0}){}$\1\5
+\&{return} \T{0};\2\6
+\&{if} ${}(\\{mpz\_sgn}(\\{get\_entry}(\\{position},\39\\{lattice\_rows}-\T{1}-%
+\\{free\_RHS}))\E\T{0}){}$\1\5
+\&{return} \T{0};\2\par
+\U40.\fi
+
+\M{44}A final test, if the column is really a solution.
+We have to distinguish whether this subroutine is called during the first or
+the secoond reduction.
+If $\PB{\\{lattice\_columns}}= \PB{\\{system\_columns}}+2+\PB{\\{free\_RHS}}$
+is true, then no columns have been deleted so far, i.~e.~ we are
+in the first reduction phase. Accordingly a start index
+\PB{\\{low}} is determined.
+\Y\B\4\X44:test, if column is a solution\X${}\E{}$\6
+$\\{low}\K\T{0};{}$\6
+${}\\{up}\K\\{lattice\_rows}-\T{1}-\\{free\_RHS};{}$\6
+\&{if} ${}(\\{lattice\_columns}\E\\{system\_columns}+\T{2}+\\{free\_RHS}){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{system\_rows};{}$ ${}\|i\PP){}$\1\6
+\&{if} ${}(\\{mpz\_sgn}(\\{get\_entry}(\\{position},\39\|i))\I\T{0}){}$\1\5
+\&{return} \T{0};\2\2\6
+${}\\{low}\K\\{system\_rows};{}$\6
+\4${}\}{}$\2\6
+\&{if} (\\{iszeroone})\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\\{low};{}$ ${}\|i<\\{up};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{mpz\_cmpabs}(\\{get\_entry}(\\{position},\39\|i),\39\\{max%
+\_norm})\I\T{0}){}$\1\5
+\&{return} \T{0};\2\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\\{low};{}$ ${}\|i<\\{up};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{mpz\_cmpabs}(\\{get\_entry}(\\{position},\39\|i),\39\\{max%
+\_norm})>\T{0}){}$\1\5
+\&{return} \T{0};\2\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\par
+\U40.\fi
+
+\M{45}Print a solution. The variables are separated with blanks.
+Only in the case that just one solution is needed, the solution is also written
+into the solution file.
+\Y\B\4\X45:write a solution with blanks\X${}\E{}$\6
+$\|i\K\\{low};{}$\6
+\&{if} ${}(\\{cut\_after\_coeff}\E{-}\T{1}){}$\5
+${}\{{}$\1\6
+${}\\{end}\K\\{no\_original\_columns};{}$\6
+\8\#\&{if} \T{0}\6
+\&{if} ${}(\\{nboundvars}\I\T{0}){}$\5
+${}\{{}$\C{ conflicts with \PB{\\{original\_columns}} }\1\6
+${}\\{end}\K\\{nboundvars};{}$\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{end}\K\\{cut\_after\_coeff};{}$\6
+\4${}\}{}$\2\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{end};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{original\_columns}[\|j]\E\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_set\_si}(\\{soltest\_u},\39\T{0});{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+\&{if} ${}(\R\\{iszeroone}){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{mpz\_cmp\_si}(\\{upperbounds}[\|i-\\{low}],\39\T{0})\I\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_divexact}(\\{soltest\_upfac},\39\\{upperbounds\_max},\39%
+\\{upperbounds}[\|i-\\{low}]);{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{mpz\_set}(\\{soltest\_upfac},\39\\{upperbounds\_max});{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+${}\\{mpz\_set}(\\{soltest\_u},\39\\{get\_entry}(\\{position},\39\|i));{}$\6
+${}\\{mpz\_sub}(\\{soltest\_u},\39\\{soltest\_u},\39\\{soltest\_s});{}$\6
+${}\\{mpz\_divexact}(\\{soltest\_u},\39\\{soltest\_u},\39\\{max\_norm%
+\_initial});{}$\6
+${}\\{mpz\_divexact}(\\{soltest\_u},\39\\{soltest\_u},\39\\{soltest%
+\_upfac});{}$\6
+${}\\{mpz\_divexact\_ui}(\\{soltest\_u},\39\\{soltest\_u},\39\\{denom});{}$\6
+${}\\{mpz\_abs}(\\{soltest\_u},\39\\{soltest\_u});{}$\6
+${}\|i\PP;{}$\6
+\4${}\}{}$\2\6
+${}\\{mpz\_out\_str}(\NULL,\39\T{10},\39\\{soltest\_u});{}$\6
+\\{printf}(\.{"\ "});\6
+\&{if} ${}(\\{stop\_after\_solutions}\E\T{1}){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_out\_str}(\\{fp},\39\T{10},\39\\{soltest\_u});{}$\6
+${}\\{fprintf}(\\{fp},\39\.{"\ "});{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{if} (\\{free\_RHS})\5
+${}\{{}$\1\6
+${}\\{mpz\_divexact}(\\{soltest\_u},\39\\{get\_entry}(\\{position},\39\\{up}),%
+\39\\{max\_up});{}$\6
+${}\\{mpz\_divexact}(\\{soltest\_u},\39\\{soltest\_u},\39\\{lastlines%
+\_factor});{}$\6
+${}\\{mpz\_abs}(\\{soltest\_u},\39\\{soltest\_u});{}$\6
+\\{printf}(\.{"\ L\ =\ "});\6
+${}\\{mpz\_out\_str}(\NULL,\39\T{10},\39\\{soltest\_u});{}$\6
+\4${}\}{}$\2\6
+\\{printf}(\.{"\\n"});\5
+\\{fflush}(\\{stdout});\6
+\&{if} ${}(\\{stop\_after\_solutions}\E\T{1}){}$\1\5
+${}\\{fprintf}(\\{fp},\39\.{"\\n"}){}$;\2\par
+\U40.\fi
+
+\M{46}The case $\PB{\\{stop\_after\_solutions}}=1$: We can stop already.
+\Y\B\4\X46:test if one solution is enough\X${}\E{}$\6
+\&{if} ${}(\\{stop\_after\_solutions}\E\T{1}){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+\\{printf}(\.{"Stopped\ in\ phase\ 1\ }\)\.{after\ finding\ a\ rand}\)\.{om\
+solution\\n"});\6
+\8\#\&{endif}\6
+\\{exit}(\T{8});\6
+\4${}\}{}$\2\par
+\U40.\fi
+
+\N{1}{47}Elementary lattice basis reduction. We have
+standard lattice basis reduction (with deep insertions) and blockwise
+Korkine Zolotareff reduction. The main ingredient is the subroutine
+\PB{\\{lllfp}} which does lattice basis reduction.
+\Y\B\4\X47:lattice basis reduction algorithms\X${}\E{}$\6
+\X65:lll-subroutines\X;\6
+\X48:the underlying lattice basis reduction\X;\6
+\X70:compute $\log D$\X;\6
+\X71:orthogonal defect\X;\6
+\X72:standard-lll\X;\6
+\X73:iterated-lll\X;\6
+\X74:bkz-reduction\X;\6
+\X86:overall exhaustive enumeration\X;\par
+\U2.\fi
+
+\M{48}We begin with the core \PB{\\{lllfp}}.
+The multiprecision version needs additionally
+the matrix \PB{\\{bs}}. This matrix contains the floating point
+approximation of the lattice \PB{\|b}.
+\Y\B\4\X48:the underlying lattice basis reduction\X${}\E{}$\6
+\8\#\&{define} \.{TWOTAUHALF} \5\T{67108864.0}\C{ $2^{\tau/2}$}\6
+\&{int} \\{lllfp}(\&{COEFF} ${}{*}{*}\|b,\39{}$\&{DOUBLE} ${}{*}{*}\\{mu},%
+\39{}$\&{DOUBLE} ${}{*}\|c,\39{}$\&{DOUBLE} ${}{*}\|N,\39{}$\&{DOUBLE}
+${}{*}{*}\\{bs},\39{}$\&{int} \\{start}${},\39{}$\&{int} \|s${},\39{}$\&{int} %
+\|z${},\39{}$\&{DOUBLE} \\{delta})\7
+${}\{{}$\1\6
+\X50:variables for \PB{\\{lllfp}}\X;\7
+\\{mpz\_init}(\\{musvl});\6
+\\{mpz\_init}(\\{hv});\6
+\&{if} ${}((\|z\Z\T{1})\V(\|s\Z\T{1})){}$\5
+${}\{{}$\C{ Test for trivial cases. }\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+\\{printf}(\.{"Wrong\ dimensions\ in}\)\.{\ lllfp\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\&{return} (\T{0});\6
+\4${}\}{}$\2\6
+${}\|k\K(\\{start}>\T{1})\?\\{start}:\T{1}{}$;\7
+\X49:first step: compute norms\X;\7
+${}\\{counter}\K\T{0};{}$\6
+\&{while} ${}(\|k<\|s){}$\5
+${}\{{}$\C{ The main loop. }\6
+\8\#\&{if} ${}\.{VERBOSE}>\T{3}{}$\1\6
+\&{if} ${}((\\{counter}\MOD\T{500})\E\T{0}{}$)\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\5
+\1${}\\{printf}(\.{"LLL:\ \%d\ k:\%d\\n"},\39\\{counter},\39\|k){}$;\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+${}\\{counter}\PP;{}$\6
+\8\#\&{endif}\6
+\X51:second step: orthogonalization of $b_k$\X;\6
+\X52:third step: size reduction of $b_k$\X;\6
+\8\#\&{if} \&{defined} (\.{DEEPINSERT})\6
+\X63:fourth step: deepinsert columns\X;\6
+\8\#\&{else}\6
+\X64:fourth step: swap columns\X;\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\\{mpz\_clear}(\\{hv});\6
+\\{mpz\_clear}(\\{musvl});\6
+\&{return} (\T{1});\6
+\4${}\}{}$\2\par
+\U47.\fi
+
+\M{49}Step 1:
+We begin with stage $k=1$. Schnorr's original algorithm runs
+from $k=2$ to $k=s$. Here we have $k=1,\ldots,s-1$.
+
+Initially the $b_i$'s are rounded and then their norms,
+$N_i = \PB{}b'_i\PB{}$, are computed.
+
+Then we do steps 2 -- 4 while  $k\leq s$.
+\Y\B\4\X49:first step: compute norms\X${}\E{}$\6
+\&{if} ${}(\|k<\T{1}){}$\1\5
+${}\|k\K\T{1};{}$\2\6
+\&{for} ${}(\|i\K\|k-\T{1};{}$ ${}\|i<\|s;{}$ ${}\PP\|i){}$\5
+${}\{{}$\1\6
+${}\\{ss}\K\T{0.0};{}$\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\|z;{}$ ${}\PP\|j){}$\5
+${}\{{}$\1\6
+${}\\{bs}[\|i][\|j]\K{}$(\&{DOUBLE}) \\{mpz\_get\_d}${}(\|b[\|i][\|j+\T{1}].%
+\|c);{}$\6
+${}\\{ss}\MRL{+{\K}}\\{bs}[\|i][\|j]*\\{bs}[\|i][\|j];{}$\6
+\4${}\}{}$\2\6
+${}\|N[\|i]\K\.{SQRT}(\\{ss});{}$\6
+\4${}\}{}$\2\par
+\U48.\fi
+
+\M{50}\B\X50:variables for \PB{\\{lllfp}}\X${}\E{}$\6
+\&{int} \|i${},{}$ \|j${},{}$ \|k;\6
+\&{DOUBLE} \\{ss};\6
+\&{int} \\{counter};\par
+\As53, 55\ETs62.
+\U48.\fi
+
+\M{51}Step 2:
+computation of $\mu_{k,1},\ldots,\mu_{k,k-1}$ and $c_k = \PB{}\hat{b}_k%
+\PB{}^2.$
+This is done with Gram Schmidt Orthogonalization.
+\Y\B\4\X51:second step: orthogonalization of $b_k$\X${}\E{}$\6
+\&{if} ${}(\|k\E\T{1}){}$\1\5
+${}\|c[\T{0}]\K\|N[\T{0}]*\|N[\T{0}];{}$\2\6
+${}\|c[\|k]\K\|N[\|k]*\|N[\|k];{}$\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\|k;{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+${}\\{ss}\K\\{scalarproductfp}(\\{bs}[\|k],\39\\{bs}[\|j],\39\|z);{}$\6
+\&{if} ${}(\\{fabs}(\\{ss})<\|N[\|k]*\|N[\|j]/\.{TWOTAUHALF}){}$\5
+${}\{{}$\1\6
+${}\\{ss}\K{}$(\&{DOUBLE}) \\{scalarproductlfp}${}(\|b[\|k],\39\|b[\|j]);{}$\6
+\4${}\}{}$\2\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|j;{}$ ${}\|i\PP){}$\1\5
+${}\\{ss}\MRL{-{\K}}\\{mu}[\|j][\|i]*\\{mu}[\|k][\|i]*\|c[\|i];{}$\2\6
+\&{if} ${}(\|c[\|j]<\.{EPSILON}){}$\5
+${}\{{}$\1\6
+${}\\{fprintf}(\\{stderr},\39\.{"c[\%d]\ is\ very\ small}\)\.{:\ \%lf\\n"},\39%
+\|j,\39\|c[\|j]);{}$\6
+\4${}\}{}$\2\6
+${}\\{mu}[\|k][\|j]\K\\{ss}/\|c[\|j];{}$\6
+${}\|c[\|k]\MRL{-{\K}}\\{ss}*\\{mu}[\|k][\|j];{}$\6
+\4${}\}{}$\2\par
+\U48.\fi
+
+\M{52}Step 3: size reduction. This one of the two main parts of
+LLL reduction. It is some kind of rounded Gram Schmidt orthogonalization
+of the integer basis of the lattice.
+
+The flag \PB{\\{Fr}} is set true if the column has been changed, i.~e.~if there
+really
+has been a size reduction.
+The flag \PB{\\{Fc}} is set true in \PB{$\X54:round the Gram Schmidt
+coefficient\X$} if the
+Gram-Schmidt coefficient is too large.
+
+At the end of this section we test for
+rounding errors and linear dependencies.
+If $F_c$ is
+true, then the stage is decreased by one. Otherwise
+the new value of $b'_k$ is computed and we proceed to step 4.
+\Y\B\4\X52:third step: size reduction of $b_k$\X${}\E{}$\6
+$\\{Fc}\K\\{Fr}\K\T{0};{}$\6
+\&{for} ${}(\|j\K\|k-\T{1};{}$ ${}\|j\G\T{0};{}$ ${}\|j\MM){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{fabs}(\\{mu}[\|k][\|j])>\T{0.5}){}$\5
+${}\{{}$\1\6
+\X54:round the Gram Schmidt coefficient\X;\6
+${}\\{Fr}\K\T{1};{}$\6
+\X56:set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$\X;\6
+${}\\{mu}[\|k][\|j]\MRL{-{\K}}\\{mus};{}$\6
+\\{solutiontest}(\|k);\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\X60:recompute $N_k$\X;\6
+\&{if} ${}(\\{Fc}\E\T{1}){}$\5
+${}\{{}$\1\6
+${}\|k\K(\|k-\T{1}>\T{1})\?\|k-\T{1}:\T{1}{}$;\C{ $k=\max(k-1,1)$ }\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+\X61:test for linear dependencies\X;\6
+\4${}\}{}$\2\par
+\U48.\fi
+
+\M{53}\B\X50:variables for \PB{\\{lllfp}}\X${}\mathrel+\E{}$\6
+\&{int} \\{Fc}${},{}$ \\{Fr};\6
+\&{DOUBLE} \\{mus}${},{}$ \\{cc};\6
+\&{mpz\_t} \\{musvl};\6
+\&{mpz\_t} \\{hv};\6
+\&{DOUBLE} ${}{*}\\{swapd}{}$;\par
+\fi
+
+\M{54}The Gram-Schmidt coefficient is rounded. If it is too large (\PB{\\{Fc}}
+is true),
+we have to do Schnorr's correction step:
+We will step back due to rounding errors.
+\Y\B\4\X54:round the Gram Schmidt coefficient\X${}\E{}$\6
+$\\{mus}\K\.{ROUND}(\\{mu}[\|k][\|j]);{}$\6
+${}\\{mpz\_set\_d}(\\{musvl},\39\\{mus});{}$\6
+\&{if} ${}(\\{fabs}(\\{mus})>\.{TWOTAUHALF}){}$\5
+${}\{{}$\1\6
+${}\\{Fc}\K\T{1};{}$\6
+\8\#\&{if} \T{0}\6
+\\{printf}(\.{"correct\ possible\ ro}\)\.{unding\ errors\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\4${}\}{}$\C{ We have to correct possible rounding errors.}\2\par
+\Qs52\ET56.
+\U52.\fi
+
+\M{55}\B\X50:variables for \PB{\\{lllfp}}\X${}\mathrel+\E{}$\6
+\&{int} \\{ii}${},{}$ \\{iii};\6
+\&{COEFF} ${}{*}\\{swapvl};{}$\6
+\&{COEFF} ${}{*}\\{bb}{}$;\par
+\fi
+
+\M{56}Replace $b_k$ by $b_k \leftarrow b_k - \mu b_j$ and replace
+$\mu_{k,i}$ by $\mu_{k,i} \leftarrow \mu_{j,i}\mu$,
+where $\mu = \lceil\mu_{k,j}\rfloor$ as computed in section
+\PB{$\X54:round the Gram Schmidt coefficient\X$}.
+This computation uses the sparse structure of the vectors.
+
+In order to save multiplications, we treat the three cases
+$\lceil\mu_{k,j}\rfloor = \pm 1$ and $\lceil\mu_{k,j}\rfloor \neq \pm 1$
+separately.
+\Y\B\4\X56:set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$\X${}\E{}$\6
+\&{switch} (\\{mpz\_get\_si}(\\{musvl}))\5
+${}\{{}$\1\6
+\4\&{case} \T{1}:\5
+\X57:$\lceil\mu_{k,j}\rfloor = 1$\X;\6
+\&{break};\6
+\4\&{case} ${}{-}\T{1}{}$:\5
+\X58:$\lceil\mu_{k,j}\rfloor = -1$\X;\6
+\&{break};\6
+\4\&{default}:\5
+\X59:$\lceil\mu_{k,j}\rfloor \neq \pm 1$\X;\6
+\4${}\}{}$\2\par
+\U52.\fi
+
+\M{57}The original loop was
+\PB{ \&{for} ${}(\|i\K\T{1};{}$ ${}\|i\Z\|z;{}$ ${}\|i\PP){}$ ${}\|b[\|k][\|i].%
+\|c\MRL{-{\K}}\|b[\|j][\|i].\|c;{}$}
+\Y\B\4\X57:$\lceil\mu_{k,j}\rfloor = 1$\X${}\E{}$\6
+$\|i\K\|b[\|j][\T{0}].\|p;{}$\6
+\&{while} ${}(\|i\I\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{bb}\K{\AND}(\|b[\|k][\|i]);{}$\6
+${}\\{mpz\_sub}(\\{bb}\MG\|c,\39\\{bb}\MG\|c,\39\|b[\|j][\|i].\|c);{}$\6
+${}\\{iii}\K\\{bb}\MG\|p;{}$\6
+\&{if} ${}((\|b[\|k][\|i-\T{1}].\|p\I\|i)\W(\\{mpz\_sgn}(\\{bb}\MG\|c)\I%
+\T{0})){}$\1\6
+\&{for} ${}(\\{ii}\K\|i-\T{1};{}$ ${}(\\{ii}\G\T{0})\W(\|b[\|k][\\{ii}].\|p\E%
+\\{iii});{}$ ${}\\{ii}\MM){}$\1\5
+${}\|b[\|k][\\{ii}].\|p\K\|i;{}$\2\2\6
+\&{else} \&{if} ${}(\\{mpz\_sgn}(\\{bb}\MG\|c)\E\T{0}){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\\{ii}\K\|i-\T{1};{}$ ${}(\\{ii}\G\T{0})\W(\|b[\|k][\\{ii}].\|p\E%
+\|i);{}$ ${}\\{ii}\MM){}$\1\5
+${}\|b[\|k][\\{ii}].\|p\K\\{iii};{}$\2\6
+\4${}\}{}$\2\6
+${}\|i\K\|b[\|j][\|i].\|p;{}$\6
+\4${}\}{}$\2\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|j;{}$ ${}\|i\PP){}$\1\5
+${}\\{mu}[\|k][\|i]\MRL{-{\K}}\\{mu}[\|j][\|i]{}$;\2\par
+\U56.\fi
+
+\M{58}The original loop was
+\PB{ \&{for} ${}(\|i\K\T{1};{}$ ${}\|i\Z\|z;{}$ ${}\|i\PP){}$ ${}\|b[\|k][\|i].%
+\|c\MRL{+{\K}}\|b[\|j][\|i].\|c;{}$}
+\Y\B\4\X58:$\lceil\mu_{k,j}\rfloor = -1$\X${}\E{}$\6
+$\|i\K\|b[\|j][\T{0}].\|p;{}$\6
+\&{while} ${}(\|i\I\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{bb}\K{\AND}(\|b[\|k][\|i]);{}$\6
+${}\\{mpz\_add}(\\{bb}\MG\|c,\39\\{bb}\MG\|c,\39\|b[\|j][\|i].\|c);{}$\6
+${}\\{iii}\K\\{bb}\MG\|p;{}$\6
+\&{if} ${}((\|b[\|k][\|i-\T{1}].\|p\I\|i)\W(\\{mpz\_sgn}(\\{bb}\MG\|c)\I%
+\T{0})){}$\1\6
+\&{for} ${}(\\{ii}\K\|i-\T{1};{}$ ${}(\\{ii}\G\T{0})\W(\|b[\|k][\\{ii}].\|p\E%
+\\{iii});{}$ ${}\\{ii}\MM){}$\1\5
+${}\|b[\|k][\\{ii}].\|p\K\|i;{}$\2\2\6
+\&{else} \&{if} ${}(\\{mpz\_sgn}(\\{bb}\MG\|c)\E\T{0}){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\\{ii}\K\|i-\T{1};{}$ ${}(\\{ii}\G\T{0})\W(\|b[\|k][\\{ii}].\|p\E%
+\|i);{}$ ${}\\{ii}\MM){}$\1\5
+${}\|b[\|k][\\{ii}].\|p\K\\{iii};{}$\2\6
+\4${}\}{}$\2\6
+${}\|i\K\|b[\|j][\|i].\|p;{}$\6
+\4${}\}{}$\2\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|j;{}$ ${}\|i\PP){}$\1\5
+${}\\{mu}[\|k][\|i]\MRL{+{\K}}\\{mu}[\|j][\|i]{}$;\2\par
+\U56.\fi
+
+\M{59}The original loop was
+\PB{ \&{for} ${}(\|i\K\T{1};{}$ ${}\|i\Z\|z;{}$ ${}\|i\PP){}$ ${}\|b[\|k][\|i].%
+\|c\MRL{-{\K}}\|b[\|j][\|i].\|c*\\{musvl};{}$}
+\Y\B\4\X59:$\lceil\mu_{k,j}\rfloor \neq \pm 1$\X${}\E{}$\6
+$\|i\K\|b[\|j][\T{0}].\|p;{}$\6
+\&{while} ${}(\|i\I\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{bb}\K{\AND}(\|b[\|k][\|i]);{}$\6
+${}\\{mpz\_submul}(\\{bb}\MG\|c,\39\|b[\|j][\|i].\|c,\39\\{musvl});{}$\6
+${}\\{iii}\K\\{bb}\MG\|p;{}$\6
+\&{if} ${}((\|b[\|k][\|i-\T{1}].\|p\I\|i)\W(\\{mpz\_sgn}(\\{bb}\MG\|c)\I%
+\T{0})){}$\1\6
+\&{for} ${}(\\{ii}\K\|i-\T{1};{}$ ${}(\\{ii}\G\T{0})\W(\|b[\|k][\\{ii}].\|p\E%
+\\{iii});{}$ ${}\\{ii}\MM){}$\1\5
+${}\|b[\|k][\\{ii}].\|p\K\|i;{}$\2\2\6
+\&{else} \&{if} ${}(\\{mpz\_sgn}(\\{bb}\MG\|c)\E\T{0}){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\\{ii}\K\|i-\T{1};{}$ ${}(\\{ii}\G\T{0})\W(\|b[\|k][\\{ii}].\|p\E%
+\|i);{}$ ${}\\{ii}\MM){}$\1\5
+${}\|b[\|k][\\{ii}].\|p\K\\{iii};{}$\2\6
+\4${}\}{}$\2\6
+${}\|i\K\|b[\|j][\|i].\|p;{}$\6
+\4${}\}{}$\2\6
+\8\#\&{if} \T{0}\6
+${}\\{daxpy}(\|j,\39{-}\\{mus},\39\\{mu}[\|k],\39\T{1},\39\\{mu}[\|j],\39%
+\T{1});{}$\6
+\8\#\&{endif}\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|j;{}$ ${}\|i\PP){}$\1\5
+${}\\{mu}[\|k][\|i]\MRL{-{\K}}\\{mu}[\|j][\|i]*\\{mus}{}$;\2\par
+\U56.\fi
+
+\M{60}\B\X60:recompute $N_k$\X${}\E{}$\6
+${}\{{}$\1\6
+${}\|N[\|k]\K\T{0.0};{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|z;{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{bs}[\|k][\|i]\K{}$(\&{DOUBLE}) \\{mpz\_get\_d}${}(\|b[\|k][\|i+\T{1}].%
+\|c);{}$\6
+${}\|N[\|k]\MRL{+{\K}}\\{bs}[\|k][\|i]*\\{bs}[\|k][\|i];{}$\6
+\4${}\}{}$\2\6
+${}\|N[\|k]\K\.{SQRT}(\|N[\|k]);{}$\6
+\4${}\}{}$\2\par
+\U52.\fi
+
+\M{61}Before going to step 4 we test if $b_k$ is linear dependent.
+This is the case if $\PB{}N_k\PB{}<{1\over 2}$.
+If we found a linear dependent vector $b_k$,
+we shift $b_k$ to the last column of the
+matrix and restart \PB{\\{lllfp}} with $s:= s-1$.
+\Y\B\4\X61:test for linear dependencies\X${}\E{}$\6
+\&{if} ${}(\|N[\|k]<{-}\.{EPSILON}){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{fprintf}(\\{stderr},\39\.{"Nk\ negativ!\ contact}\)\.{\ the\ author.%
+\\n"}){}$;\5
+\\{fflush}(\\{stderr});\6
+\\{printf}(\.{"Nk\ negativ!\ contact}\)\.{\ the\ author.\\n"});\5
+\\{fflush}(\\{stdout});\5
+\8\#\&{endif}\6
+\\{exit}(\T{1});\6
+\4${}\}{}$\2\6
+\&{if} ${}(\|N[\|k]<\T{0.5}){}$\5
+${}\{{}$\1\6
+${}\\{swapvl}\K\|b[\|k];{}$\6
+${}\\{ss}\K\|N[\|k];{}$\6
+${}\\{swapd}\K\\{bs}[\|k];{}$\6
+\&{for} ${}(\|i\K\|k+\T{1};{}$ ${}\|i<\|s;{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\|b[\|i-\T{1}]\K\|b[\|i];{}$\6
+${}\|N[\|i-\T{1}]\K\|N[\|i];{}$\6
+${}\\{bs}[\|i-\T{1}]\K\\{bs}[\|i];{}$\6
+\4${}\}{}$\2\6
+${}\|b[\|s-\T{1}]\K\\{swapvl};{}$\6
+${}\|N[\|s-\T{1}]\K\\{ss};{}$\6
+${}\\{bs}[\|s-\T{1}]\K\\{swapd};{}$\6
+${}\|s\K\|s-\T{1};{}$\6
+${}\|k\K\T{1};{}$\6
+\&{continue};\6
+\4${}\}{}$\2\par
+\U52.\fi
+
+\M{62}\B\X50:variables for \PB{\\{lllfp}}\X${}\mathrel+\E{}$\6
+\&{int} \\{Fi};\par
+\fi
+
+\M{63}Step 4: Swapping of columns with deep insertions.
+Will be used if the compiler flag \PB{\.{DEEPINSERT}} is set.
+The vector $b_k$ will be inserted left as possible.
+Swapping of the matrix columns is done entirely with
+pointers arithmetics.
+If no insertion is possible
+we step forward to
+$k\leftarrow k+1$, otherwise we go back to $k\leftarrow k-1$.
+\Y\B\4\X63:fourth step: deepinsert columns\X${}\E{}$\6
+$\\{cc}\K\|N[\|k]*\|N[\|k];{}$\6
+${}\|j\K\T{0};{}$\6
+${}\\{Fi}\K\T{0};$ \&{while} ${}(\|j<\|k)$ $\{{}$\6
+\8\#\&{if} \T{1}\6
+\&{if} ${}((\|j>\.{DEEPINSERT\_CONST}\W\|j<\|k-\.{DEEPINSERT\_CONST})\V%
+\\{delta}*\|c[\|j]\Z\\{cc}){}$\5
+${}\{{}$\6
+\8\#\&{else}\1\6
+\&{if} ${}(\\{delta}*\|c[\|j]\Z\\{cc}){}$\5
+${}\{{}$\6
+\8\#\&{endif}\1\6
+${}\\{cc}\MRL{-{\K}}\\{mu}[\|k][\|j]*\\{mu}[\|k][\|j]*\|c[\|j];{}$\6
+${}\|j\PP;{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{swapvl}\K\|b[\|k];{}$\6
+${}\\{ss}\K\|N[\|k];{}$\6
+${}\\{swapd}\K\\{bs}[\|k];{}$\6
+\&{for} ${}(\|i\K\|k-\T{1};{}$ ${}\|i\G\|j;{}$ ${}\|i\MM){}$\5
+${}\{{}$\1\6
+${}\|b[\|i+\T{1}]\K\|b[\|i];{}$\6
+${}\|N[\|i+\T{1}]\K\|N[\|i];{}$\6
+${}\\{bs}[\|i+\T{1}]\K\\{bs}[\|i];{}$\6
+\4${}\}{}$\2\6
+${}\|b[\|j]\K\\{swapvl};{}$\6
+${}\|N[\|j]\K\\{ss};{}$\6
+${}\\{bs}[\|j]\K\\{swapd};{}$\6
+${}\\{Fi}\K\T{1};{}$\6
+\&{break};\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{if} ${}(\\{Fi}\E\T{1}){}$\1\5
+${}\|k\K(\|j-\T{1}>\T{1})\?\|j-\T{1}:\T{1}{}$;\C{ $k = \max(j-1,1)$ }\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\|k\PP;{}$\6
+\4${}\}{}$\2\par
+\U48.\fi
+
+\M{64}Standard exchange of columns
+(original Step 4):
+Either swap the vectors $b_{k-1}$ and  $b_k$ or increment $k$.
+Swapping of the matrix columns is done entirely with swapping of
+pointers.
+If the $b_k$ and $b_{k-1}$ are exchanged, we step back to
+$k\leftarrow k-1$, otherwise we go forward to $k\leftarrow k+1$.
+\Y\B\4\X64:fourth step: swap columns\X${}\E{}$\6
+\&{if} ${}(\\{delta}*\|c[\|k-\T{1}]>\|c[\|k]+\\{mu}[\|k][\|k-\T{1}]*\\{mu}[%
+\|k][\|k-\T{1}]*\|c[\|k-\T{1}]){}$\5
+${}\{{}$\1\6
+${}\\{swapvl}\K\|b[\|k];{}$\6
+${}\|b[\|k]\K\|b[\|k-\T{1}];{}$\6
+${}\|b[\|k-\T{1}]\K\\{swapvl};{}$\6
+${}\\{ss}\K\|N[\|k];{}$\6
+${}\|N[\|k]\K\|N[\|k-\T{1}];{}$\6
+${}\|N[\|k-\T{1}]\K\\{ss};{}$\6
+${}\\{swapd}\K\\{bs}[\|k];{}$\6
+${}\\{bs}[\|k]\K\\{bs}[\|k-\T{1}];{}$\6
+${}\\{bs}[\|k-\T{1}]\K\\{swapd};{}$\6
+${}\|k\K(\|k-\T{1}>\T{1})\?\|k-\T{1}:\T{1}{}$;\C{ $k = \max(k-1,1)$ }\6
+\4${}\}{}$\2\6
+\&{else}\1\5
+${}\|k\PP{}$;\2\par
+\U48.\fi
+
+\N{1}{65}Subroutines needed for lattice basis reduction.
+These are scalarproducts, norms, allocation and orthogonalization.
+\Y\B\4\X65:lll-subroutines\X${}\E{}$\6
+\X66:scalarproduct with integers\X;\6
+\X67:scalarproduct with doubles\X;\6
+\X68:memory allocation\X;\6
+\X69:free the memory\X;\par
+\U47.\fi
+
+\M{66}The integer scalarproduct is able to use the sparse structure of the
+vectors. But it strongly depends on the hardware and the compiler.
+This is the new variant which uses the sparse structure of the input
+vectors.
+
+It depends on the compiler and the machine whether this loop
+is fast enough to gain speed against the plain scalarproduct evaluation.
+$t_1$ runs through the vector $v$, $t_2$ runs through the vector $w$.
+\Y\B\4\X66:scalarproduct with integers\X${}\E{}$\6
+\&{DOUBLE} \\{scalarproductlfp}(\&{COEFF} ${}{*}\|v,\39{}$\&{COEFF} ${}{*}%
+\|w){}$\1\1\2\2\6
+${}\{{}$\1\6
+\&{DOUBLE} \\{erg};\6
+\&{long} \\{t1}${},{}$ \\{t2};\6
+\&{COEFF} ${}{*}\\{vv},{}$ ${}{*}\\{ww};{}$\7
+${}\\{erg}\K\T{0.0};{}$\6
+${}\\{t1}\K\|v[\T{0}].\|p;{}$\6
+${}\\{t2}\K\|w[\T{0}].\|p;{}$\6
+\&{if} ${}((\\{t1}\E\T{0})\V(\\{t2}\E\T{0})){}$\1\5
+\&{return} \T{0};\2\6
+\&{do}\5
+${}\{{}$\1\6
+\&{if} ${}(\\{t2}>\\{t1}){}$\5
+${}\{{}$\1\6
+${}\\{t1}\K\|v[\\{t2}-\T{1}].\|p;{}$\6
+\&{if} ${}(\\{t2}\I\\{t1}){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{t1}\E\T{0}){}$\1\5
+\&{break};\2\6
+${}\\{t2}\K\|w[\\{t2}].\|p;{}$\6
+\&{if} ${}(\\{t2}\E\T{0}){}$\1\5
+\&{break};\2\6
+\4${}\}{}$\2\6
+\&{else}\1\5
+\&{goto} \\{gleich};\2\6
+\4${}\}{}$\2\6
+\&{else} \&{if} ${}(\\{t2}<\\{t1}){}$\5
+${}\{{}$\1\6
+${}\\{t2}\K\|w[\\{t1}-\T{1}].\|p;{}$\6
+\&{if} ${}(\\{t2}\I\\{t1}){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{t2}\E\T{0}){}$\1\5
+\&{break};\2\6
+${}\\{t1}\K\|v[\\{t1}].\|p;{}$\6
+\&{if} ${}(\\{t1}\E\T{0}){}$\1\5
+\&{break};\2\6
+\4${}\}{}$\2\6
+\&{else}\1\5
+\&{goto} \\{gleich};\2\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+\4\\{gleich}:\5
+${}\\{vv}\K{\AND}(\|v[\\{t1}]);{}$\6
+${}\\{ww}\K{\AND}(\|w[\\{t2}]);{}$\6
+${}\\{erg}\MRL{+{\K}}{}$(\&{DOUBLE}) \\{mpz\_get\_d}${}(\\{vv}\MG\|c)*{}$(%
+\&{DOUBLE}) \\{mpz\_get\_d}${}(\\{ww}\MG\|c);{}$\6
+${}\\{t1}\K\\{vv}\MG\|p;{}$\6
+\&{if} ${}(\\{t1}\E\T{0}){}$\1\5
+\&{break};\2\6
+${}\\{t2}\K\\{ww}\MG\|p;{}$\6
+\&{if} ${}(\\{t2}\E\T{0}){}$\1\5
+\&{break};\2\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\5
+\&{while} (\T{1});\6
+\&{return} (\\{erg});\6
+\4${}\}{}$\2\par
+\U65.\fi
+
+\M{67}\B\X67:scalarproduct with doubles\X${}\E{}$\6
+\&{DOUBLE} \\{scalarproductfp}(\&{DOUBLE} ${}{*}\|v,\39{}$\&{DOUBLE} ${}{*}\|w,%
+\39{}$\&{int} \|n)\1\1\2\2\6
+${}\{{}$\6
+\8\#\&{if} \.{BLAS}\1\6
+\&{return} \\{cblas\_ddot}${}(\|n,\39\|v,\39\T{1},\39\|w,\39\T{1});{}$\6
+\8\#\&{else}\7
+\&{DOUBLE} \|r;\6
+\&{int} \|i;\7
+${}\|r\K\T{0.0};{}$\6
+\&{for} ${}(\|i\K\|n-\T{1};{}$ ${}\|i\G\T{0};{}$ ${}\|i\MM){}$\1\5
+${}\|r\MRL{+{\K}}\|v[\|i]*\|w[\|i];{}$\2\6
+\&{return} \|r;\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\par
+\U65.\fi
+
+\M{68}Allocation of memory. For the upper triangular matrix $\mu$ a
+rectangular matrix is allocated. So it fits for orthogonalization with
+Gram-Schmidt, Householder and Givens rotation.
+\Y\B\4\X68:memory allocation\X${}\E{}$\6
+\&{int} \\{lllalloc}(\&{DOUBLE} ${}{*}{*}{*}\\{mu},\39{}$\&{DOUBLE} ${}{*}{*}%
+\|c,\39{}$\&{DOUBLE} ${}{*}{*}\|N,\39{}$\&{DOUBLE} ${}{*}{*}{*}\\{bs},\39{}$%
+\&{int} \|s${},\39{}$\&{int} \|z)\7
+${}\{{}$\1\6
+\&{int} \|i${},{}$ \|m;\6
+\8\#\&{if} \.{USE\_SSE}\6
+\&{int} \\{zeven};\6
+\8\#\&{endif}\7
+\&{if} ${}((\|z<\T{1})\V(\|s<\T{1})){}$\1\5
+\&{return} \T{0};\2\6
+${}({*}\|c)\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\|s,\39\&{sizeof}(%
+\&{DOUBLE}));{}$\6
+${}({*}\|N)\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\|s,\39\&{sizeof}(%
+\&{DOUBLE}));{}$\6
+${}({*}\\{mu})\K{}$(\&{DOUBLE} ${}{*}{*}){}$ \\{calloc}${}(\|s,\39{}$%
+\&{sizeof}(\&{DOUBLE} ${}{*}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|s;{}$ ${}\|i\PP){}$\1\5
+${}({*}\\{mu})[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\|z,\39\&{sizeof}(%
+\&{DOUBLE}));{}$\2\6
+${}\|m\K(\|z>\|s)\?\|z:\|s;{}$\6
+${}({*}\\{bs})\K{}$(\&{DOUBLE} ${}{*}{*}){}$ \\{calloc}${}(\|m,\39{}$%
+\&{sizeof}(\&{DOUBLE} ${}{*}));{}$\6
+\8\#\&{if} \.{USE\_SSE}\6
+${}\\{zeven}\K(\|m\MOD\T{8}\I\T{0})\?(\|m/\T{8}+\T{1})*\T{8}:\|m;{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|m;{}$ ${}\|i\PP){}$\1\5
+${}({*}\\{bs})[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{zeven},\39%
+\&{sizeof}(\&{DOUBLE}));{}$\2\6
+\8\#\&{else}\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|m;{}$ ${}\|i\PP){}$\1\5
+${}({*}\\{bs})[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\|z,\39\&{sizeof}(%
+\&{DOUBLE}));{}$\2\6
+\8\#\&{endif}\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\par
+\U65.\fi
+
+\M{69}\B\X69:free the memory\X${}\E{}$\6
+\&{int} \\{lllfree}(\&{DOUBLE} ${}{*}{*}\\{mu},\39{}$\&{DOUBLE} ${}{*}\|c,%
+\39{}$\&{DOUBLE} ${}{*}\|N,\39{}$\&{DOUBLE} ${}{*}{*}\\{bs},\39{}$\&{int} \|s)\7
+${}\{{}$\1\6
+\&{int} \|i;\7
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|s;{}$ ${}\PP\|i){}$\1\5
+\\{free}(\\{bs}[\|i]);\2\6
+\\{free}(\\{bs});\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|s;{}$ ${}\PP\|i){}$\1\5
+\\{free}(\\{mu}[\|i]);\2\6
+\\{free}(\\{mu});\6
+\\{free}(\|N);\6
+\\{free}(\|c);\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\par
+\U65.\fi
+
+\M{70}Compute $\log D$ for a lattice $L$, see the LLL paper.
+\Y\B\4\X70:compute $\log D$\X${}\E{}$\6
+\&{double} \\{logD}(\&{COEFF} ${}{*}{*}\\{lattice},\39{}$\&{DOUBLE} ${}{*}\|c,%
+\39{}$\&{int} \|s${},\39{}$\&{int} \|z)\1\1\2\2\6
+${}\{{}$\1\6
+\&{double} \|d${}\K\T{0.0};{}$\6
+\&{int} \|i;\7
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|s;{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\|d\MRL{+{\K}}\\{log}(\|c[\|i])*(\|s-\|i);{}$\6
+\4${}\}{}$\2\6
+${}\|d\MRL{*{\K}}\T{0.5};{}$\6
+\&{return} \|d;\6
+\4${}\}{}$\2\par
+\U47.\fi
+
+\M{71}The logarithm of the orthogonality defect of a lattice is computed:
+$d = {\prod_{i=0}^{s-1} \Vert b_i\Vert\over \det(L)}$.
+For $\det(L)$ we use $\prod_{i=0}^{s-1} \Vert\hat b_i\Vert$.
+\Y\B\4\X71:orthogonal defect\X${}\E{}$\6
+\&{double} \\{orthogonal\_defect}(\&{COEFF} ${}{*}{*}\\{lattice},\39{}$%
+\&{DOUBLE} ${}{*}\|c,\39{}$\&{int} \|s${},\39{}$\&{int} \|z)\1\1\2\2\6
+${}\{{}$\1\6
+\&{double} \\{defect}${}\K\T{0.0};{}$\6
+\8\#\&{if} \T{0}\6
+\&{int} \|i;\7
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|s;{}$ ${}\|i\PP){}$\1\5
+${}\\{defect}\MRL{+{\K}}\\{log}{}$((\&{double}) \\{normfp}(\\{lattice}[%
+\|i]))${}-\\{log}{}$((\&{double}) \|c[\|i]);\2\6
+\8\#\&{endif}\6
+${}\\{defect}\MRL{{/}{\K}}\T{2.0};{}$\6
+\&{return} \\{defect};\6
+\4${}\}{}$\2\par
+\U47.\fi
+
+\M{72}Standard LLL reduction
+\Y\B\4\X72:standard-lll\X${}\E{}$\6
+\&{void} \\{lll}(\&{COEFF} ${}{*}{*}\|b,\39{}$\&{int} \|s${},\39{}$\&{int} %
+\|z${},\39{}$\&{DOUBLE} \\{quality})\1\1\2\2\6
+${}\{{}$\1\6
+\&{DOUBLE} ${}{*}{*}\\{mu};{}$\6
+\&{DOUBLE} ${}{*}\|c;{}$\6
+\&{DOUBLE} ${}{*}\|N;{}$\6
+\&{DOUBLE} ${}{*}{*}\\{bs};{}$\6
+\&{int} \|r;\7
+${}\\{lllalloc}({\AND}\\{mu},\39{\AND}\|c,\39{\AND}\|N,\39{\AND}\\{bs},\39\|s,%
+\39\|z);{}$\6
+${}\|r\K\\{lllfp}(\|b,\39\\{mu},\39\|c,\39\|N,\39\\{bs},\39\T{1},\39\|s,\39\|z,%
+\39\\{quality});{}$\6
+${}\\{lllfree}(\\{mu},\39\|c,\39\|N,\39\\{bs},\39\|s);{}$\6
+\&{return};\6
+\4${}\}{}$\2\par
+\U47.\fi
+
+\M{73}Iterated LLL reduction. Standard LLL-reduction is applied to
+the lattice. Then the columns are sorted in descending (or ascending) order and
+the process is iterated. The Euclidean length of the lattice
+vectors is stored in \PB{\|N}.
+\Y\B\4\X73:iterated-lll\X${}\E{}$\6
+\&{DOUBLE} \\{iteratedlll}(\&{COEFF} ${}{*}{*}\|b,\39{}$\&{int} \|s${},\39{}$%
+\&{int} \|z${},\39{}$\&{int} \\{no\_iterates}${},\39{}$\&{DOUBLE} \\{quality})%
+\1\1\2\2\6
+${}\{{}$\1\6
+\&{DOUBLE} ${}{*}{*}\\{mu};{}$\6
+\&{DOUBLE} ${}{*}\|c;{}$\6
+\&{DOUBLE} ${}{*}\|N;{}$\6
+\&{DOUBLE} ${}{*}{*}\\{bs};{}$\6
+\&{int} \|r${},{}$ \|l${},{}$ \|i${},{}$ \|j${},{}$ \\{runs};\6
+\&{COEFF} ${}{*}\\{swapvl};{}$\6
+\&{DOUBLE} \\{lD};\7
+${}\\{lllalloc}({\AND}\\{mu},\39{\AND}\|c,\39{\AND}\|N,\39{\AND}\\{bs},\39\|s,%
+\39\|z);{}$\6
+${}\|r\K\\{lllfp}(\|b,\39\\{mu},\39\|c,\39\|N,\39\\{bs},\39\T{1},\39\|s,\39\|z,%
+\39\\{quality});{}$\6
+${}\\{lD}\K\\{logD}(\|b,\39\|c,\39\|s,\39\|z);{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+${}\\{printf}(\.{"\ \ \ log(D)=\ \%f\\n"},\39\\{lD}){}$;\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\&{for} ${}(\\{runs}\K\T{1};{}$ ${}\\{runs}<\\{no\_iterates};{}$ ${}\\{runs}%
+\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|j\K\|s-\T{1};{}$ ${}\|j>\T{0};{}$ ${}\|j\MM){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|l\K\|j-\T{1};{}$ ${}\|l\G\T{0};{}$ ${}\|l\MM){}$\5
+${}\{\3{-1}{}$\C{\PB{\&{if} ${}(\|N[\|l]<\|N[\|j])$ $\{$}}\C{ $<$ sorts 'in
+descending order.' }\1\6
+\&{if} ${}(\|N[\|l]>\|N[\|j]){}$\5
+${}\{{}$\C{ $>$ sorts 'in ascending order.' }\1\6
+${}\\{swapvl}\K\|b[\|l];{}$\6
+\&{for} ${}(\|i\K\|l+\T{1};{}$ ${}\|i\Z\|j;{}$ ${}\|i\PP){}$\1\5
+${}\|b[\|i-\T{1}]\K\|b[\|i];{}$\2\6
+${}\|b[\|j]\K\\{swapvl};{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+${}\|r\K\\{lllfp}(\|b,\39\\{mu},\39\|c,\39\|N,\39\\{bs},\39\T{1},\39\|s,\39\|z,%
+\39\\{quality});{}$\6
+${}\\{lD}\K\\{logD}(\|b,\39\|c,\39\|s,\39\|z);{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+${}\\{printf}(\.{"\%d:\ log(D)=\ \%f\\n"},\39\\{runs},\39\\{lD}){}$;\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+${}\\{lllfree}(\\{mu},\39\|c,\39\|N,\39\\{bs},\39\|s);{}$\6
+\&{return} \\{lD};\6
+\4${}\}{}$\2\par
+\U47.\fi
+
+\N{1}{74}Blockwise Korkine Zolotareff reduction.
+\Y\B\4\X74:bkz-reduction\X${}\E{}$\6
+\X85:compute gamma function\X;\6
+\X82:exhaustive enumeration of a block\X;\6
+\X75:bkz-algorithm\X;\par
+\U47.\fi
+
+\M{75}The control algorithm of blockwise Korkine Zolotarev Reduction.
+There are 2 parameters $\beta$ and $\delta$ with ${1\over 4}<\delta<1$ (same
+as in LLL) and $2<\beta<m$ (the blocksize).
+The parameter \PB{\|s} is the number of columns of the lattice,
+where the last column is the zero vector.
+Therefore the last vector of the mathematical lattice is
+$\PB{\\{last}}\leftarrow \PB{\|s}-2$.
+\PB{\\{bkz}} uses the subroutines \PB{\\{lllfp}} and \PB{\\{enumerate}}.
+$p$ controls the pruning in the pruned Gauss enumeration.
+$\PB{\\{start\_block}}$ is cyclically shifted through $0,1,\ldots,s-2$.
+\PB{\\{zaehler}} counts the number of positions $j$ that satisfy
+$\delta\PB{}\hat{b}_j\PB{}^2 \leq \lambda_1(\pi_j(L(b_j,\ldots,b_k)))$.
+\PB{\\{zaehler}} is reset to $0$ if the inequality does not hold for $j$.
+
+Step 1:
+$\mu$ and $c$ have to be allocated with $s+1$ columns.
+\Y\B\4\X75:bkz-algorithm\X${}\E{}$\6
+\&{DOUBLE} \\{bkz}(\&{COEFF} ${}{*}{*}\|b,\39{}$\&{int} \|s${},\39{}$\&{int} %
+\|z${},\39{}$\&{DOUBLE} \\{delta}${},\39{}$\&{int} \\{beta}${},\39{}$\&{int} %
+\|p)\1\1\2\2\6
+${}\{{}$\1\6
+\X76:bkz variables\X;\6
+${}\\{last}\K\|s-\T{2}{}$;\C{ \PB{\\{last}} points to the last nonzero vector
+of the lattice.}\6
+\&{if} ${}(\\{last}<\T{1}){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+\\{printf}(\.{"BKZ:\ the\ number\ of\ }\)\.{basis\ vectors\ is\ too}\)\.{\
+small.\\n"});\6
+\\{printf}(\.{"Probably\ the\ number}\)\.{\ of\ rows\ is\ less\ or\ }\)%
+\.{equal"});\6
+\\{printf}(\.{"\ to\ number\ of\ colum}\)\.{ns\ in\ the\ original\ s}\)\.{ystem%
+\\n"});\6
+\\{printf}(\.{"Maybe\ you\ have\ to\ i}\)\.{ncrease\ c0\ (the\ firs}\)\.{t\
+parameter)!\\n"});\6
+\8\#\&{endif}\6
+\\{mpz\_clear}(\\{hv});\6
+\&{return} \T{0.0};\6
+\4${}\}{}$\2\6
+${}\|u\K{}$(\&{long} ${}{*}){}$ \\{calloc}${}(\|s,\39\&{sizeof}(\&{long}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|s;{}$ ${}\|i\PP){}$\1\5
+${}\|u[\|i]\K\T{0};{}$\2\6
+${}\\{lllalloc}({\AND}\\{mu},\39{\AND}\|c,\39{\AND}\|N,\39{\AND}\\{bs},\39\|s,%
+\39\|z);{}$\6
+${}\\{lllfp}(\|b,\39\\{mu},\39\|c,\39\|N,\39\\{bs},\39\T{1},\39\|s,\39\|z,\39%
+\\{delta});{}$\6
+${}\\{start\_block}\K\\{zaehler}\K{-}\T{1};{}$\6
+\&{while} ${}(\\{zaehler}<\\{last}){}$\5
+${}\{{}$\1\6
+${}\\{start\_block}\PP;{}$\6
+\&{if} ${}(\\{start\_block}\E\\{last}){}$\1\5
+${}\\{start\_block}\K\T{0};{}$\2\6
+${}\\{end\_block}\K(\\{start\_block}+\\{beta}-\T{1}<\\{last})\?\\{start%
+\_block}+\\{beta}-\T{1}:\\{last}{}$;\C{  $\PB{\\{end\_block}} := \min(\PB{%
+\\{start\_block}}+\beta-1,\PB{\\{last}})$  }\6
+\8\#\&{if} \T{0}\6
+${}\\{printf}(\.{"start\_block=\%d,\ end}\)\.{\_block=\%d\\n"},\39\\{start%
+\_block},\39\\{end\_block});{}$\6
+\8\#\&{endif}\6
+${}\\{new\_cj}\K\\{enumerate}(\\{mu},\39\|c,\39\|u,\39\|s,\39\\{start\_block},%
+\39\\{end\_block},\39\|p){}$;\C{ The exhaustive enumeration. }\6
+${}\|h\K(\\{end\_block}+\T{1}<\\{last})\?\\{end\_block}+\T{1}:\\{last}{}$;\C{
+$h := \min(\PB{\\{end\_block}}+1,\PB{\\{last}})$  }\6
+\&{if} ${}(\\{delta}*\|c[\\{start\_block}]>\\{new\_cj}){}$\5
+${}\{{}$\1\6
+\X77:successful enumeration\X;\6
+${}\\{zaehler}\K{-}\T{1};{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+\&{if} ${}(\|h>\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{lllfp}(\|b,\39\\{mu},\39\|c,\39\|N,\39\\{bs},\39\|h-\T{2},\39\|h+\T{1},%
+\39\|z,\39\\{delta}){}$;\C{ For some unkown reason we have to
+                               use $h-2$ as \PB{\\{start}}. }\6
+\4${}\}{}$\2\6
+${}\\{zaehler}\PP;{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\C{ end of \PB{\&{while}} }\2\6
+${}\\{lD}\K\\{logD}(\|b,\39\|c,\39\|s-\T{1},\39\|z);{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+${}\\{printf}(\.{"bkz:\ log(D)=\ \%f\\n"},\39\\{lD}){}$;\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+${}\\{lllfree}(\\{mu},\39\|c,\39\|N,\39\\{bs},\39\|s);{}$\6
+\\{free}(\|u);\6
+\\{mpz\_clear}(\\{hv});\6
+\&{return} \\{lD};\6
+\4${}\}{}$\2\par
+\U74.\fi
+
+\M{76}\B\X76:bkz variables\X${}\E{}$\6
+\&{DOUBLE} ${}{*}{*}\\{mu},{}$ ${}{*}\|c,{}$ ${}{*}\|N;{}$\6
+\&{DOUBLE} ${}{*}{*}\\{bs};{}$\6
+\&{static} \&{mpz\_t} \\{hv};\6
+\&{int} \\{zaehler};\6
+\&{int} \|h${},{}$ \|i${},{}$ \\{last};\6
+\&{int} \\{start\_block}${},{}$ \\{end\_block};\6
+\&{long} ${}{*}\|u;{}$\6
+\&{DOUBLE} \\{new\_cj};\6
+\&{DOUBLE} \\{lD};\7
+\\{mpz\_init}(\\{hv});\par
+\A78.
+\U75.\fi
+
+\M{77}Now we found a new vector whose corresponding Gram Schmidt vector
+is shorter than $c_j$ by at least a factor $\delta$.
+Write the new linear combination at position $j-1$ after shifting all
+vectors behind $j-1$ one position to the right.
+
+If $N_{h-1} < 0.5$  the vectors in $b$ were linear dependent.
+Since at most one of the vectors $b_j,\ldots,b_{h}$ was linear dependent
+and is now zero at position $h$, swap the vectors back.
+Otherwise the vectors weren't linear dependent. This is the case if a
+multiple of $b_{s-1}$ was found in \PB{\\{enumerate}}.
+\Y\B\4\X77:successful enumeration\X${}\E{}$\6
+\8\#\&{if} \&{defined} (\.{ORIGINAL\_SCHNORR\_EUCHNER})\6
+\X80:old integration of the new vector, part 1\X;\6
+\8\#\&{else}\6
+\X79:build new basis\X;\6
+\8\#\&{endif}\7
+${}\\{lllfp}(\|b,\39\\{mu},\39\|c,\39\|N,\39\\{bs},\39\\{start\_block}-\T{1},%
+\39\|h+\T{1},\39\|z,\39\\{delta});{}$\6
+\&{if} ${}(\|N[\|h]<{-}\.{EPSILON}){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{fprintf}(\\{stderr},\39\.{"NN\ negativ\\n"}){}$;\5
+\\{fflush}(\\{stderr});\6
+\\{printf}(\.{"NN\ negativ\\n"});\5
+\\{fflush}(\\{stdout});\5
+\8\#\&{endif}\6
+\\{exit}(\T{1});\6
+\4${}\}{}$\2\6
+\8\#\&{if} \&{defined} (\.{ORIGINAL\_SCHNORR\_EUCHNER})\6
+\X81:old integration of the new vector, part 2\X;\6
+\8\#\&{endif}\par
+\U75.\fi
+
+\M{78}\B\X76:bkz variables\X${}\mathrel+\E{}$\6
+\&{int} \|g${},{}$ \\{ui}${},{}$ \|q${},{}$ \|j;\6
+\&{COEFF} ${}{*}\\{swapvl}{}$;\par
+\fi
+
+\M{79}The new vector
+$b_a = \sum_{i=a}^e u_ib_i$ is computed, where
+$a= \PB{\\{start\_block}}$ and $e= \PB{\\{end\_block}}$.
+The other old vectors $b_{a+1},\ldots,b_e$ are adapted,
+in order to keep the whole block linear independent.
+The algorithm is described in the doctoral thesis of
+H.~Ritter.
+\Y\B\4\X79:build new basis\X${}\E{}$\6
+\&{for} ${}(\|j\K\T{1};{}$ ${}\|j\Z\|z;{}$ ${}\|j\PP){}$\1\5
+${}\\{mpz\_set\_si}(\|b[\\{last}+\T{1}][\|j].\|c,\39\T{0});{}$\2\6
+\&{for} ${}(\|i\K\\{start\_block};{}$ ${}\|i\Z\\{end\_block};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\|u[\|i]\I\T{0}){}$\1\6
+\&{for} ${}(\|j\K\T{1};{}$ ${}\|j\Z\|z;{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\|u[\|i]>\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_addmul\_ui}(\|b[\\{last}+\T{1}][\|j].\|c,\39\|b[\|i][\|j].\|c,\39%
+\|u[\|i]);{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{mpz\_submul\_ui}(\|b[\\{last}+\T{1}][\|j].\|c,\39\|b[\|i][\|j].\|c,\39{-}%
+\|u[\|i]);{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\2\6
+\4${}\}{}$\2\6
+${}\|g\K\\{end\_block};{}$\6
+\&{while} ${}(\|u[\|g]\E\T{0}){}$\1\5
+${}\|g\MM;{}$\2\6
+${}\|i\K\|g-\T{1};{}$\6
+\&{while} ${}(\\{labs}(\|u[\|g])>\T{1}){}$\5
+${}\{{}$\1\6
+\&{while} ${}(\|u[\|i]\E\T{0}){}$\1\5
+${}\|i\MM;{}$\2\6
+${}\|q\K{}$(\&{int}) \.{ROUND}${}((\T{1.0}*\|u[\|g])/\|u[\|i]);{}$\6
+${}\\{ui}\K\|u[\|i];{}$\6
+${}\|u[\|i]\K\|u[\|g]-\|q*\|u[\|i];{}$\6
+${}\|u[\|g]\K\\{ui};{}$\6
+\&{for} ${}(\|j\K\T{1};{}$ ${}\|j\Z\|z;{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_set}(\\{hv},\39\|b[\|g][\|j].\|c);{}$\6
+${}\\{mpz\_mul\_si}(\|b[\|g][\|j].\|c,\39\|b[\|g][\|j].\|c,\39{}$(\&{long}) %
+\|q);\6
+${}\\{mpz\_add}(\|b[\|g][\|j].\|c,\39\|b[\|g][\|j].\|c,\39\|b[\|i][\|j].%
+\|c);{}$\6
+${}\\{mpz\_set}(\|b[\|i][\|j].\|c,\39\\{hv});{}$\6
+\4${}\}{}$\2\6
+${}\\{coeffinit}(\|b[\|g],\39\|z);{}$\6
+${}\\{coeffinit}(\|b[\|i],\39\|z);{}$\6
+\4${}\}{}$\2\6
+${}\\{swapvl}\K\|b[\|g];{}$\6
+\&{for} ${}(\|i\K\|g;{}$ ${}\|i>\\{start\_block};{}$ ${}\|i\MM){}$\1\5
+${}\|b[\|i]\K\|b[\|i-\T{1}];{}$\2\6
+${}\|b[\\{start\_block}]\K\|b[\\{last}+\T{1}];{}$\6
+${}\\{coeffinit}(\|b[\\{start\_block}],\39\|z);{}$\6
+${}\|b[\\{last}+\T{1}]\K\\{swapvl};{}$\6
+\&{for} ${}(\|j\K\T{1};{}$ ${}\|j\Z\|z;{}$ ${}\|j\PP){}$\1\5
+${}\\{mpz\_set\_si}(\|b[\\{last}+\T{1}][\|j].\|c,\39\T{0});{}$\2\6
+${}\\{coeffinit}(\|b[\\{last}+\T{1}],\39\|z){}$;\par
+\U77.\fi
+
+\M{80}This is the original way to  include the new vector:
+just write it to the beginning of the block and reduce
+the new system. Then one vector is reduced to zero.
+This vector is deleted.
+\Y\B\4\X80:old integration of the new vector, part 1\X${}\E{}$\6
+\&{for} ${}(\|l\K\T{1};{}$ ${}\|l\Z\|z;{}$ ${}\|l\PP){}$\1\5
+${}\\{mpz\_set\_si}(\|b[\\{last}+\T{1}][\|l].\|c,\39\T{0});{}$\2\6
+\&{for} ${}(\|i\K\\{start\_block};{}$ ${}\|i\Z\\{end\_block};{}$ ${}\|i\PP){}$%
+\1\6
+\&{for} ${}(\|l\K\T{1};{}$ ${}\|l\Z\|z;{}$ ${}\|l\PP){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_addmul\_si}(\|b[\\{last}+\T{1}][\|l].\|c,\39\|b[\|i][\|l].\|c,\39%
+\\{ui});{}$\6
+\4${}\}{}$\2\2\6
+${}\\{coeffinit}(\|b[\\{last}+\T{1}],\39\|z);{}$\6
+${}\\{solutiontest}(\\{last}+\T{1});{}$\6
+${}\\{swapvl}\K\|b[\\{last}+\T{1}];{}$\6
+\&{for} ${}(\|i\K\\{last};{}$ ${}\|i\G\\{start\_block};{}$ ${}\|i\MM){}$\1\5
+${}\|b[\|i+\T{1}]\K\|b[\|i];{}$\2\6
+${}\|b[\\{start\_block}]\K\\{swapvl}{}$;\par
+\U77.\fi
+
+\M{81}\B\X81:old integration of the new vector, part 2\X${}\E{}$\6
+\&{if} ${}(\|N[\|h]<\T{0.5}){}$\5
+${}\{{}$\C{ After reduction this vector should be zero }\1\6
+${}\\{swapvl}\K\|b[\|h];{}$\6
+\&{for} ${}(\|i\K\|h+\T{1};{}$ ${}\|i\Z\\{last}+\T{1};{}$ ${}\|i\PP){}$\1\5
+${}\|b[\|i-\T{1}]\K\|b[\|i];{}$\2\6
+${}\|b[\\{last}+\T{1}]\K\\{swapvl};{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{printf}(\.{"Not\ linear\ dependen}\)\.{t;\ \%f\\n"},\39(\&{double})(\|N[%
+\|h-\T{1}])){}$;\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\\{exit}(\T{1});\6
+\4${}\}{}$\2\par
+\U77.\fi
+
+\M{82}Pruned Gauss-Enumeration.
+Enumerate in depth first search. Pruned Version without goto's
+as it is described in H.~H.~H\"orner's diploma thesis.
+Blocks with blocksize lower than \PB{\.{SCHNITT}} are completely enumerated,
+otherwise the enumeration is pruned.
+$2^{-p}$ is the probability that lattice points are lost.
+\Y\B\4\X82:exhaustive enumeration of a block\X${}\E{}$\6
+\&{DOUBLE} \\{enumerate}(\&{DOUBLE} ${}{*}{*}\\{mu},\39{}$\&{DOUBLE} ${}{*}\|c,%
+\39{}$\&{long} ${}{*}\|u,\39{}$\&{int} \|s${},\3{-1}\39{}$\&{int} \\{start%
+\_block}${},\39{}$\&{int} \\{end\_block}${},\39{}$\&{int} \|p)\1\1\2\2\6
+${}\{{}$\1\6
+\&{DOUBLE} \\{cd}${},{}$ \\{dum};\6
+\&{DOUBLE} ${}{*}\|y,{}$ ${}{*}\\{cs},{}$ ${}{*}\\{eta};{}$\6
+\&{DOUBLE} ${}{*}{*}\\{sigma};{}$\6
+\&{int} ${}{*}\|r;{}$\6
+\&{long} ${}{*}\\{us},{}$ ${}{*}\\{delta},{}$ ${}{*}\|d,{}$ ${}{*}\|v;{}$\6
+\&{int} \|t${},{}$ \|i${},{}$ \\{t\_up}${},{}$ \\{len};\6
+\&{double} \\{alpha};\6
+\&{int} \\{tmax};\6
+\&{static} \&{DOUBLE} \\{pi}${}\K\T{3.141592653589793238462643383};{}$\6
+\&{static} \&{DOUBLE} \|e${}\K%
+\T{2.718281828459045235360287471352662497757247093};{}$\6
+\&{int} \.{SCHNITT}${}\K\T{40};{}$\7
+\&{if} ${}(\|c[\\{start\_block}]\Z\.{EPSILON}){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{fprintf}(\\{stderr},\39\.{"Hier\ ist\ was\ faul!\ }\)\.{start\_block=\%d\
+\%f\\n"},\39\\{start\_block},\39{}$(\&{double}) \|c[\\{start\_block}]);\5
+\\{fflush}(\\{stderr});\6
+${}\\{printf}(\.{"Hier\ ist\ was\ faul!\ }\)\.{start\_block=\%d\ \%f\\n"},\39%
+\\{start\_block},\39{}$(\&{double}) \|c[\\{start\_block}]);\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\\{exit}(\T{1});\6
+\4${}\}{}$\2\6
+${}\\{us}\K{}$(\&{long} ${}{*}){}$ \\{calloc}${}(\|s+\T{1},\39\&{sizeof}(%
+\&{long}));{}$\6
+${}\\{cs}\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\|s+\T{1},\39\&{sizeof}(%
+\&{DOUBLE}));{}$\6
+${}\|y\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\|s+\T{1},\39\&{sizeof}(%
+\&{DOUBLE}));{}$\6
+${}\\{delta}\K{}$(\&{long} ${}{*}){}$ \\{calloc}${}(\|s+\T{1},\39\&{sizeof}(%
+\&{long}));{}$\6
+${}\|d\K{}$(\&{long} ${}{*}){}$ \\{calloc}${}(\|s+\T{1},\39\&{sizeof}(%
+\&{long}));{}$\6
+${}\\{eta}\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\|s+\T{1},\39\&{sizeof}(%
+\&{DOUBLE}));{}$\6
+${}\|v\K{}$(\&{long} ${}{*}){}$ \\{calloc}${}(\|s+\T{1},\39\&{sizeof}(%
+\&{long}));{}$\6
+${}\\{sigma}\K{}$(\&{DOUBLE} ${}{*}{*}){}$ \\{calloc}${}(\|s,\39{}$\&{sizeof}(%
+\&{DOUBLE} ${}{*}));{}$\6
+${}\|r\K{}$(\&{int} ${}{*}){}$ \\{calloc}${}(\|s+\T{1},\39\&{sizeof}(%
+\&{int}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|s;{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{sigma}[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\|s,\39\&{sizeof}(%
+\&{DOUBLE}));{}$\6
+${}\|r[\|i]\K\|i-\T{1};{}$\6
+\4${}\}{}$\2\7
+${}\\{len}\K(\\{end\_block}+\T{1}-\\{start\_block});{}$\6
+\&{for} ${}(\|i\K\\{start\_block};{}$ ${}\|i\Z\\{end\_block}+\T{1};{}$ ${}\|i%
+\PP){}$\5
+${}\{{}$\1\6
+${}\\{cs}[\|i]\K\|y[\|i]\K\T{0.0};{}$\6
+${}\|u[\|i]\K\\{us}[\|i]\K\|v[\|i]\K\\{delta}[\|i]\K\T{0};{}$\6
+${}\|d[\|i]\K\T{1};{}$\6
+\4${}\}{}$\2\6
+${}\\{us}[\\{start\_block}]\K\|u[\\{start\_block}]\K\T{1};{}$\6
+${}\\{cd}\K\|c[\\{start\_block}];{}$\6
+${}\|t\K\\{tmax}\K\\{start\_block}{}$;\C{ Now we start from $t=\PB{\\{start%
+\_block}}$ instead of       $t=\PB{\\{end\_block}}$. }\6
+\X84:precompute $\eta$\X;\6
+\&{while} ${}(\|t\Z\\{end\_block}){}$\5
+${}\{{}$\1\6
+\X83:the block search loop\X;\6
+\4${}\}{}$\2\6
+\\{free}(\\{us});\6
+\\{free}(\\{cs});\6
+\\{free}(\|y);\6
+\\{free}(\\{delta});\6
+\\{free}(\|d);\6
+\\{free}(\\{eta});\6
+\\{free}(\|v);\6
+\&{for} ${}(\|i\K\|s-\T{1};{}$ ${}\|i\G\T{0};{}$ ${}\|i\MM){}$\5
+${}\{{}$\1\6
+\\{free}(\\{sigma}[\|i]);\6
+\4${}\}{}$\2\6
+\\{free}(\\{sigma});\6
+\\{free}(\|r);\6
+\&{return} (\\{cd});\6
+\4${}\}{}$\2\par
+\U74.\fi
+
+\M{83}The search loop.
+\Y\B\4\X83:the block search loop\X${}\E{}$\6
+$\{$ $\\{dum}\K\\{us}[\|t]+\|y[\|t];{}$\6
+${}\\{cs}[\|t]\K\\{cs}[\|t+\T{1}]+\\{dum}*\\{dum}*\|c[\|t];{}$\6
+\8\#\&{if} \T{0}\6
+\&{if} ${}(\\{cs}[\|t]<\\{cd}-\\{eta}[\|t]){}$\5
+${}\{{}$\C{\PB{$\\{alpha}\K(\|t>\\{t2})\?\T{0.7}*\\{cd}:\\{cd};$}}\6
+\8\#\&{else}\1\6
+\&{if} ${}(\\{len}\Z\.{SCHNITT}){}$\5
+${}\{{}$\1\6
+${}\\{alpha}\K\T{1.0};{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{alpha}\K\\{sqrt}(\T{1.20}*(\\{end\_block}+\T{1}-\|t)/\\{len});{}$\6
+\&{if} ${}(\\{alpha}\G\T{1.0}){}$\1\5
+${}\\{alpha}\K\T{1.0};{}$\2\6
+\4${}\}{}$\2\6
+${}\\{alpha}\MRL{*{\K}}\\{cd}{}$;\C{\PB{$\\{alpha}\K(\T{2}*\|t>\\{len})\?%
+\T{0.8}*\\{cd}:\\{cd};$}}\6
+\&{if} ${}(\\{cs}[\|t]<\\{alpha}-\.{EPSILON}){}$\5
+${}\{{}$\6
+\8\#\&{endif}\1\6
+\&{if} ${}(\|t>\\{start\_block}){}$\5
+${}\{{}$\1\6
+${}\|t\MM;{}$\6
+\&{if} ${}(\|r[\|t+\T{1}]>\|r[\|t]){}$\1\5
+${}\|r[\|t]\K\|r[\|t+\T{1}];{}$\2\6
+${}\\{delta}[\|t]\K\T{0};{}$\6
+\&{for} ${}(\|i\K\|r[\|t+\T{1}];{}$ ${}\|i>\|t;{}$ ${}\|i\MM){}$\1\5
+${}\\{sigma}[\|i][\|t]\K\\{sigma}[\|i+\T{1}][\|t]+\\{us}[\|i]*\\{mu}[\|i][%
+\|t];{}$\2\6
+\8\#\&{if} \T{0}\6
+${}\\{dum}\K\T{0.0};{}$\6
+\&{for} ${}(\|i\K\|t+\T{1};{}$ ${}\|i\Z\\{tmax};{}$ ${}\|i\PP){}$\1\5
+${}\\{dum}\MRL{+{\K}}\\{us}[\|i]*\\{mu}[\|i][\|t];{}$\2\6
+\&{if} ${}(\\{fabs}(\\{dum}-\\{sigma}[\|t+\T{1}][\|t])>\T{0.001}){}$\5
+${}\{{}$\1\6
+${}\\{printf}(\.{"1diff:\ \%0.6lf\ \%0.6l}\)\.{f\ \%0.8lf\\n"},\39\\{dum},\39%
+\\{sigma}[\|t+\T{1}][\|t],\39\\{dum}-\\{sigma}[\|t+\T{1}][\|t]);{}$\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+${}\|y[\|t]\K\\{sigma}[\|t+\T{1}][\|t]{}$;\C{\PB{\\{dum};}}\6
+${}\\{us}[\|t]\K\|v[\|t]\K(\&{long})(\.{ROUND}({-}\|y[\|t]));{}$\6
+${}\|d[\|t]\K(\|v[\|t]>{-}\|y[\|t])\?{-}\T{1}:\T{1};{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\6
+\8\#\&{if} \T{0}\1\6
+${}\\{printf}(\.{"success\ \%0.4lf\ \%0.4}\)\.{lf\ \%0.8lf\\n"},\39\\{cd},\39%
+\\{cs}[\\{start\_block}],\39\\{cd}-\\{cs}[\\{start\_block}]);{}$\6
+\8\#\&{endif}\6
+${}\\{cd}\K\\{cs}[\\{start\_block}];{}$\6
+\&{for} ${}(\|i\K\\{start\_block};{}$ ${}\|i\Z\\{end\_block};{}$ ${}\|i\PP){}$%
+\1\5
+${}\|u[\|i]\K\\{us}[\|i];{}$\2\6
+\&{goto} \\{nextstep};\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\|t\PP;{}$\6
+${}\|r[\|t]\K\|t;{}$\6
+\4\\{nextstep}:\6
+\&{if} ${}(\\{tmax}<\|t){}$\1\5
+${}\\{tmax}\K\|t;{}$\2\6
+\&{if} ${}(\|t<\\{tmax}){}$\1\5
+${}\\{delta}[\|t]\K{-}\\{delta}[\|t];{}$\2\6
+\&{if} ${}(\\{delta}[\|t]*\|d[\|t]\G\T{0}){}$\1\5
+${}\\{delta}[\|t]\MRL{+{\K}}\|d[\|t];{}$\2\6
+${}\\{us}[\|t]\K\|v[\|t]+\\{delta}[\|t];{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\par
+\U82.\fi
+
+\M{84}Precomputation of $\eta_t$.
+If we know $c$, an upper bound of the square of the norm
+of a shortest vector, and
+we arrived in our enumeration at level $t$ and a vector whose square norm
+equals $\tilde{c}_t$, then the probability that we this branch of the
+enumeration tree yields a shorter vector than the bound $c$
+is
+${{\rm vol}\,S(\sqrt{c-\tilde{c}_t},z)\over \det L }
+$.
+We compute $\eta_t$ such that
+$$
+{{\rm vol}S(\sqrt{\eta},z)\over \det L } = 2^{-p}.
+$$
+Then, in our enumeration we stop if
+$$
+\tilde{c}_t\ge c -\eta_t.
+$$
+The volume of the $z$-dimensional ball with radius $\sqrt{\eta}$
+is equal to
+$$
+\hbox{vol}\,S(\sqrt{\eta},z)=
+{(\pi\cdot\eta)^{z/2}\over \Gamma(z/2+1)}
+$$
+The dimension $z$ is $t-1$, one less than the enumeration level, and
+we have $t=i-\PB{\\{start\_block}}$.
+H.H.~H\"orner computes $\eta$ by an approximation
+with Stirlings's formular. Here it is computed with the %'
+Euler-MacLaurin-formular, see
+Abramowitz, Stegun.
+
+Update 19.1.2010:
+now we try H\"orners approximation:
+$$
+\eta_i = {i-j\over 2\pi e}\biggl(\pi(i-j)p^2\sum_{h=j}^i c_h\biggr)^{1/(i-j)}
+$$
+
+\Y\B\4\X84:precompute $\eta$\X${}\E{}$\6
+$\\{eta}[\\{start\_block}]\K\T{0.0};{}$\6
+\&{if} ${}(\\{end\_block}-\\{start\_block}\Z\.{SCHNITT}){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\\{start\_block}+\T{1};{}$ ${}\|i\Z\\{end\_block};{}$ ${}\|i%
+\PP){}$\1\5
+${}\\{eta}[\|i]\K\T{0.0};{}$\2\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{dum}\K\\{log}(\|c[\\{start\_block}]){}$;\C{ This is my version to
+cokkmpute the parameters of the Gaussian volume    heuristics. The Hoerner
+version seems to be better. }\6
+\8\#\&{if} \T{0}\6
+\&{for} ${}(\|i\K\\{start\_block}+\T{1};{}$ ${}\|i\Z\\{end\_block};{}$ ${}\|i%
+\PP){}$\5
+${}\{{}$\1\6
+${}\\{t\_up}\K\|i-\\{start\_block};{}$\6
+${}\\{eta}[\|i]\K\\{exp}((\\{log\_gamma}(\\{t\_up}/\T{2.0}+\T{1})-\|p*\\{log}(%
+\T{2.0}))*\T{2.0}/\\{t\_up}+\\{dum}/\\{t\_up})/\\{pi};{}$\6
+\&{if} ${}(\|i<\\{end\_block}){}$\1\5
+${}\\{dum}\MRL{+{\K}}\\{log}(\|c[\|i]);{}$\2\6
+\8\#\&{if} \T{0}\6
+\&{if} ${}(\|i\E\\{start\_block}+\T{1}){}$\1\5
+\\{printf}(\.{"eta:\ \\n"});\2\6
+${}\\{printf}(\.{"\%0.2lf\ "},\39\\{eta}[\|i]);{}$\6
+\&{if} ${}(\|i\E\\{end\_block}){}$\1\5
+\\{printf}(\.{"\\n"});\2\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\8\#\&{else}\C{     Hoerners version of the Gaussian volume heuristics. }\6
+${}\\{dum}\K\\{log}(\|c[\\{start\_block}]);{}$\6
+\&{for} ${}(\|i\K\\{start\_block}+\T{1};{}$ ${}\|i\Z\\{end\_block};{}$ ${}\|i%
+\PP){}$\5
+${}\{{}$\1\6
+${}\\{t\_up}\K\|i-\\{start\_block};{}$\6
+${}\\{eta}[\|i]\K\T{0.5}*\\{t\_up}*\\{exp}((\\{log}(\\{pi}*\\{t\_up})-\T{2.0}*%
+\|p*\\{log}(\T{2.0})+\\{dum})/\\{t\_up})/(\\{pi}*\|e);{}$\6
+\&{if} ${}(\|i<\\{end\_block}){}$\1\5
+${}\\{dum}\MRL{+{\K}}\\{log}(\|c[\|i]);{}$\2\6
+\8\#\&{if} \T{0}\6
+\&{if} ${}(\|i\E\\{start\_block}+\T{1}){}$\1\5
+\\{printf}(\.{"eta:\ "});\2\6
+${}\\{printf}(\.{"\%0.2lf\ "},\39\\{eta}[\|i]);{}$\6
+\&{if} ${}(\|i\E\\{end\_block}){}$\5
+${}\{{}$\1\6
+\\{printf}(\.{"\\n"});\6
+\\{fflush}(\\{stdout});\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\par
+\U82.\fi
+
+\M{85}\B\X85:compute gamma function\X${}\E{}$\6
+\&{DOUBLE} \\{laurin}(\&{DOUBLE} \|x)\1\1\2\2\6
+${}\{{}$\1\6
+\&{static} \&{DOUBLE} \.{K1}${}\K\T{0.9181938533204672741780329736405620};{}$\6
+\&{static} \&{DOUBLE} \.{K2}${}\K%
+\T{0.0833333333333333333333333333333333333};{}$\6
+\&{static} \&{DOUBLE} \.{K3}${}\K%
+\T{0.0027777777777777777777777777777777777};{}$\6
+\&{static} \&{DOUBLE} \.{K4}${}\K%
+\T{0.000793650793650793650793650793650793650};{}$\6
+\&{static} \&{DOUBLE} \.{K5}${}\K%
+\T{0.0005952380952380952380952380952380952380};{}$\6
+\&{static} \&{DOUBLE} \.{K6}${}\K%
+\T{0.000841750841750841750841750841750841750};{}$\6
+\&{static} \&{DOUBLE} \.{K7}${}\K%
+\T{0.001917526917526917526917526917526917526};{}$\6
+\&{static} \&{DOUBLE} \.{K8}${}\K%
+\T{0.00641025641025641025641025641025641025};{}$\6
+\&{static} \&{DOUBLE} \.{K9}${}\K\T{0.0295506529510021209716796875};{}$\6
+\&{static} \&{DOUBLE} \.{K10}${}\K\T{0.17968122661113739013671875};{}$\6
+\&{static} \&{DOUBLE} \.{K11}${}\K\T{1.39243221282958984375};{}$\6
+\&{DOUBLE} \|y;\7
+${}\|y\K\T{1.0}/(\|x*\|x);{}$\6
+${}\|y\K(\|x-\T{0.5})*\\{log}(\|x)-\|x+\.{K1}+(\T{1.0}/\|x)*(\.{K2}-\|y*(%
+\.{K3}-\|y*(\.{K4}-\|y*(\.{K5}-\|y*(\.{K6}-\|y*(\.{K7}-\|y*(\.{K8}-\|y*(\.{K9}-%
+\|y*(\.{K10}-\|y*\.{K11})))))))));{}$\6
+\&{return} \|y;\6
+\4${}\}{}$\2\7
+\&{DOUBLE} \\{log\_gamma}(\&{DOUBLE} \|x)\1\1\2\2\6
+${}\{{}$\1\6
+\&{DOUBLE} \|y;\6
+\&{int} \|i${},{}$ \|n;\6
+\&{static} \&{int} \.{MM}${}\K\T{13};{}$\7
+\&{if} ${}(\|x\Z\T{0.0}){}$\1\5
+\&{return} ${}{-}\T{1.0};{}$\2\6
+\&{if} ${}(\|x>\T{100000000.0}){}$\5
+${}\{{}$\1\6
+${}\|y\K\|x*(\\{log}(\|x)-\T{1.0});{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+\&{if} ${}(\|x\G\.{MM}){}$\5
+${}\{{}$\1\6
+${}\|y\K\\{laurin}(\|x);{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\|n\K\.{MM}-(\&{int})(\\{floor}(\|x));{}$\6
+${}\|y\K\|x-\\{floor}(\|x)+\.{MM};{}$\6
+${}\|y\K\\{laurin}(\|y);{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|n;{}$ ${}\|i\PP){}$\1\5
+${}\|y\MRL{-{\K}}\\{log}(\|y+\|i);{}$\2\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{return} \|y;\6
+\4${}\}{}$\2\par
+\U74.\fi
+
+\N{1}{86}Exhaustive enumeration.
+The algorithm of H.~Ritter.
+\Y\B\4\D$\.{FINCKEPOHST}$ \5
+\T{1}\par
+\B\4\D$\.{EIGENBOUND}$ \5
+\T{0}\par
+\Y\B\4\X86:overall exhaustive enumeration\X${}\E{}$\6
+\X87:globals for enumeration\X;\6
+\X120:some vector computations\X;\6
+\X121:orthogonalization\X;\6
+\X124:matrix inversion for Fincke-Pohst\X;\6
+\X125:pruning subroutines and output\X;\6
+\X133:output polyhedra\X;\6
+\X134:output LP\X;\7
+\&{DOUBLE} \\{explicit\_enumeration}(\&{COEFF} ${}{*}{*}\\{lattice},\39{}$%
+\&{int} \\{columns}${},\39{}$\&{int} \\{rows})\1\1\2\2\6
+${}\{{}$\1\6
+\X89:local variables for \PB{\\{explicit\_enumeration}(\,)}\X;\C{ Vector to
+collect enumeration statistics }\7
+\&{long} \\{nlow}[\T{1000}];\7
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\T{1000};{}$ ${}\|i\PP){}$\1\5
+${}\\{nlow}[\|i]\K\T{0};{}$\2\6
+\X90:test the size of the basis\X;\6
+\X91:allocate the memory for enumeration\X;\6
+\X93:allocate the memory for Eigen bound\X;\6
+\X95:initialize arrays\X;\6
+\X98:count nonzero entries in the last rows(s)\X;\6
+\8\#\&{if} \T{0}\6
+\X96:sort lattice columns\X;\6
+\8\#\&{endif}\6
+\X99:set the simple pruning bounds\X;\6
+\X101:orthogonalize the basis\X;\6
+\8\#\&{if} \T{0}\6
+\\{basis2poly}(\,);\6
+\8\#\&{endif}\6
+\8\#\&{if} \.{FINCKEPOHST}\6
+\X102:determine Fincke-Pohst bounds\X;\6
+\8\#\&{endif}\C{ Remove trailing unnecessary columns. That means, columns
+ whose corresponding Finke-Pohst bounds are equal to 0        can be removed.
+     This is important for the Selfdual Bent Functions Problems      }\6
+\8\#\&{if} \T{1}\6
+\&{for} ${}(\|i\K\\{columns}-\T{1};{}$ ${}\|i\G\T{0};{}$ ${}\|i\MM){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{fipo}[\|i]<\T{0.9}){}$\5
+${}\{{}$\1\6
+\\{printf}(\.{"DEL\\n"});\6
+${}\\{columns}\MM;{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+\&{break};\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\C{\PB{\\{print\_lattice}(\,);}}\6
+\8\#\&{if} \T{0}\6
+\X101:orthogonalize the basis\X;\6
+\X102:determine Fincke-Pohst bounds\X;\6
+\8\#\&{endif}\6
+\8\#\&{if} \.{EIGENBOUND}\6
+\X103:initialize Eigen bounds\X;\6
+\8\#\&{endif}\6
+\8\#\&{if} \T{0}\6
+${}\\{basis2LP}(\\{fipo\_l},\39\\{fipo\_u});{}$\6
+\8\#\&{endif}\6
+\X106:initialize first-nonzero arrays\X;\6
+\X107:initialize second-nonzero arrays\X;\6
+\X109:more initialization\X;\6
+\X111:the loop of the exhaustive enumeration\X;\6
+\X115:final output\X;\6
+\X116:free allocated memory for enumeration\X;\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\par
+\U47.\fi
+
+\M{87}\B\X87:globals for enumeration\X${}\E{}$\6
+\8\#\&{if} \T{0}\6
+\&{static} \&{FILE} ${}{*}\\{fp};{}$\6
+\8\#\&{endif}\par
+\As92, 94, 100\ETs108.
+\U86.\fi
+
+\M{88}
+\Y\B\4\X4:\.{diophant.h }\X${}\mathrel+\E{}$\6
+\&{struct} \&{constraint} ${}\{{}$\1\6
+\&{double} \\{val}[\T{2}];\6
+\&{int} \\{parent};\6
+\&{int} \\{isSet};\2\6
+${}\}{}$ \.{CONSTRAINT};\par
+\fi
+
+\M{89}\B\X89:local variables for \PB{\\{explicit\_enumeration}(\,)}\X${}\E{}$%
+\C{\PB{\\{\_\_attribute}((\\{aligned}(\T{16})))}}\6
+\&{int} \\{level}${},{}$ \\{level\_max};\6
+\&{int} \|i${},{}$ \|j${},{}$ \|l;\6
+\&{long} \\{loops};\6
+\&{DOUBLE} ${}{*}\|y,{}$ ${}{*}\\{cs},{}$ ${}{*}\\{us};{}$\6
+\&{long} ${}{*}\\{delta},{}$ ${}{*}\|d,{}$ ${}{*}\\{eta};{}$\6
+\8\#\&{if} \T{0}\6
+\&{mpz\_t} ${}{*}\|v;{}$\6
+\8\#\&{else}\6
+\&{long} ${}{*}\|v;{}$\6
+\8\#\&{endif}\6
+\&{int} ${}{*}\\{first\_nonzero},{}$ ${}{*}\\{first\_nonzero\_in\_column},{}$
+${}{*}\\{firstp};{}$\6
+\&{int} ${}{*}\\{snd\_nonzero},{}$ ${}{*}\\{snd\_nonzero\_in\_column},{}$
+${}{*}\\{sndp};{}$\6
+\&{struct} \&{constraint} ${}{*}\\{cons};{}$\6
+\&{DOUBLE} ${}{*}\|N,{}$ ${}{*}{*}\\{mu},{}$ ${}{*}\|c,{}$ ${}{*}{*}\|w,{}$
+${}{*}{*}\\{bd},{}$ ${}{*}{*}\\{mu\_trans};{}$\6
+\&{DOUBLE} \\{Fd}${},{}$ \\{Fq}${},{}$ \\{Fqeps};\6
+\&{DOUBLE} ${}{*}\\{dum};{}$\6
+\&{DOUBLE} \\{tmp};\6
+\&{COEFF} ${}{*}\\{swap\_vec};{}$\6
+\8\#\&{if} \.{USE\_SSE}\6
+\&{int} \\{rowseven};\6
+\8\#\&{endif}\6
+\&{int} \\{isSideStep}${}\K\T{0};{}$\6
+\&{DOUBLE} \\{stepWidth}${}\K\T{0.0};{}$\6
+\&{DOUBLE} \\{olddum};\6
+\8\#\&{if} \&{defined} (\.{FINCKEPOHST})\6
+\&{DOUBLE} ${}{*}\\{fipo};{}$\6
+\8\#\&{endif}\par
+\A104.
+\U86.\fi
+
+\M{90}It is tested, if the remaining columns build a basis of the kernel.
+\Y\B\4\X90:test the size of the basis\X${}\E{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+$\\{printf}(\.{"Dimension\ of\ soluti}\)\.{on\ space\ (k):\ \%d\ com}\)\.{pared%
+\ to\ s-z+2:\ \%d\\n}\)\.{"},\39\\{columns},\39\\{system\_columns}-\\{system%
+\_rows}+\T{1}+\\{free\_RHS});{}$\6
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\&{if} ${}(\\{columns}<\\{system\_columns}-\\{system\_rows}+\T{1}+\\{free%
+\_RHS}){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{fprintf}(\\{stderr},\39\.{"LLL\ didn't\ succeed\ }\)\.{in\ computing\ a\
+basis}\)\.{\ of\ the\ kernel.\\n"});{}$\6
+${}\\{fprintf}(\\{stderr},\39\.{"Please\ increase\ c0\ }\)\.{(the\ first\
+parameter}\)\.{)!\\n"});{}$\6
+\\{printf}(\.{"LLL\ didn't\ succeed\ }\)\.{in\ computing\ a\ basis}\)\.{\ of\
+the\ kernel.\\n"});\6
+\\{printf}(\.{"Please\ increase\ c0\ }\)\.{(the\ first\ parameter}\)\.{)!%
+\\n"});\6
+\8\#\&{endif}\6
+\&{return} \T{0};\6
+\4${}\}{}$\2\par
+\U86.\fi
+
+\M{91} The memory is allocated. If multiprecision arithmetics is used
+\PB{\\{bd}} has already been allocated in \PB{\\{lllalloc}}.
+\Y\B\4\X91:allocate the memory for enumeration\X${}\E{}$\6
+$\\{lllalloc}({\AND}\\{mu},\39{\AND}\|c,\39{\AND}\|N,\39{\AND}\\{bd},\39%
+\\{columns},\39\\{rows});{}$\6
+${}\\{us}\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{columns}+\T{1},\39%
+\&{sizeof}(\&{DOUBLE}));{}$\6
+${}\\{cs}\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{columns}+\T{1},\39%
+\&{sizeof}(\&{DOUBLE}));{}$\6
+${}\|y\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{columns}+\T{1},\39%
+\&{sizeof}(\&{DOUBLE}));{}$\6
+${}\\{delta}\K{}$(\&{long} ${}{*}){}$ \\{calloc}${}(\\{columns}+\T{1},\39%
+\&{sizeof}(\&{long}));{}$\6
+${}\|d\K{}$(\&{long} ${}{*}){}$ \\{calloc}${}(\\{columns}+\T{1},\39\&{sizeof}(%
+\&{long}));{}$\6
+${}\\{first\_nonzero}\K{}$(\&{int} ${}{*}){}$ \\{calloc}${}(\\{rows},\39%
+\&{sizeof}(\&{int}));{}$\6
+${}\\{first\_nonzero\_in\_column}\K{}$(\&{int} ${}{*}){}$ \\{calloc}${}(%
+\\{columns}+\\{rows}+\T{1},\39\&{sizeof}(\&{int}));{}$\6
+\&{if} ${}(\\{first\_nonzero\_in\_column}\E\NULL){}$\1\5
+\&{return} (\T{0});\2\6
+${}\\{firstp}\K{}$(\&{int} ${}{*}){}$ \\{calloc}${}(\\{columns}+\T{1},\39%
+\&{sizeof}(\&{int}));{}$\6
+${}\\{snd\_nonzero}\K{}$(\&{int} ${}{*}){}$ \\{calloc}${}(\\{rows},\39%
+\&{sizeof}(\&{int}));{}$\6
+${}\\{snd\_nonzero\_in\_column}\K{}$(\&{int} ${}{*}){}$ \\{calloc}${}(%
+\\{columns}+\\{rows}+\T{1},\39\&{sizeof}(\&{int}));{}$\6
+\&{if} ${}(\\{snd\_nonzero\_in\_column}\E\NULL){}$\1\5
+\&{return} (\T{0});\2\6
+${}\\{sndp}\K{}$(\&{int} ${}{*}){}$ \\{calloc}${}(\\{columns}+\T{1},\39%
+\&{sizeof}(\&{int}));{}$\6
+${}\\{cons}\K{}$(\&{struct} \&{constraint} ${}{*}){}$ \\{calloc}${}(%
+\\{columns},\39{}$\&{sizeof}(\&{struct} \&{constraint}));\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{columns};{}$ ${}\PP\|i){}$\5
+${}\{{}$\1\6
+${}\\{cons}[\|i].\\{isSet}\K\T{0};{}$\6
+\4${}\}{}$\2\6
+${}\\{eta}\K{}$(\&{long} ${}{*}){}$ \\{calloc}${}(\\{columns}+\T{1},\39%
+\&{sizeof}(\&{long}));{}$\6
+${}\|v\K{}$(\&{long} ${}{*}){}$ \\{calloc}${}(\\{columns}+\T{1},\39\&{sizeof}(%
+\&{long}));{}$\6
+${}\|w\K{}$(\&{DOUBLE} ${}{*}{*}){}$ \\{calloc}${}(\\{columns}+\T{1},\39{}$%
+\&{sizeof}(\&{DOUBLE} ${}{*}));{}$\6
+\8\#\&{if} \.{USE\_SSE}\6
+${}\\{rowseven}\K(\\{rows}\MOD\T{8}\I\T{0})\?(\\{rows}/\T{8}+\T{1})*\T{8}:%
+\\{rows};{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i\Z\\{columns};{}$ ${}\|i\PP){}$\1\5
+${}\|w[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{rowseven},\39%
+\&{sizeof}(\&{DOUBLE}));{}$\2\6
+\8\#\&{else}\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i\Z\\{columns};{}$ ${}\|i\PP){}$\1\5
+${}\|w[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{rows},\39\&{sizeof}(%
+\&{DOUBLE}));{}$\2\6
+\8\#\&{endif}\6
+${}\\{mu\_trans}\K{}$(\&{DOUBLE} ${}{*}{*}){}$ \\{calloc}${}(\\{columns}+\T{1},%
+\39{}$\&{sizeof}(\&{DOUBLE} ${}{*}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i\Z\\{columns};{}$ ${}\|i\PP){}$\1\5
+${}\\{mu\_trans}[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{columns}+%
+\T{1},\39\&{sizeof}(\&{DOUBLE}));{}$\2\6
+${}\\{dum}\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{columns}+\T{1},\39%
+\&{sizeof}(\&{DOUBLE}));{}$\6
+\8\#\&{if} \.{FINCKEPOHST}\6
+${}\\{fipo}\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{columns}+\T{1},\39%
+\&{sizeof}(\&{DOUBLE}));{}$\6
+${}\\{muinv}\K{}$(\&{DOUBLE} ${}{*}{*}){}$ \\{calloc}${}(\\{columns},\39{}$%
+\&{sizeof}(\&{DOUBLE} ${}{*}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{columns};{}$ ${}\PP\|i){}$\1\5
+${}\\{muinv}[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{rows},\39%
+\&{sizeof}(\&{DOUBLE}));{}$\2\6
+${}\\{fipo\_LB}\K{}$(\&{DOUBLE} ${}{*}{*}){}$ \\{calloc}${}(\\{columns}+\T{1},%
+\39{}$\&{sizeof}(\&{DOUBLE} ${}{*}));{}$\6
+${}\\{fipo\_UB}\K{}$(\&{DOUBLE} ${}{*}{*}){}$ \\{calloc}${}(\\{columns}+\T{1},%
+\39{}$\&{sizeof}(\&{DOUBLE} ${}{*}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i\Z\\{columns};{}$ ${}\PP\|i){}$\5
+${}\{{}$\1\6
+${}\\{fipo\_LB}[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{columns}+%
+\T{1},\39\&{sizeof}(\&{DOUBLE}));{}$\6
+${}\\{fipo\_UB}[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{columns}+%
+\T{1},\39\&{sizeof}(\&{DOUBLE}));{}$\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\par
+\U86.\fi
+
+\M{92}Additional variables for Fincke-Pohst bounds.
+\Y\B\4\X87:globals for enumeration\X${}\mathrel+\E{}$\6
+\8\#\&{if} \.{FINCKEPOHST}\6
+\&{DOUBLE} ${}{*}{*}\\{muinv};{}$\6
+\&{DOUBLE} ${}{*}{*}\\{fipo\_UB},{}$ ${}{*}{*}\\{fipo\_LB};{}$\6
+\8\#\&{endif}\C{\PB{\&{mpz\_t} ${}{*}\\{upb},{}$ ${}{*}\\{lowb};$}}\6
+\&{long} \\{fipo\_success};\par
+\fi
+
+\M{93}The memory for \PB{\|R} and \PB{\\{Rinv}} and the additional arrays for %
+\PB{\.{EIGENBOUND}} is allocated.
+\Y\B\4\X93:allocate the memory for Eigen bound\X${}\E{}$\6
+\8\#\&{if} \.{EIGENBOUND}\6
+$\\{Rinv}\K{}$(\&{DOUBLE} ${}{*}{*}){}$ \\{calloc}${}(\\{columns},\39{}$%
+\&{sizeof}(\&{DOUBLE} ${}{*}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{columns};{}$ ${}\PP\|i){}$\1\5
+${}\\{Rinv}[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{columns},\39%
+\&{sizeof}(\&{DOUBLE}));{}$\2\6
+${}\|R\K{}$(\&{DOUBLE} ${}{*}{*}){}$ \\{calloc}${}(\\{columns},\39{}$%
+\&{sizeof}(\&{DOUBLE} ${}{*}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{columns};{}$ ${}\PP\|i){}$\1\5
+${}\|R[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{columns},\39\&{sizeof}(%
+\&{DOUBLE}));{}$\2\6
+${}\\{eig\_f}\K{}$(\&{DOUBLE} ${}{*}{*}){}$ \\{calloc}${}(\\{columns},\39{}$%
+\&{sizeof}(\&{DOUBLE} ${}{*}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{columns};{}$ ${}\PP\|i){}$\1\5
+${}\\{eig\_f}[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{columns},\39%
+\&{sizeof}(\&{DOUBLE}));{}$\2\6
+${}\\{eig\_RinvR}\K{}$(\&{DOUBLE} ${}{*}{*}){}$ \\{calloc}${}(\\{columns},%
+\39{}$\&{sizeof}(\&{DOUBLE} ${}{*}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{columns};{}$ ${}\PP\|i){}$\1\5
+${}\\{eig\_RinvR}[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{columns},\39%
+\&{sizeof}(\&{DOUBLE}));{}$\2\6
+${}\\{eig\_min}\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{columns},\39%
+\&{sizeof}(\&{DOUBLE}));{}$\6
+${}\\{eig\_bound}\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{columns},\39%
+\&{sizeof}(\&{DOUBLE}));{}$\6
+${}\\{Rinvi}\K{}$(\&{DOUBLE} ${}{*}{*}){}$ \\{calloc}${}(\\{columns},\39{}$%
+\&{sizeof}(\&{DOUBLE} ${}{*}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{columns};{}$ ${}\PP\|i){}$\1\5
+${}\\{Rinvi}[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{columns},\39%
+\&{sizeof}(\&{DOUBLE}));{}$\2\6
+${}\\{bnd\_up}\K{}$(\&{DOUBLE} ${}{*}{*}){}$ \\{calloc}${}(\\{columns},\39{}$%
+\&{sizeof}(\&{DOUBLE} ${}{*}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{columns};{}$ ${}\PP\|i){}$\1\5
+${}\\{bnd\_up}[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{columns},\39%
+\&{sizeof}(\&{DOUBLE}));{}$\2\6
+${}\\{bnd\_lo}\K{}$(\&{DOUBLE} ${}{*}{*}){}$ \\{calloc}${}(\\{columns},\39{}$%
+\&{sizeof}(\&{DOUBLE} ${}{*}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{columns};{}$ ${}\PP\|i){}$\1\5
+${}\\{bnd\_lo}[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\\{columns},\39%
+\&{sizeof}(\&{DOUBLE}));{}$\2\6
+\8\#\&{endif}\par
+\U86.\fi
+
+\M{94}Additional variables for ``Eigen bounds''.
+\Y\B\4\X87:globals for enumeration\X${}\mathrel+\E{}$\6
+\8\#\&{if} \.{EIGENBOUND}\6
+\&{DOUBLE} ${}{*}{*}\\{Rinv};{}$\6
+\&{DOUBLE} ${}{*}{*}\|R;{}$\6
+\&{DOUBLE} ${}{*}{*}\\{eig\_f};{}$\6
+\&{DOUBLE} ${}{*}{*}\\{eig\_RinvR};{}$\6
+\&{DOUBLE} \\{eig\_Rs};\6
+\&{DOUBLE} ${}{*}\\{eig\_min};{}$\6
+\&{DOUBLE} ${}{*}\\{eig\_bound};{}$\6
+\&{long} \\{eig\_cut};\6
+\&{DOUBLE} ${}{*}{*}\\{Rinvi};{}$\6
+\&{DOUBLE} ${}{*}{*}\\{bnd\_up};{}$\6
+\&{DOUBLE} ${}{*}{*}\\{bnd\_lo};{}$\6
+\8\#\&{endif}\par
+\fi
+
+\M{95}   The starting positions of the arrays are set.
+\Y\B\4\X95:initialize arrays\X${}\E{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i\Z\\{columns};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{cs}[\|i]\K\|y[\|i]\K\\{us}[\|i]\K\T{0.0};{}$\6
+${}\\{delta}[\|i]\K\T{0};{}$\6
+\8\#\&{if} \T{0}\6
+${}\\{mpz\_set\_si}(\|v[\|i],\39\T{0});{}$\6
+\8\#\&{else}\6
+${}\|v[\|i]\K\T{0};{}$\6
+\8\#\&{endif}\6
+${}\\{eta}[\|i]\K\|d[\|i]\K\T{1};{}$\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{rows};{}$ ${}\|l\PP){}$\1\5
+${}\|w[\|i][\|l]\K\T{0.0};{}$\2\6
+\4${}\}{}$\2\par
+\U86.\fi
+
+\M{96}Do simple sorting along the last row such that the
+columns with a nonzero entry in the last row are
+at the end.
+\Y\B\4\X96:sort lattice columns\X${}\E{}$\6
+\&{for} ${}(\|j\K\\{columns}-\T{1};{}$ ${}\|j>\T{0};{}$ ${}\|j\MM){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|l\K\|j-\T{1};{}$ ${}\|l\G\T{0};{}$ ${}\|l\MM){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{mpz\_cmpabs}(\\{get\_entry}(\|l,\39\\{rows}-\T{1}),\39\\{get%
+\_entry}(\|j,\39\\{rows}-\T{1}))>\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{swap\_vec}\K\\{lattice}[\|l];{}$\6
+\&{for} ${}(\|i\K\|l+\T{1};{}$ ${}\|i\Z\|j;{}$ ${}\|i\PP){}$\1\5
+${}\\{lattice}[\|i-\T{1}]\K\\{lattice}[\|i];{}$\2\6
+${}\\{lattice}[\|j]\K\\{swap\_vec};{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\par
+\U86.\fi
+
+\M{97}Do simple sorting along Fincke-Pohst bounds.
+\Y\B\4\X97:sort by Fincke-Pohst bounds\X${}\E{}$\6
+\&{for} ${}(\|j\K\\{columns}-\T{3};{}$ ${}\|j>\T{0};{}$ ${}\|j\MM){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|l\K\|j-\T{1};{}$ ${}\|l\G\T{0};{}$ ${}\|l\MM){}$\5
+${}\{{}$\6
+\8\#\&{if} \T{1}\1\6
+\&{if} ${}(\\{fipo}[\|l]<\\{fipo}[\|j]){}$\5
+${}\{{}$\C{ $<$ means: sort in descending order. }\6
+\8\#\&{endif}\1\6
+${}\\{swap\_vec}\K\\{lattice}[\|l];{}$\6
+\&{for} ${}(\|i\K\|l+\T{1};{}$ ${}\|i\Z\|j;{}$ ${}\|i\PP){}$\1\5
+${}\\{lattice}[\|i-\T{1}]\K\\{lattice}[\|i];{}$\2\6
+${}\\{lattice}[\|j]\K\\{swap\_vec};{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\par
+\fi
+
+\M{98}\B\X98:count nonzero entries in the last rows(s)\X${}\E{}$\6
+\&{if} (\\{free\_RHS})\5
+${}\{{}$\1\6
+${}\|i\K\T{0};{}$\6
+\&{for} ${}(\|j\K\\{columns}-\T{1};{}$ ${}\|j\G\T{0};{}$ ${}\|j\MM){}$\1\6
+\&{if} ${}(\\{mpz\_sgn}(\\{get\_entry}(\|j,\39\\{rows}-\T{2}))\I\T{0}){}$\1\5
+${}\|i\PP;{}$\2\2\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+${}\\{printf}(\.{"Number\ of\ nonzero\ e}\)\.{ntries\ in\ the\ second}\)\.{\
+last\ row:\ \%d\\n"},\39\|i);{}$\6
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+${}\|i\K\T{0};{}$\6
+\&{for} ${}(\|j\K\\{columns}-\T{1};{}$ ${}\|j\G\T{0};{}$ ${}\|j\MM){}$\1\6
+\&{if} ${}(\\{mpz\_sgn}(\\{get\_entry}(\|j,\39\\{rows}-\T{1}))\I\T{0}){}$\1\5
+${}\|i\PP;{}$\2\2\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+${}\\{printf}(\.{"Number\ of\ nonzero\ e}\)\.{ntries\ in\ the\ last\ r}\)\.{ow:%
+\ \%d\\n"},\39\|i);{}$\6
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\par
+\U86.\fi
+
+\M{99}Set the simple bounds for pruning.
+\PB{\\{Fq}} is the maximum norm of a solution,
+\PB{\\{Fd}} is the square of the euclidean norm of a solution,
+\PB{\.{EPSILON}} is a security buffer to avoid pruning
+due to rounding errors.
+\Y\B\4\X99:set the simple pruning bounds\X${}\E{}$\6
+$\\{Fq}\K{}$(\&{DOUBLE}) \\{mpz\_get\_d}(\\{max\_norm});\6
+${}\\{Fd}\K(\\{rows}*\\{Fq}*\\{Fq})*(\T{1.0}+\.{EPSILON});{}$\6
+${}\\{Fqeps}\K(\T{1.0}+\.{EPSILON})*\\{Fq}{}$;\C{ Used in prune() }\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+\8\#\&{if} ${}\.{VERBOSE}>\T{0}{}$\6
+${}\\{printf}(\.{"Fq:\ \%f\\n"},\39{}$(\&{double}) \\{Fq});\6
+${}\\{printf}(\.{"Fd:\ \%f\\n"},\39{}$(\&{double}) \\{Fd});\6
+\8\#\&{endif}\6
+\8\#\&{endif}\par
+\U86.\fi
+
+\M{100}\B\X87:globals for enumeration\X${}\mathrel+\E{}$\6
+\&{DOUBLE} \\{dum1}${},{}$ \\{dum2};\par
+\fi
+
+\M{101} \Y\B\4\X101:orthogonalize the basis\X${}\E{}$\6
+\8\#\&{if} \.{GIVENS}\6
+$\\{givens}(\\{lattice},\39\\{columns},\39\\{rows},\39\\{mu},\39\\{bd},\39\|c,%
+\39\|N,\39\\{Fq});{}$\6
+\8\#\&{else}\6
+${}\\{gramschmidt}(\\{lattice},\39\\{columns},\39\\{rows},\39\\{mu},\39\\{bd},%
+\39\|c,\39\|N,\39\\{Fq});{}$\6
+\8\#\&{endif}\C{ compute $mu^\top$, the transpose of $mu$. }\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{columns};{}$ ${}\|i\PP){}$\1\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{columns};{}$ ${}\|j\PP){}$\1\5
+${}\\{mu\_trans}[\|j][\|i]\K\\{mu}[\|i][\|j]{}$;\2\2\par
+\U86.\fi
+
+\M{102}Compute the Fincke-Pohst bounds. See for example H.~Cohen, ``A course
+in computational number theory'', page 104.
+If we have the quadratic form $Q(x)= x^tR^tRx$, and $r_i$ are the
+rows of the matrix $R$  and $r_i'$ are the rows of $R^{-1}$.
+Then from $R^{-1}Rx=x$ we obtain $x_i=r_i'Rx$.
+With Cauchy-Schwarz this gives
+$$
+x_i^2 \leq \Vert r_i'\Vert^2(x^tR^tRx)\leq \Vert r_i'\Vert^2C
+$$
+where $C$ is an upper bound for the solution vector.
+We have orthogonalized $B$ such that $B=\tilde{B} \mu$.
+And
+$$
+\tilde{B}^{-1} =
+\left(\matrix{1/c_1 & 0 & \ldots & 0\cr
+0 & 1/c_2 & \ldots & 0 \cr
+& & \ldots & \cr
+0 & & \ldots &1/c_n\cr}\right)\cdot \tilde{B}^\top
+$$
+Therefore, the above $\Vert r_i'\Vert^2$ is in our case
+$$r'_{ij} = \sum_l \PB{\\{muinv}[\|i][\|l]}\cdot\PB{\\{bd}[\|l][\|j]}/\PB{\|c[%
+\|l]}.$$
+Then we also compute an upper bound with the $\ell_1$ norm and we take
+the lower of the two bounds.
+$$
+\vert x_i\vert \leq \Vert r_i' \Vert_1 \Vert Rx\Vert_\infty %'
+$$
+\Y\B\4\X102:determine Fincke-Pohst bounds\X${}\E{}$\6
+$\\{fipo\_success}\K\T{0};{}$\6
+${}\\{inverse}(\\{mu},\39\\{muinv},\39\\{columns});{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+\8\#\&{if} ${}\.{VERBOSE}>{-}\T{1}{}$\6
+\\{printf}(\.{"\\nFincke-Pohst\ boun}\)\.{ds:\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\8\#\&{endif}\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{columns};{}$ ${}\|i\PP){}$\5
+${}\{{}$\C{ Symmetric Fincke-Pohst }\1\6
+${}\\{fipo}[\|i]\K\T{0.0};{}$\6
+${}\\{dum1}\K\T{0.0};{}$\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{rows};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+${}\\{tmp}\K\T{0.0};{}$\6
+\&{for} ${}(\|l\K\|i;{}$ ${}\|l<\\{columns};{}$ ${}\|l\PP){}$\1\5
+${}\\{tmp}\MRL{+{\K}}\\{muinv}[\|i][\|l]*\\{bd}[\|l][\|j]/\|c[\|l];{}$\2\6
+${}\\{fipo}[\|i]\MRL{+{\K}}\\{tmp}*\\{tmp};{}$\6
+${}\\{dum1}\MRL{+{\K}}\\{fabs}(\\{tmp});{}$\6
+\4${}\}{}$\2\6
+${}\\{fipo}[\|i]\K\.{SQRT}(\\{fipo}[\|i]*\\{Fd});{}$\6
+${}\\{dum1}\K\\{fabs}(\\{dum1}*\\{Fq});{}$\6
+\&{if} ${}(\\{dum1}<\\{fipo}[\|i]){}$\1\5
+${}\\{fipo}[\|i]\K\\{dum1};{}$\2\6
+${}\\{fipo}[\|i]\MRL{*{\K}}(\T{1.0}+\.{EPSILON});{}$\6
+${}\\{fipo\_LB}[\\{columns}][\|i]\K{-}\\{fipo}[\|i];{}$\6
+${}\\{fipo\_UB}[\\{columns}][\|i]\K\\{fipo}[\|i];{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\C{\PB{$\\{printf}(\.{"\%03d:\ \%0.1lf\\t\%0.1l}\)%
+\.{f\\n"},\|i,\\{fipo\_LB}[\\{columns}][\|i],\\{fipo\_UB}[\\{columns}][%
+\|i]);$}}\6
+\8\#\&{endif}\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+\8\#\&{if} ${}\.{VERBOSE}>{-}\T{1}{}$\6
+${}\\{printf}(\.{"\%0.3lf\ "},\39\\{fipo}[\|i]);{}$\6
+\8\#\&{endif}\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+\8\#\&{if} ${}\.{VERBOSE}>{-}\T{1}{}$\6
+\\{printf}(\.{"\\n\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\8\#\&{endif}\par
+\U86.\fi
+
+\M{103}Initialize Eigen bounds.
+\Y\B\4\X103:initialize Eigen bounds\X${}\E{}$\6
+\8\#\&{if} \.{EIGENBOUND}\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{columns};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{columns};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+${}\|R[\|i][\|j]\K\\{mu}[\|j][\|i]*\.{SQRT}(\|c[\|i]);{}$\6
+${}\\{Rinv}[\|i][\|j]\K\\{muinv}[\|i][\|j]/\.{SQRT}(\|c[\|j]);{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\8\#\&{if} \T{0}\6
+\\{printf}(\.{"\\nCheck\\n"});\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{columns};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{columns};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|l\K\T{0},\39\\{eig\_s}\K\T{0.0};{}$ ${}\|l<\\{columns};{}$ ${}\|l%
+\PP){}$\1\5
+${}\\{eig\_s}\MRL{+{\K}}\\{Rinv}[\|i][\|l]*\|R[\|l][\|j];{}$\2\6
+${}\\{printf}(\.{"\%0.3lf\\t"},\39\\{eig\_s});{}$\6
+\4${}\}{}$\2\6
+\\{printf}(\.{"\\n"});\6
+\4${}\}{}$\2\6
+\\{printf}(\.{"\\n"});\6
+\8\#\&{endif}\6
+\&{for} ${}(\|k\K\T{0};{}$ ${}\|k<\\{columns};{}$ ${}\|k\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|k;{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{eig\_s}\K\T{0.0};{}$\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\|k;{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+${}\\{eig\_s}\MRL{+{\K}}\\{Rinv}[\|i][\|j]*\|R[\|j][\|k];{}$\6
+\4${}\}{}$\2\6
+${}\\{eig\_RinvR}[\|k][\|i]\K\\{eig\_s};{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{for} ${}(\|k\K\T{0};{}$ ${}\|k<\\{columns};{}$ ${}\|k\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|k;{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{Rinvi}[\|k][\|i]\K\T{0.0};{}$\6
+\&{for} ${}(\|j\K\|i;{}$ ${}\|j<\|k;{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+${}\\{Rinvi}[\|k][\|i]\MRL{+{\K}}\\{Rinv}[\|i][\|j]*\\{Rinv}[\|i][\|j];{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\8\#\&{if} \T{0}\6
+\\{printf}(\.{"Jacobi:\ \\n"});\6
+\&{for} ${}(\|k\K\T{0};{}$ ${}\|k<\\{columns};{}$ ${}\|k\PP){}$\5
+${}\{{}$\1\6
+${}\\{eig\_s}\K\\{Jacobi}(\|R,\39\|k);{}$\6
+${}\\{eig\_min}[\|k]\K\\{eig\_s};{}$\6
+${}\\{printf}(\.{"\%0.3lf\ "},\39\\{eig\_s});{}$\6
+\\{fflush}(\\{stdout});\6
+\4${}\}{}$\2\6
+\\{printf}(\.{"\\n"});\6
+\\{printf}(\.{"End\ Jacobi\ \\n"});\6
+${}\\{eig\_cut}\K\T{0};{}$\6
+\8\#\&{endif}\6
+\8\#\&{endif}\par
+\U86.\fi
+
+\M{104}\B\X89:local variables for \PB{\\{explicit\_enumeration}(\,)}\X${}%
+\mathrel+\E{}$\6
+\8\#\&{if} \.{EIGENBOUND}\6
+\&{int} \|k;\6
+\&{DOUBLE} \\{eig\_s}${},{}$ \\{eig\_term2};\6
+\8\#\&{endif}\par
+\fi
+
+\M{105}\B\X105:compute new Eigen bound\X${}\E{}$\6
+\8\#\&{if} \T{1}\6
+\&{if} ${}(\\{level}\E\\{columns}-\T{1}){}$\5
+${}\{{}$\1\6
+\\{printf}(\.{"Oben\\n"});\6
+${}\\{eig\_s}\K\T{0.0};{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{level};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{eig\_f}[\\{level}][\|i]\K\\{eig\_RinvR}[\\{level}][\|i]*\\{us}[%
+\\{level}];{}$\6
+${}\\{dum1}\K\\{fabs}(\\{eig\_f}[\\{level}][\|i]);{}$\6
+${}\\{dum1}\MRL{-{\K}}\\{round}(\\{dum1});{}$\6
+${}\\{eig\_s}\MRL{+{\K}}\\{dum1}*\\{dum1};{}$\6
+\4${}\}{}$\2\6
+${}\\{eig\_bound}[\\{level}]\K\\{eig\_s}*\\{eig\_min}[\\{level}];{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{level};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{bnd\_up}[\\{level}-\T{1}][\|i]\K\\{fipo}[\|i];{}$\6
+${}\\{bnd\_lo}[\\{level}-\T{1}][\|i]\K{-}\\{fipo}[\|i];{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{eig\_term2}\K\T{0.0};{}$\6
+\&{for} ${}(\|k\K\\{level}+\T{1};{}$ ${}\|k<\\{columns};{}$ ${}\|k\PP){}$\5
+${}\{{}$\1\6
+${}\\{eig\_term2}\MRL{+{\K}}\|R[\\{level}][\|k]*\\{us}[\|k];{}$\6
+\4${}\}{}$\2\6
+${}\\{eig\_s}\K\T{0.0};{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{level};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{eig\_f}[\\{level}][\|i]\K\\{eig\_f}[\\{level}+\T{1}][\|i]-\\{Rinv}[\|i][%
+\\{level}]*\\{eig\_term2}+\\{eig\_RinvR}[\\{level}][\|i]*\\{us}[\\{level}];{}$\6
+\4${}\}{}$\2\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{level};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{dum1}\K\.{SQRT}(\\{Rinvi}[\\{level}][\|i]*(\\{Fd}-\\{cs}[\\{level}]));{}$%
+\6
+${}\\{bnd\_up}[\\{level}-\T{1}][\|i]\K\\{bnd\_up}[\\{level}][\|i];{}$\6
+\&{if} ${}(\\{bnd\_up}[\\{level}-\T{1}][\|i]>\\{dum1}-\\{eig\_f}[\\{level}][%
+\|i]){}$\1\5
+${}\\{bnd\_up}[\\{level}-\T{1}][\|i]\K\\{dum1}-\\{eig\_f}[\\{level}][\|i];{}$\2%
+\6
+${}\\{bnd\_lo}[\\{level}-\T{1}][\|i]\K\\{bnd\_lo}[\\{level}][\|i];{}$\6
+\&{if} ${}(\\{bnd\_lo}[\\{level}-\T{1}][\|i]<{-}\\{dum1}-\\{eig\_f}[\\{level}][%
+\|i]){}$\1\5
+${}\\{bnd\_lo}[\\{level}-\T{1}][\|i]\K{-}\\{dum1}-\\{eig\_f}[\\{level}][%
+\|i]{}$;\C{\PB{$\\{printf}(\.{"(\%0.1lf,\ \%0.1lf)\ "},\\{bnd\_lo}[\\{level}-%
+\T{1}][\|i],\\{bnd\_up}[\\{level}-\T{1}][\|i]);$}}\2\6
+\&{if} ${}(\\{bnd\_lo}[\\{level}-\T{1}][\|i]>\\{bnd\_up}[\\{level}-\T{1}][%
+\|i]){}$\5
+${}\{{}$\1\6
+\\{printf}(\.{"CUT\\n"});\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\8\#\&{else}\6
+\&{if} ${}(\\{level}\E\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{eig\_bound}[\\{level}]\K\T{0.0};{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{level};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{eig\_s}\K\T{0.0};{}$\6
+\&{for} ${}(\|k\K\\{level};{}$ ${}\|k<\\{columns};{}$ ${}\|k\PP){}$\5
+${}\{{}$\1\6
+${}\\{eig\_s}\MRL{+{\K}}\|R[\|i][\|k]*\\{us}[\|k];{}$\6
+\4${}\}{}$\2\6
+${}\\{eig\_f}[\T{0}][\|i]\K\\{eig\_s};{}$\6
+\4${}\}{}$\2\6
+${}\\{eig\_s}\K\T{0.0};{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{level};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{eig\_f}[\\{level}][\|i]\K\T{0.0};{}$\6
+\&{for} ${}(\|k\K\T{0};{}$ ${}\|k<\\{level};{}$ ${}\|k\PP){}$\5
+${}\{{}$\1\6
+${}\\{eig\_f}[\\{level}][\|i]\MRL{+{\K}}\\{Rinv}[\|i][\|k]*\\{eig\_f}[\T{0}][%
+\|k];{}$\6
+\4${}\}{}$\2\6
+${}\\{dum1}\K\\{fabs}(\\{eig\_f}[\\{level}][\|i]);{}$\6
+${}\\{dum1}\MRL{-{\K}}\\{round}(\\{dum1});{}$\6
+${}\\{eig\_s}\MRL{+{\K}}\\{dum1}*\\{dum1};{}$\6
+\4${}\}{}$\2\6
+\&{if} ${}(\\{fabs}(\\{eig\_s}*\\{eig\_min}[\\{level}]-\\{eig\_bound}[%
+\\{level}])>\T{0.000001}){}$\5
+${}\{{}$\1\6
+${}\\{printf}(\.{"WRONG:\ \%0.5lf\ \%0.5l}\)\.{f\\n"},\39\\{eig\_s}*\\{eig%
+\_min}[\\{level}],\39\\{eig\_bound}[\\{level}]);{}$\6
+\4${}\}{}$\2\6
+${}\\{eig\_bound}[\\{level}]\K\\{eig\_s}*\\{eig\_min}[\\{level}];{}$\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\par
+\U113.\fi
+
+\M{106}First, find the index of the first non-zero entry
+in each row.
+Then, detect in each column which rows have its
+first non-zero entry in this column.
+\Y\B\4\X106:initialize first-nonzero arrays\X${}\E{}$\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{rows};{}$ ${}\|l\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{columns};{}$ ${}\|i\PP){}$\1\6
+\&{if} ${}(\\{mpz\_sgn}(\\{get\_entry}(\|i,\39\|l))\I\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{first\_nonzero}[\|l]\K\|i;{}$\6
+\&{break};\6
+\4${}\}{}$\2\2\6
+\4${}\}{}$\2\6
+\\{printf}(\.{"First\ non-zero\ entr}\)\.{ies:\\n"});\6
+${}\|j\K\T{0};{}$\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{columns};{}$ ${}\|l\PP){}$\5
+${}\{{}$\1\6
+${}\\{firstp}[\|l]\K\|j;{}$\6
+${}\\{first\_nonzero\_in\_column}[\|j]\K\T{0};{}$\6
+${}\|j\PP;{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{rows};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{first\_nonzero}[\|i]\E\|l){}$\5
+${}\{{}$\1\6
+${}\\{first\_nonzero\_in\_column}[\|j]\K\|i;{}$\6
+${}\\{first\_nonzero\_in\_column}[\\{firstp}[\|l]]\PP;{}$\6
+${}\|j\PP;{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+${}\\{printf}(\.{"\%d\ "},\39\\{first\_nonzero\_in\_column}[\\{firstp}[%
+\|l]]);{}$\6
+\4${}\}{}$\2\6
+${}\\{printf}(\.{":\ \%d\\n"},\39\\{rows});{}$\6
+${}\\{firstp}[\\{columns}]\K\|j;{}$\6
+${}\\{first\_nonzero\_in\_column}[\|j]\K\T{0}{}$;\par
+\U86.\fi
+
+\M{107}Find the index of the second non-zero entry
+in each row.
+Then, detect in each column which rows have its
+second non-zero entry in this column.
+\Y\B\4\X107:initialize second-nonzero arrays\X${}\E{}$\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{rows};{}$ ${}\|l\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\\{first\_nonzero}[\|l]+\T{1};{}$ ${}\|i<\\{columns};{}$ ${}%
+\|i\PP){}$\1\6
+\&{if} ${}(\\{mpz\_sgn}(\\{get\_entry}(\|i,\39\|l))\I\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{snd\_nonzero}[\|l]\K\|i;{}$\6
+\&{break};\6
+\4${}\}{}$\2\2\6
+\4${}\}{}$\2\6
+\\{printf}(\.{"Second\ non-zero\ ent}\)\.{ries:\\n"});\6
+${}\|j\K\T{0};{}$\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{columns};{}$ ${}\|l\PP){}$\5
+${}\{{}$\1\6
+${}\\{sndp}[\|l]\K\|j;{}$\6
+${}\\{snd\_nonzero\_in\_column}[\|j]\K\T{0};{}$\6
+${}\|j\PP;{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{rows};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{snd\_nonzero}[\|i]\E\|l){}$\5
+${}\{{}$\1\6
+${}\\{snd\_nonzero\_in\_column}[\|j]\K\|i;{}$\6
+${}\\{snd\_nonzero\_in\_column}[\\{sndp}[\|l]]\PP;{}$\6
+${}\|j\PP;{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+${}\\{printf}(\.{"\%d\ "},\39\\{snd\_nonzero\_in\_column}[\\{sndp}[\|l]]);{}$\6
+\4${}\}{}$\2\6
+${}\\{printf}(\.{":\ \%d\\n\\n"},\39\\{rows});{}$\6
+${}\\{sndp}[\\{columns}]\K\|j;{}$\6
+${}\\{snd\_nonzero\_in\_column}[\|j]\K\T{0};{}$\6
+\8\#\&{if} \T{0}\C{ Display gaps between first non-zero entry and second
+non-zero entry. }\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{rows};{}$ ${}\|l\PP){}$\5
+${}\{{}$\1\6
+${}\\{printf}(\.{"\%d\ "},\39\\{snd\_nonzero}[\|l]-\\{first\_nonzero}[\|l]);{}$%
+\6
+\4${}\}{}$\2\6
+\\{printf}(\.{"\\n"});\6
+\8\#\&{endif}\par
+\U86.\fi
+
+\M{108}\B\X87:globals for enumeration\X${}\mathrel+\E{}$\6
+\&{long} \\{only\_zeros\_no}${},{}$ \\{only\_zeros\_success}${},{}$ \\{hoelder%
+\_no}${},{}$ \\{hoelder\_success};\6
+\&{long} \\{cs\_success};\6
+\&{long} \\{N\_success};\6
+\&{long} \\{N2\_success};\6
+\&{long} \\{N3\_success};\par
+\fi
+
+\M{109}\B\X109:more initialization\X${}\E{}$\6
+$\\{level}\K\\{first\_nonzero}[\\{rows}-\T{1}];{}$\6
+\&{if} ${}(\\{level}<\T{0}){}$\1\5
+${}\\{level}\K\T{0};{}$\2\6
+${}\\{level\_max}\K\\{level};{}$\6
+${}\\{us}[\\{level}]\K\T{1};{}$\6
+\8\#\&{if} \T{0}\6
+${}\\{mpz\_set\_si}(\|v[\\{level}],\39\T{1});{}$\6
+\8\#\&{else}\6
+${}\|v[\\{level}]\K\T{1};{}$\6
+\8\#\&{endif}\6
+${}\\{only\_zeros\_no}\K\\{only\_zeros\_success}\K\T{0};{}$\6
+${}\\{hoelder\_no}\K\\{hoelder\_success}\K\T{0};{}$\6
+${}\\{cs\_success}\K\\{nosolutions}\K\\{loops}\K\T{0};{}$\6
+${}\\{N\_success}\K\T{0};{}$\6
+${}\\{N2\_success}\K\T{0};{}$\6
+${}\\{N3\_success}\K\T{0}{}$;\par
+\U86.\fi
+
+\M{110}Increase the loop counter and test if we already can stop after
+collecting
+enough solutions.
+\Y\B\4\X110:increase loop counter\X${}\E{}$\6
+$\\{loops}\PP;{}$\6
+\&{if} ${}((\\{stop\_after\_loops}>\T{0})\W(\\{stop\_after\_loops}\Z%
+\\{loops})){}$\1\5
+\&{goto} \\{afterloop};\2\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+\8\#\&{if} ${}\.{VERBOSE}>{-}\T{1}{}$\6
+\&{if} ${}(\\{loops}\MOD\T{100000000}\E\T{0}){}$\5
+${}\{{}$\C{10000000}\1\6
+${}\\{printf}(\.{"\%ld\ loops,\ solution}\)\.{s:\ \%ld\ "},\39\\{loops},\39%
+\\{nosolutions});{}$\6
+\8\#\&{if} \.{FINCKEPOHST}\6
+${}\\{printf}(\.{"fipo:\ \%ld\ "},\39\\{fipo\_success});{}$\6
+\8\#\&{endif}\6
+\8\#\&{if} \.{EIGENBOUND}\6
+${}\\{printf}(\.{"eig\_bound:\ \%ld\ "},\39\\{eig\_cut});{}$\6
+\8\#\&{endif}\6
+${}\\{printf}(\.{"pruneN:\ \%ld\ "},\39\\{N2\_success});{}$\6
+${}\\{printf}(\.{"pruneN2:\ \%ld\ "},\39\\{N3\_success});{}$\6
+\\{printf}(\.{"\\n"});\6
+\8\#\&{if} \T{0}\C{ Write statistics about enumeration levels }\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{level\_max};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{printf}(\.{"\%03d:\ \%ld\\n"},\39\|i,\39\\{nlow}[\|i]);{}$\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\C{\PB{\\{printf}(\.{"us:\ "}); \&{for} ${}(\|i\K\\{columns}-%
+\T{1};{}$ ${}\|i\G\T{0};{}$ ${}\|i\MM){}$ ${}\{{}$ ${}\\{printf}(\.{"(\%d,%
+\%d)"},\|i,{}$(\&{int}) \\{us}[\|i]); ${}\}{}$ \\{printf}(\.{"\\n"});}}\6
+\\{fflush}(\\{stdout});\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+\8\#\&{endif}\par
+\U111.\fi
+
+\M{111}The search loop with various pruning tests.
+\Y\B\4\X111:the loop of the exhaustive enumeration\X${}\E{}$\6
+\&{do} $\{$ \X110:increase loop counter\X;\6
+\X112:compute new \PB{\\{cs}}\X;\6
+\&{if} ${}((\\{cs}[\\{level}]<\\{Fd}{}$)\C{\PB{$\W$ $(\R\\{prune0}(\\{fabs}(%
+\\{dum}[\\{level}]),\|N[\\{level}]))$}}\6
+)\5
+${}\{{}$\6
+\8\#\&{if} \.{FINCKEPOHST}\6
+\8\#\&{if} \T{1}\1\6
+\&{if} ${}(\\{fabs}(\\{us}[\\{level}])>\\{fipo}[\\{level}]){}$\5
+${}\{{}$\6
+\8\#\&{else}\1\6
+\&{if} ${}(\\{level}\I\\{columns}-\T{1}\W(\\{us}[\\{level}]>\\{fipo\_UB}[%
+\\{columns}][\\{level}]\V\\{us}[\\{level}]<\\{fipo\_LB}[\\{columns}][%
+\\{level}])){}$\5
+${}\{{}$\6
+\8\#\&{endif}\1\6
+${}\\{fipo\_success}\PP;{}$\6
+\&{goto} \\{side\_step};\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+\8\#\&{if} \.{EIGENBOUND}\6
+\&{if} ${}(\\{level}<\\{columns}-\T{1}\W(\\{us}[\\{level}]<\\{bnd\_lo}[%
+\\{level}][\\{level}]\V\\{us}[\\{level}]>\\{bnd\_up}[\\{level}][\\{level}])){}$%
+\5
+${}\{{}$\1\6
+${}\\{printf}(\.{"\%d:\\t\%0.3lf\ \%0.3lf\ }\)\.{\%0.3lf\ ->\ cut\\n"},\39%
+\\{level},\39\\{bnd\_lo}[\\{level}][\\{level}],\39\\{us}[\\{level}],\39\\{bnd%
+\_up}[\\{level}][\\{level}]);{}$\6
+\&{goto} \\{side\_step};\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+\&{if} (\\{isSideStep})\5
+${}\{{}$\1\6
+${}\\{compute\_w2}(\|w,\39\\{bd},\39\\{stepWidth},\39\\{level},\39\\{rows});{}$%
+\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{compute\_w}(\|w,\39\\{bd},\39\\{dum}[\\{level}],\39\\{level},\39%
+\\{rows});{}$\6
+\4${}\}{}$\2\6
+\&{if} ${}(\\{level}>\T{0}){}$\5
+${}\{{}$\1\6
+\X113:not at a leave\X;\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+\X114:at $\PB{\\{level}}=0$\X;\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{cs\_success}\PP;{}$\6
+\4\\{step\_back}:\C{ Up: we go to $\PB{\\{level}}+1$. }\6
+${}\\{nlow}[\\{level}]\PP;{}$\6
+${}\\{level}\PP;{}$\6
+\&{if} ${}(\\{level\_max}<\\{level}){}$\1\5
+${}\\{level\_max}\K\\{level};{}$\2\6
+\4\\{side\_step}:\C{                 Side step: the next value in the same
+level is                 chosen.             }\6
+\&{if} ${}(\\{eta}[\\{level}]\E\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{delta}[\\{level}]\MRL{*{\K}}{-}\T{1};{}$\6
+\&{if} ${}(\\{delta}[\\{level}]*\|d[\\{level}]\G\T{0}){}$\1\5
+${}\\{delta}[\\{level}]\MRL{+{\K}}\|d[\\{level}];{}$\2\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{delta}[\\{level}]\MRL{+{\K}}(\\{delta}[\\{level}]*\|d[\\{level}]\G\T{0})%
+\?\|d[\\{level}]:{-}\|d[\\{level}];{}$\6
+\4${}\}{}$\2\6
+\8\#\&{if} \T{0}\6
+${}\\{us}[\\{level}]\K\\{mpz\_get\_d}(\|v[\\{level}])+\\{delta}[\\{level}];{}$\6
+\8\#\&{else}\6
+${}\\{us}[\\{level}]\K\|v[\\{level}]+\\{delta}[\\{level}];{}$\6
+\8\#\&{endif}\6
+${}\\{isSideStep}\K\T{1};{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{while} ${}(\\{level}<\\{columns}){}$\1\5
+;\2\6
+\\{afterloop}:\par
+\U86.\fi
+
+\M{112}Compute the square of the euclidean length of
+the projection.
+\Y\B\4\X112:compute new \PB{\\{cs}}\X${}\E{}$\6
+$\\{olddum}\K\\{dum}[\\{level}];{}$\6
+${}\\{dum}[\\{level}]\K\\{us}[\\{level}]+\|y[\\{level}];{}$\6
+${}\\{cs}[\\{level}]\K\\{cs}[\\{level}+\T{1}]+\\{dum}[\\{level}]*\\{dum}[%
+\\{level}]*\|c[\\{level}];{}$\6
+\&{if} (\\{isSideStep})\5
+${}\{{}$\1\6
+${}\\{stepWidth}\K\\{dum}[\\{level}]-\\{olddum};{}$\6
+\4${}\}{}$\2\par
+\U111.\fi
+
+\M{113}We are not at a leave.
+We test, if we can prune the enumeration, otherwise
+we decrease the \PB{\\{level}}.
+\Y\B\4\X113:not at a leave\X${}\E{}$\6
+$\|i\K\\{prune\_only\_zeros}(\|w,\39\\{level},\39\\{rows},\39\\{Fq},\39\\{first%
+\_nonzero\_in\_column},\39\\{firstp},\39\\{bd},\39\|y,\39\\{us},\39%
+\\{columns});{}$\6
+\&{if} ${}(\|i<\T{0}){}$\5
+${}\{{}$\1\6
+\&{goto} \\{step\_back};\6
+\4${}\}{}$\2\6
+\&{else} \&{if} ${}(\|i>\T{0}){}$\5
+${}\{{}$\1\6
+\&{goto} \\{side\_step};\6
+\4${}\}{}$\2\6
+${}\|i\K\\{prune\_snd\_nonzero}(\\{columns},\39\\{rows},\39\\{level},\39\\{Fq},%
+\39\\{first\_nonzero},\39\\{snd\_nonzero\_in\_column},\39\\{sndp},\39\\{us},\39%
+\\{cons});{}$\6
+\&{if} ${}(\|i>\T{0}){}$\5
+${}\{{}$\1\6
+\&{goto} \\{side\_step};\6
+\4${}\}{}$\2\6
+\8\#\&{if} \T{0}\6
+${}\\{printf}(\.{"\%d\ "},\39\\{level});{}$\6
+\8\#\&{endif}\6
+\&{if} ${}(\\{prune}(\|w[\\{level}],\39\\{cs}[\\{level}],\39\\{rows},\39%
+\\{Fqeps})){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{eta}[\\{level}]\E\T{1}){}$\5
+${}\{{}$\1\6
+\&{goto} \\{step\_back};\6
+\4${}\}{}$\2\6
+${}\\{eta}[\\{level}]\K\T{1};{}$\6
+${}\\{delta}[\\{level}]\MRL{*{\K}}{-}\T{1};{}$\6
+\&{if} ${}(\\{delta}[\\{level}]*\|d[\\{level}]\G\T{0}){}$\1\5
+${}\\{delta}[\\{level}]\MRL{+{\K}}\|d[\\{level}];{}$\2\6
+\8\#\&{if} \T{0}\6
+${}\\{us}[\\{level}]\K\\{mpz\_get\_d}(\|v[\\{level}])+\\{delta}[\\{level}];{}$\6
+\8\#\&{else}\6
+${}\\{us}[\\{level}]\K\|v[\\{level}]+\\{delta}[\\{level}];{}$\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\6
+\8\#\&{if} \T{0}\1\6
+\&{if} ${}(\\{pruneN}(\|w,\39\\{cs},\39\\{level},\39\\{rows},\39\\{columns},\39%
+\\{Fq})){}$\5
+${}\{{}$\1\6
+\&{goto} \\{side\_step};\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+\8\#\&{if} \.{EIGENBOUND}\6
+\&{if} ${}(\T{2}*\\{level}>\T{0.0}*\\{columns}){}$\5
+${}\{{}$\1\6
+\X105:compute new Eigen bound\X;\6
+\8\#\&{if} \T{0}\6
+\&{if} ${}(\\{cs}[\\{level}]+\\{eig\_bound}[\\{level}]>\\{Fd}){}$\5
+${}\{{}$\1\6
+${}\\{printf}(\.{"\%d:\\t\%0.3lf\ \%0.3lf\ }\)\.{\%0.3lf\ \%0.1lf\ ->\ cut}\)%
+\.{\\n"},\39\\{level},\39\\{cs}[\\{level}],\39\\{Fd},\39\\{Fd}-\\{eig\_bound}[%
+\\{level}],\39\\{us}[\\{level}]);{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{printf}(\.{"\%d:\\t\%0.3lf\ \%0.3lf\ }\)\.{\%0.3lf\ \%0.1lf\ \\n"},\39%
+\\{level},\39\\{cs}[\\{level}],\39\\{Fd},\39\\{Fd}-\\{eig\_bound}[\\{level}],%
+\39\\{us}[\\{level}]);{}$\6
+\4${}\}{}$\2\6
+\&{if} ${}(\\{cs}[\\{level}]+\\{eig\_bound}[\\{level}]>\\{Fd}){}$\5
+${}\{{}$\1\6
+${}\\{eig\_cut}\PP;{}$\6
+\&{goto} \\{side\_step};\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+${}\\{level}\MM;{}$\6
+\8\#\&{if} \T{0}\6
+${}\\{fipo\_LB}[\\{columns}][\\{level}]\K{-}\\{fipo}[\\{level}];{}$\6
+${}\\{fipo\_UB}[\\{columns}][\\{level}]\K\\{fipo}[\\{level}];{}$\6
+\8\#\&{endif}\6
+${}\\{delta}[\\{level}]\K\\{eta}[\\{level}]\K\T{0};{}$\6
+${}\|y[\\{level}]\K\\{compute\_y}(\\{mu\_trans},\39\\{us},\39\\{level},\39%
+\\{level\_max});{}$\6
+\8\#\&{if} \T{0}\6
+${}\\{mpz\_set\_d}(\|v[\\{level}],\39\.{ROUND}({-}\\{dum}));{}$\6
+${}\\{us}[\\{level}]\K\\{mpz\_get\_si}(\|v[\\{level}]);{}$\6
+\8\#\&{else}\6
+${}\\{us}[\\{level}]\K\|v[\\{level}]\K\.{ROUND}({-}\|y[\\{level}]);{}$\6
+\8\#\&{endif}\6
+${}\|d[\\{level}]\K(\|v[\\{level}]>{-}\|y[\\{level}])\?{-}\T{1}:\T{1};{}$\6
+${}\\{isSideStep}\K\T{0};{}$\6
+\4${}\}{}$\2\par
+\U111.\fi
+
+\M{114}We arrived at $\PB{\\{level}}=0$. We test if we really got a solution
+and print it.
+\Y\B\4\X114:at $\PB{\\{level}}=0$\X${}\E{}$\6
+\&{if} ${}(\\{exacttest}(\|w[\T{0}],\39\\{rows},\39\\{Fq})\E\T{1}){}$\5
+${}\{{}$\1\6
+${}\\{print\_solution}(\|w[\\{level}],\39\\{rows},\39\\{Fq},\39\\{us},\39%
+\\{columns});{}$\6
+\8\#\&{if} \T{0}\6
+\\{printf}(\.{"us:\ "});\6
+\&{for} ${}(\|i\K\\{columns}-\T{1};{}$ ${}\|i\G\T{0};{}$ ${}\|i\MM){}$\5
+${}\{{}$\1\6
+${}\\{printf}(\.{"\%d\ "},\39{}$(\&{int}) \\{us}[\|i]);\6
+\4${}\}{}$\2\6
+${}\\{printf}(\.{"after\ \%ld\ loops\\n"},\39\\{loops});{}$\6
+\8\#\&{endif}\6
+\&{if} ${}((\\{stop\_after\_solutions}>\T{0})\W(\\{stop\_after\_solutions}\Z%
+\\{nosolutions})){}$\1\5
+\&{goto} \\{afterloop};\2\6
+\4${}\}{}$\2\6
+\&{goto} \\{side\_step};\par
+\U111.\fi
+
+\M{115}Additional output at the end of the enumeration.
+\Y\B\4\X115:final output\X${}\E{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+$\\{printf}(\.{"Prune\_cs:\ \%ld\\n"},\39\\{cs\_success});{}$\6
+${}\\{printf}(\.{"Prune\_only\_zeros:\ \%}\)\.{ld\ of\ \%ld\\n"},\39\\{only%
+\_zeros\_success},\39\\{only\_zeros\_no});{}$\6
+${}\\{printf}(\.{"Prune\_hoelder:\ \%ld\ }\)\.{of\ \%ld\\n"},\39\\{hoelder%
+\_success},\39\\{hoelder\_no});{}$\6
+${}\\{printf}(\.{"Prune\_N:\ \%ld\\n"},\39\\{N\_success});{}$\6
+${}\\{printf}(\.{"Prune\_N2:\ \%ld\\n"},\39\\{N2\_success});{}$\6
+${}\\{printf}(\.{"Prune\_N3:\ \%ld\\n"},\39\\{N3\_success});{}$\6
+\8\#\&{if} \.{FINCKEPOHST}\6
+${}\\{printf}(\.{"Fincke-Pohst:\ \%ld\\n}\)\.{"},\39\\{fipo\_success});{}$\6
+\8\#\&{endif}\6
+\8\#\&{if} \.{EIGENBOUND}\6
+${}\\{printf}(\.{"Eigen\ bound:\ \%ld\\n"},\39\\{eig\_cut});{}$\6
+\8\#\&{endif}\6
+${}\\{printf}(\.{"Loops:\ \%ld\\n"},\39\\{loops});{}$\6
+\8\#\&{endif}\6
+\&{if} ${}((\\{stop\_after\_solutions}\Z\\{nosolutions}\W\\{stop\_after%
+\_solutions}>\T{0})\V(\\{stop\_after\_loops}\Z\\{loops}\W\\{stop\_after%
+\_loops}>\T{0})){}$\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{printf}(\.{"Stopped\ after\ numbe}\)\.{r\ of\ solutions:\ \%ld\\}\)%
+\.{n"},\39\\{nosolutions});{}$\6
+\8\#\&{endif}\6
+\X118:close solution file\X;\6
+\&{if} ${}((\\{stop\_after\_loops}\Z\\{loops}\W\\{stop\_after\_loops}>%
+\T{0})){}$\5
+${}\{{}$\1\6
+\\{exit}(\T{10});\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+\\{exit}(\T{9});\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{printf}(\.{"Total\ number\ of\ sol}\)\.{utions:\ \%ld\\n"},\39%
+\\{nosolutions});{}$\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+\\{printf}(\.{"\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\par
+\U86.\fi
+
+\M{116}\B\X116:free allocated memory for enumeration\X${}\E{}$\6
+\\{free}(\\{us});\6
+\\{free}(\\{cs});\6
+\\{free}(\|y);\6
+\\{free}(\\{delta});\6
+\\{free}(\|d);\6
+\\{free}(\\{first\_nonzero});\6
+\\{free}(\\{first\_nonzero\_in\_column});\6
+\\{free}(\\{firstp});\6
+\\{free}(\\{snd\_nonzero});\6
+\\{free}(\\{snd\_nonzero\_in\_column});\6
+\\{free}(\\{sndp});\6
+\\{free}(\\{cons});\6
+\\{free}(\\{eta});\6
+\\{free}(\|v);\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l\Z\\{columns};{}$ ${}\|l\PP){}$\1\5
+\\{free}(\|w[\|l]);\2\6
+\\{free}(\|w);\6
+\\{free}(\\{original\_columns});\6
+\8\#\&{if} \.{FINCKEPOHST}\6
+\\{free}(\\{fipo});\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{columns};{}$ ${}\|l\PP){}$\1\5
+\\{free}(\\{muinv}[\|l]);\2\6
+\\{free}(\\{muinv});\6
+\8\#\&{endif}\6
+\8\#\&{if} \.{EIGENBOUND}\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{columns};{}$ ${}\|l\PP){}$\1\5
+\\{free}(\\{Rinv}[\|l]);\2\6
+\\{free}(\\{Rinv});\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{columns};{}$ ${}\|l\PP){}$\1\5
+\\{free}(\|R[\|l]);\2\6
+\\{free}(\|R);\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{columns};{}$ ${}\|l\PP){}$\1\5
+\\{free}(\\{eig\_f}[\|l]);\2\6
+\\{free}(\\{eig\_f});\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{columns};{}$ ${}\|l\PP){}$\1\5
+\\{free}(\\{eig\_RinvR}[\|l]);\2\6
+\\{free}(\\{eig\_RinvR});\6
+\\{free}(\\{eig\_min});\6
+\\{free}(\\{eig\_bound});\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{columns};{}$ ${}\|l\PP){}$\1\5
+\\{free}(\\{Rinvi}[\|l]);\2\6
+\\{free}(\\{Rinvi});\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{columns};{}$ ${}\|l\PP){}$\1\5
+\\{free}(\\{bnd\_up}[\|l]);\2\6
+\\{free}(\\{bnd\_up});\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{columns};{}$ ${}\|l\PP){}$\1\5
+\\{free}(\\{bnd\_lo}[\|l]);\2\6
+\\{free}(\\{bnd\_lo});\6
+\8\#\&{endif}\6
+${}\\{lllfree}(\\{mu},\39\|c,\39\|N,\39\\{bd},\39\\{columns});{}$\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{columns};{}$ ${}\|l\PP){}$\1\5
+\\{free}(\\{mu\_trans}[\|l]);\2\6
+\\{free}(\\{mu\_trans});\par
+\U86.\fi
+
+\M{117}\B\X117:open solution file\X${}\E{}$\6
+$\\{fp}\K\\{solfile};{}$\6
+\&{if} (\.{SILENT})\1\5
+${}\\{fprintf}(\\{fp},\39\.{"SILENT\\n"});{}$\2\6
+\\{fflush}(\\{fp});\par
+\U3.\fi
+
+\M{118}\B\X118:close solution file\X${}\E{}$\6
+\&{if} (\.{SILENT})\1\5
+${}\\{fprintf}(\\{fp},\39\.{"\%ld\ solutions\\n"},\39\\{nosolutions});{}$\2\6
+\\{fflush}(\\{fp});\par
+\Us3, 115\ETs135.\fi
+
+\M{119}\B\X7:global variables\X${}\mathrel+\E{}$\6
+\&{static} \&{FILE} ${}{*}\\{fp}{}$;\par
+\fi
+
+\M{120}
+\Y\B\4\X120:some vector computations\X${}\E{}$\6
+\&{DOUBLE} \\{compute\_y}(\&{DOUBLE} ${}{*}{*}\\{mu\_trans},\39{}$\&{DOUBLE}
+${}{*}\\{us},\39{}$\&{int} \\{level}${},\39{}$\&{int} \\{level\_max})\1\1\2\2\6
+${}\{{}$\6
+\8\#\&{if} \.{BLAS}\1\6
+\&{return} \\{cblas\_ddot}${}(\\{level\_max}-\\{level},\39{\AND}(\\{us}[%
+\\{level}+\T{1}]),\39\T{1},\39{\AND}(\\{mu\_trans}[\\{level}][\\{level}+%
+\T{1}]),\39\T{1});{}$\6
+\8\#\&{else}\7
+\&{int} \|i;\6
+\&{DOUBLE} \\{dum};\7
+${}\|i\K\\{level\_max};{}$\6
+${}\\{dum}\K\T{0.0};{}$\6
+\&{while} ${}(\|i\G\\{level}+\T{1}){}$\5
+${}\{{}$\1\6
+${}\\{dum}\MRL{+{\K}}\\{mu\_trans}[\\{level}][\|i]*\\{us}[\|i];{}$\6
+${}\|i\MM;{}$\6
+\4${}\}{}$\2\6
+\&{return} \\{dum};\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\&{void} \\{compute\_w2}(\&{DOUBLE} ${}{*}{*}\|w,\39{}$\&{DOUBLE} ${}{*}{*}%
+\\{bd},\39{}$\&{DOUBLE} \\{alpha}${},\39{}$\&{int} \\{level}${},\39{}$\&{int} %
+\\{rows})\1\1 $\{$ $\#$ \6
+\&{if} \.{BLAS}\1\5
+${}\\{cblas\_daxpy}(\\{rows},\39\\{alpha},\39\\{bd}[\\{level}],\39\T{1},\39\|w[%
+\\{level}],\39\T{1});{}$\2\6
+$\#$ \6
+\&{else}\1\5
+\&{int} \|i;\7
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{rows};{}$ ${}\PP\|i){}$\5
+${}\{{}$\1\6
+${}\|w[\\{level}][\|i]\MRL{+{\K}}\\{alpha}*\\{bd}[\\{level}][\|i];{}$\6
+\4${}\}{}$\2\2\6
+$\#$ \&{endif} \&{return}; $\}$ \&{void} \\{compute\_w}(\&{DOUBLE} ${}{*}{*}%
+\|w,\39{}$\&{DOUBLE} ${}{*}{*}\\{bd},\39{}$\&{DOUBLE} \\{alpha}${},\39{}$%
+\&{int} \\{level}${},\39{}$\&{int} \\{rows})\1\1 $\{{}$\6
+\8\#\&{if} \.{USE\_SSE}\6
+$\\{\_\_m128d}\|a,\39\\{x1},\39\\{y1},\39\\{z1},\39\\{x2},\39\\{y2},\39\\{z2},%
+\39\\{x3},\39\\{y3},\39\\{z3},\39\\{x4},\39\\{y4},\39\\{z4};{}$\7
+\&{int} \|l;\7
+${}\|a\K\\{\_mm\_loaddup\_pd}({\AND}\\{alpha});{}$\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{rows};{}$ ${}\|l\MRL{+{\K}}\T{8}){}$\5
+${}\{{}$\C{\PB{$\|w[\\{level}][\|l]\K\|w[\\{level}+\T{1}][\|l]+\\{alpha}*%
+\\{bd}[\\{level}][\|l];$}}\1\6
+${}\\{x1}\K\\{\_mm\_load\_pd}({\AND}(\\{bd}[\\{level}][\|l]));{}$\6
+${}\\{y1}\K\\{\_mm\_load\_pd}({\AND}(\|w[\\{level}+\T{1}][\|l]));{}$\6
+${}\\{x2}\K\\{\_mm\_load\_pd}({\AND}(\\{bd}[\\{level}][\|l+\T{2}]));{}$\6
+${}\\{y2}\K\\{\_mm\_load\_pd}({\AND}(\|w[\\{level}+\T{1}][\|l+\T{2}]));{}$\6
+${}\\{x3}\K\\{\_mm\_load\_pd}({\AND}(\\{bd}[\\{level}][\|l+\T{4}]));{}$\6
+${}\\{y3}\K\\{\_mm\_load\_pd}({\AND}(\|w[\\{level}+\T{1}][\|l+\T{4}]));{}$\6
+${}\\{x4}\K\\{\_mm\_load\_pd}({\AND}(\\{bd}[\\{level}][\|l+\T{6}]));{}$\6
+${}\\{y4}\K\\{\_mm\_load\_pd}({\AND}(\|w[\\{level}+\T{1}][\|l+\T{6}]));{}$\6
+${}\\{x1}\K\\{\_mm\_mul\_pd}(\\{x1},\39\|a);{}$\6
+${}\\{z1}\K\\{\_mm\_add\_pd}(\\{x1},\39\\{y1});{}$\6
+\\{\_mm\_storeu\_pd}((\&{double} ${}{*}){}$ ${}{\AND}(\|w[\\{level}][\|l]),\39%
+\\{z1});{}$\6
+${}\\{x2}\K\\{\_mm\_mul\_pd}(\\{x2},\39\|a);{}$\6
+${}\\{z2}\K\\{\_mm\_add\_pd}(\\{x2},\39\\{y2});{}$\6
+\\{\_mm\_storeu\_pd}((\&{double} ${}{*}){}$ ${}{\AND}(\|w[\\{level}][\|l+%
+\T{2}]),\39\\{z2});{}$\6
+${}\\{x3}\K\\{\_mm\_mul\_pd}(\\{x3},\39\|a);{}$\6
+${}\\{z3}\K\\{\_mm\_add\_pd}(\\{x3},\39\\{y3});{}$\6
+\\{\_mm\_storeu\_pd}((\&{double} ${}{*}){}$ ${}{\AND}(\|w[\\{level}][\|l+%
+\T{4}]),\39\\{z3});{}$\6
+${}\\{x4}\K\\{\_mm\_mul\_pd}(\\{x4},\39\|a);{}$\6
+${}\\{z4}\K\\{\_mm\_add\_pd}(\\{x4},\39\\{y4});{}$\6
+\\{\_mm\_storeu\_pd}((\&{double} ${}{*}){}$ ${}{\AND}(\|w[\\{level}][\|l+%
+\T{6}]),\39\\{z4});{}$\6
+\4${}\}{}$\2\6
+\&{return};\6
+\8\#\&{else}\6
+$\#$ \6
+\&{if} \.{BLAS}\1\5
+${}\\{cblas\_dcopy}(\\{rows},\39\|w[\\{level}+\T{1}],\39\T{1},\39\|w[%
+\\{level}],\39\T{1});{}$\2\6
+${}\\{cblas\_daxpy}(\\{rows},\39\\{alpha},\39\\{bd}[\\{level}],\39\T{1},\39\|w[%
+\\{level}],\39\T{1});$ $\#$ \6
+\&{else}\1\5
+\&{int} \|l;\7
+${}\|l\K\\{rows}-\T{1};{}$\2\6
+\&{while} ${}(\|l\G\T{0}){}$\5
+${}\{{}$\1\6
+${}\|w[\\{level}][\|l]\K\|w[\\{level}+\T{1}][\|l]+\\{alpha}*\\{bd}[\\{level}][%
+\|l];{}$\6
+${}\|l\MM;{}$\6
+\4${}\}{}$\2\6
+$\#$ \&{endif} \&{return};\6
+\8\#\&{endif}\6
+$\}{}$\par
+\U86.\fi
+
+\M{121}The algorithms of Gram-Schmidt and Givens are used
+for orthogonalization.
+\Y\B\4\X121:orthogonalization\X${}\E{}$\6
+\X122:Gram-Schmidt algorithm\X;\6
+\X123:Givens algorithm\X;\par
+\U86.\fi
+
+\M{122}Orthogonalization with Gram-Schmidt.
+\Y\B\4\X122:Gram-Schmidt algorithm\X${}\E{}$\6
+\&{void} \\{gramschmidt}(\&{COEFF} ${}{*}{*}\\{lattice},\39{}$\&{int} %
+\\{columns}${},\39{}$\&{int} \\{rows}${},\39{}$\&{DOUBLE} ${}{*}{*}\\{mu},%
+\39{}$\&{DOUBLE} ${}{*}{*}\\{bd},\39{}$\&{DOUBLE} ${}{*}\|c,\39{}$\&{DOUBLE}
+${}{*}\|N,\39{}$\&{DOUBLE} \\{Fq})\1\1\2\2\6
+${}\{{}$\1\6
+\&{int} \|i${},{}$ \|l${},{}$ \|j;\6
+\&{DOUBLE} \\{dum};\7
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{columns};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{rows};{}$ ${}\|l\PP){}$\1\5
+${}\\{bd}[\|i][\|l]\K{}$(\&{DOUBLE}) \\{mpz\_get\_d}${}(\\{get\_entry}(\|i,\39%
+\|l));{}$\2\6
+${}\|N[\|i]\K\T{0.0};{}$\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\|i;{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+${}\\{dum}\K\T{0.0};{}$\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{rows};{}$ ${}\|l\PP){}$\1\5
+${}\\{dum}\MRL{+{\K}}{}$(\&{DOUBLE}) \\{mpz\_get\_d}${}(\\{get\_entry}(\|i,\39%
+\|l))*\\{bd}[\|j][\|l];{}$\2\6
+${}\\{mu}[\|i][\|j]\K\\{dum}/\|c[\|j];{}$\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{rows};{}$ ${}\|l\PP){}$\1\5
+${}\\{bd}[\|i][\|l]\MRL{-{\K}}\\{mu}[\|i][\|j]*\\{bd}[\|j][\|l];{}$\2\6
+\4${}\}{}$\2\6
+${}\|c[\|i]\K\\{scalarproductfp}(\\{bd}[\|i],\39\\{bd}[\|i],\39\\{rows});{}$\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{rows};{}$ ${}\|l\PP){}$\1\5
+${}\|N[\|i]\MRL{+{\K}}\\{fabs}(\\{bd}[\|i][\|l]);{}$\2\6
+${}\|N[\|i]\MRL{{/}{\K}}\|c[\|i];{}$\6
+${}\|N[\|i]\MRL{*{\K}}\\{Fq};{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+\8\#\&{if} ${}\.{VERBOSE}>\T{0}{}$\6
+${}\\{printf}(\.{"\%lf\ "},\39{}$(\&{double}) \|c[\|i]);\6
+\8\#\&{endif}\6
+\8\#\&{endif}\C{\PB{$\|N[\|i]\MRL{*{\K}}(\T{1.0}+\.{EPSILON});$}}\6
+\4${}\}{}$\2\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+\8\#\&{if} ${}\.{VERBOSE}>\T{0}{}$\6
+\\{printf}(\.{"\\n\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\8\#\&{endif}\6
+\&{return};\6
+\4${}\}{}$\2\par
+\U121.\fi
+
+\M{123}Orthogonalization with Givens rotation.
+\Y\B\4\X123:Givens algorithm\X${}\E{}$\6
+\&{void} \\{givens}(\&{COEFF} ${}{*}{*}\\{lattice},\39{}$\&{int} %
+\\{columns}${},\39{}$\&{int} \\{rows}${},\39{}$\&{DOUBLE} ${}{*}{*}\\{mu},%
+\39{}$\&{DOUBLE} ${}{*}{*}\\{bd},\39{}$\&{DOUBLE} ${}{*}\|c,\39{}$\&{DOUBLE}
+${}{*}\|N,\39{}$\&{DOUBLE} \\{Fq})\1\1\2\2\6
+${}\{{}$\1\6
+\&{int} \|i${},{}$ \|l${},{}$ \|j;\6
+\&{int} \\{mm};\6
+\&{DOUBLE} \\{d1}${},{}$ \\{d2};\6
+\&{DOUBLE} \\{gc}${},{}$ \\{gs};\6
+\&{DOUBLE} \|t;\C{ The matrix \PB{\|b} is copied to \PB{\\{mu}}.        \PB{%
+\\{bd}} is set to a $z\times z$ unity matrix.     }\7
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{columns};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{rows};{}$ ${}\|l\PP){}$\5
+${}\{{}$\1\6
+${}\\{mu}[\|i][\|l]\K{}$(\&{DOUBLE}) \\{mpz\_get\_d}${}(\\{get\_entry}(\|i,\39%
+\|l));{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{rows};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{rows};{}$ ${}\|l\PP){}$\1\5
+${}\\{bd}[\|i][\|l]\K\T{0.0};{}$\2\6
+${}\\{bd}[\|i][\|i]\K\T{1.0};{}$\6
+\4${}\}{}$\2\6
+\&{for} ${}(\|j\K\T{1};{}$ ${}\|j<\\{rows};{}$ ${}\|j\PP){}$\5
+${}\{{}$\C{ The Givens rotation }\1\6
+${}\\{mm}\K(\|j<\\{columns})\?\|j:\\{columns};{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{mm};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{mu}[\|i][\|j]\E\T{0.0}){}$\5
+${}\{{}$\C{ Nothing has to be done }\1\6
+${}\\{gc}\K\T{1.0};{}$\6
+${}\\{gs}\K\T{0.0};{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\C{ Stable computation of the                    rotation coefficients.
+                }\1\6
+\&{if} ${}(\\{fabs}(\\{mu}[\|i][\|j])\G\\{fabs}(\\{mu}[\|i][\|i])){}$\5
+${}\{{}$\1\6
+${}\|t\K\\{mu}[\|i][\|i]/\\{mu}[\|i][\|j];{}$\6
+${}\\{gs}\K\T{1.0}/\.{SQRT}(\T{1.0}+\|t*\|t);{}$\6
+${}\\{gc}\K\\{gs}*\|t;{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\|t\K\\{mu}[\|i][\|j]/\\{mu}[\|i][\|i];{}$\6
+${}\\{gc}\K\T{1.0}/\.{SQRT}(\T{1.0}+\|t*\|t);{}$\6
+${}\\{gs}\K\\{gc}*\|t;{}$\6
+\4${}\}{}$\C{ Rotation of \PB{\\{mu}} }\2\6
+\&{for} ${}(\|l\K\|i;{}$ ${}\|l<\\{columns};{}$ ${}\|l\PP){}$\5
+${}\{{}$\1\6
+${}\\{d1}\K\\{mu}[\|l][\|i];{}$\6
+${}\\{d2}\K\\{mu}[\|l][\|j];{}$\6
+${}\\{mu}[\|l][\|i]\K\\{gc}*\\{d1}+\\{gs}*\\{d2};{}$\6
+${}\\{mu}[\|l][\|j]\K{-}\\{gs}*\\{d1}+\\{gc}*\\{d2};{}$\6
+\4${}\}{}$\C{ Rotation of the matrix $Q^t$ }\2\6
+\&{for} ${}(\|l\K\T{0};{}$ ${}\|l<\\{rows};{}$ ${}\|l\PP){}$\5
+${}\{{}$\1\6
+${}\\{d1}\K\\{bd}[\|i][\|l];{}$\6
+${}\\{d2}\K\\{bd}[\|j][\|l];{}$\6
+${}\\{bd}[\|i][\|l]\K\\{gc}*\\{d1}+\\{gs}*\\{d2};{}$\6
+${}\\{bd}[\|j][\|l]\K{-}\\{gs}*\\{d1}+\\{gc}*\\{d2};{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\4${}\}{}$\C{ Finally some scaling has to be done, since $Q$ is a orthonormal
+matrix }\2\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{columns};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\|c[\|i]\K\\{mu}[\|i][\|i]*\\{mu}[\|i][\|i];{}$\6
+${}\|N[\|i]\K\T{0.0};{}$\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{rows};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+${}\\{bd}[\|i][\|j]\MRL{*{\K}}\\{mu}[\|i][\|i];{}$\6
+${}\|N[\|i]\MRL{+{\K}}\\{fabs}(\\{bd}[\|i][\|j]);{}$\6
+\4${}\}{}$\2\6
+${}\|N[\|i]\MRL{{/}{\K}}\|c[\|i];{}$\6
+${}\|N[\|i]\MRL{*{\K}}\\{Fq}{}$;\C{\PB{$\|N[\|i]\MRL{*{\K}}\T{1.0}+%
+\.{EPSILON};$}}\6
+\&{for} ${}(\|j\K\\{columns}-\T{1};{}$ ${}\|j\G\|i;{}$ ${}\|j\MM){}$\1\5
+${}\\{mu}[\|j][\|i]\MRL{{/}{\K}}\\{mu}[\|i][\|i];{}$\2\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+\8\#\&{if} ${}\.{VERBOSE}>{-}\T{1}{}$\6
+${}\\{printf}(\.{"\%6.3f\ "},\39{}$(\&{double}) \|c[\|i]);\6
+\&{if} ${}(\|i>\T{0}\W\|i\MOD\T{15}\E\T{0}){}$\1\5
+\\{printf}(\.{"\\n"});\2\6
+\8\#\&{endif}\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+\8\#\&{if} ${}\.{VERBOSE}>{-}\T{1}{}$\6
+\\{printf}(\.{"\\n\\n"});\5
+\\{fflush}(\\{stdout});\6
+\8\#\&{endif}\6
+\8\#\&{endif}\6
+\&{return};\6
+\4${}\}{}$\2\par
+\U121.\fi
+
+\M{124}The upper triangular matrix $\mu$ is inverted.
+\Y\B\4\X124:matrix inversion for Fincke-Pohst\X${}\E{}$\6
+\8\#\&{if} \.{FINCKEPOHST}\6
+\&{void} \\{inverse}(\&{DOUBLE} ${}{*}{*}\\{mu},\39{}$\&{DOUBLE} ${}{*}{*}%
+\\{muinv},\39{}$\&{int} \\{columns})\1\1\2\2\6
+${}\{{}$\1\6
+\&{int} \|i${},{}$ \|j${},{}$ \|k;\6
+\&{DOUBLE} \\{sum};\7
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{columns};{}$ ${}\|j\PP){}$\1\6
+\&{for} ${}(\|i\K\|j;{}$ ${}\|i\G\T{0};{}$ ${}\|i\MM){}$\5
+${}\{{}$\1\6
+${}\\{sum}\K\T{0.0};{}$\6
+\&{for} ${}(\|k\K\|i+\T{1};{}$ ${}\|k<\\{columns};{}$ ${}\|k\PP){}$\1\5
+${}\\{sum}\MRL{+{\K}}\\{mu}[\|k][\|i]*\\{muinv}[\|k][\|j];{}$\2\6
+\&{if} ${}(\|i\E\|j){}$\1\5
+${}\\{muinv}[\|i][\|j]\K\T{1.0}-\\{sum};{}$\2\6
+\&{else}\1\5
+${}\\{muinv}[\|i][\|j]\K{-}\\{sum};{}$\2\6
+\4${}\}{}$\2\2\6
+\&{return};\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\par
+\U86.\fi
+
+\N{1}{125}There are several pruning methods.
+\Y\B\4\X125:pruning subroutines and output\X${}\E{}$\6
+\X126:exact test\X;\6
+\X127:simple bound\X;\6
+\X128:pruning with H\"older\X;\6
+\X129:prune zeros in row\X;\6
+\X130:prune second nonzero in row\X;\6
+\X132:print a solution\X;\6
+\X131:Jacobi method\X;\par
+\U86.\fi
+
+\M{126}Exact test of all entries on $\PB{\\{level}}=0$.
+\Y\B\4\X126:exact test\X${}\E{}$\6
+\&{int} \\{exacttest}(\&{DOUBLE} ${}{*}\|v,\39{}$\&{int} \\{rows}${},\39{}$%
+\&{DOUBLE} \\{Fq})\1\1\2\2\6
+${}\{{}$\1\6
+\&{int} \|i;\7
+${}\|i\K\\{rows}-\T{1};{}$\6
+\&{do}\5
+${}\{{}$\1\6
+\&{if} ${}(\\{fabs}(\|v[\|i])>\\{Fq}+\.{EPSILON}){}$\5
+${}\{{}$\1\6
+\&{return} \T{0};\6
+\4${}\}{}$\2\6
+${}\|i\MM;{}$\6
+\4${}\}{}$\2\5
+\&{while} ${}(\|i\G\T{0});{}$\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\par
+\U125.\fi
+
+\M{127}Additional pruning.
+It seems to be faster, not to use this test.
+\Y\B\4\X127:simple bound\X${}\E{}$\6
+\&{int} \\{prune0}(\&{DOUBLE} \\{li}${},\39{}$\&{DOUBLE} \\{re})\1\1\2\2\6
+${}\{{}$\1\6
+\&{if} ${}(\\{li}>\\{re}*(\T{1}+\.{EPSILON})){}$\5
+${}\{{}$\1\6
+${}\\{N\_success}\PP;{}$\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+\&{return} \T{0};\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\par
+\U125.\fi
+
+\M{128}Pruning according to H\"olders inequality.
+\Y\B\4\X128:pruning with H\"older\X${}\E{}$\6
+\&{int} \\{prune}(\&{DOUBLE} ${}{*}\|w,\39{}$\&{DOUBLE} \\{cs}${},\39{}$\&{int}
+\\{rows}${},\39{}$\&{DOUBLE} \\{Fqeps})\1\1\2\2\6
+${}\{{}$\C{\PB{$\\{hoelder\_no}\PP;$}}\6
+\8\#\&{if} \.{BLAS}\1\6
+\&{if} ${}(\\{cs}<\\{Fqeps}*\\{cblas\_dasum}(\\{rows},\39\|w,\39\T{1})){}$\1\5
+\&{return} \T{0};\2\6
+\8\#\&{else}\7
+\&{DOUBLE} \\{reseite};\6
+\&{int} \|i;\7
+${}\\{reseite}\K\T{0.0}{}$;\C{\PB{${-}\\{cs}/\\{Fqeps};$}}\C{ \PB{${*}(\T{1}-%
+\\{eps})$} }\6
+${}\|i\K\\{rows}-\T{1};{}$\6
+\&{do}\5
+${}\{{}$\1\6
+${}\\{reseite}\MRL{+{\K}}\\{fabs}(\|w[\|i]);{}$\6
+${}\|i\MM;{}$\6
+\4${}\}{}$\2\5
+\&{while} ${}(\|i\G\T{0});{}$\6
+\&{if} ${}(\\{cs}<\\{Fqeps}*\\{reseite}){}$\1\5
+\&{return} \T{0};\2\6
+\8\#\&{endif}\C{\PB{$\\{hoelder\_success}\PP;$}}\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\7
+\&{int} \\{pruneN}(\&{DOUBLE} ${}{*}{*}\|w,\39{}$\&{DOUBLE} ${}{*}\\{cs},\39{}$%
+\&{int} \|t${},\39{}$\&{int} \\{rows}${},\39{}$\&{int} \\{cols}${},\39{}$%
+\&{DOUBLE} \\{Fq})\1\1\2\2\6
+${}\{{}$\1\6
+\&{int} \|i${},{}$ \\{t\_up};\6
+\&{DOUBLE} \\{sum};\6
+\&{DOUBLE} \|r;\7
+\&{if} ${}(\|t\G\\{cols}-\T{2}){}$\1\5
+\&{return} \T{0};\2\6
+\&{if} ${}(\|t<\\{cols}/\T{2}+\T{10}){}$\1\5
+\&{return} \T{0};\2\6
+${}\\{t\_up}\K\|t+\T{1}{}$;\C{\PB{$\\{cols}-\T{1};$}}\6
+${}\|r\K\T{0.4};{}$\6
+${}\\{sum}\K\T{0.0};{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{rows};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{sum}\MRL{+{\K}}\\{fabs}(\|w[\|t][\|i]-\|r*\|w[\\{t\_up}][\|i]);{}$\6
+\4${}\}{}$\2\6
+${}\\{sum}\MRL{*{\K}}\\{Fq}*(\T{1.000001});{}$\6
+${}\\{sum}\MRL{-{\K}}\\{fabs}(\\{cs}[\|t]-\|r*\\{cs}[\\{t\_up}]);{}$\6
+\&{if} ${}(\\{sum}<\T{0.0}){}$\5
+${}\{{}$\1\6
+${}\\{N2\_success}\PP;{}$\6
+\8\#\&{if} \T{0}\6
+${}\\{printf}(\.{"PRUNEN\ \%d\ \%d\ \%0.3lf}\)\.{\\n"},\39\|t,\39\\{t\_up},\39%
+\|r);{}$\6
+\8\#\&{endif}\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\6
+${}\\{t\_up}\K\|t+\T{2}{}$;\C{\PB{$\\{cols}-\T{1};$}}\6
+${}\|r\K\T{0.4};{}$\6
+${}\\{sum}\K\T{0.0};{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{rows};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{sum}\MRL{+{\K}}\\{fabs}(\|w[\|t][\|i]-\|r*\|w[\\{t\_up}][\|i]);{}$\6
+\4${}\}{}$\2\6
+${}\\{sum}\MRL{*{\K}}\\{Fq}*(\T{1.000001});{}$\6
+${}\\{sum}\MRL{-{\K}}\\{fabs}(\\{cs}[\|t]-\|r*\\{cs}[\\{t\_up}]);{}$\6
+\&{if} ${}(\\{sum}<\T{0.0}){}$\5
+${}\{{}$\1\6
+${}\\{N2\_success}\PP;{}$\6
+\8\#\&{if} \T{0}\6
+${}\\{printf}(\.{"PRUNEN\ \%d\ \%d\ \%0.3lf}\)\.{\\n"},\39\|t,\39\\{t\_up},\39%
+\|r);{}$\6
+\8\#\&{endif}\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\6
+${}\\{t\_up}\K\\{cols}-\T{1};{}$\6
+${}\|r\K\T{0.2};{}$\6
+${}\\{sum}\K\T{0.0};{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{rows};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{sum}\MRL{+{\K}}\\{fabs}(\|w[\|t][\|i]-\|r*\|w[\\{t\_up}][\|i]);{}$\6
+\4${}\}{}$\2\6
+${}\\{sum}\MRL{*{\K}}\\{Fq}*(\T{1.000001});{}$\6
+${}\\{sum}\MRL{-{\K}}\\{fabs}(\\{cs}[\|t]-\|r*\\{cs}[\\{t\_up}]);{}$\6
+\&{if} ${}(\\{sum}<\T{0.0}){}$\5
+${}\{{}$\1\6
+${}\\{N2\_success}\PP;{}$\6
+\8\#\&{if} \T{0}\6
+${}\\{printf}(\.{"PRUNEN\ \%d\ \%d\ \%0.3lf}\)\.{\\n"},\39\|t,\39\\{t\_up},\39%
+\|r);{}$\6
+\8\#\&{endif}\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\6
+\&{if} ${}(\T{0}\W\|t>\\{cols}-\T{20}){}$\5
+${}\{{}$\1\6
+${}\|r\K\T{0.2};{}$\6
+${}\\{sum}\K\T{0.0};{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{rows};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{sum}\MRL{+{\K}}\\{fabs}(\|w[\|t][\|i]-\|r*\|w[\\{t\_up}][\|i]);{}$\6
+\4${}\}{}$\2\6
+${}\\{sum}\MRL{*{\K}}\\{Fq}*(\T{1.000001});{}$\6
+${}\\{sum}\MRL{-{\K}}\\{fabs}(\\{cs}[\|t]-\|r*\\{cs}[\\{t\_up}]);{}$\6
+\&{if} ${}(\\{sum}<\T{0.0}){}$\5
+${}\{{}$\1\6
+${}\\{N3\_success}\PP;{}$\6
+\8\#\&{if} \T{0}\6
+${}\\{printf}(\.{"PRUNEN\ \%d\ \%d\ \%0.3lf}\)\.{\\n"},\39\|t,\39\\{t\_up},\39%
+\|r);{}$\6
+\8\#\&{endif}\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\6
+${}\|r\K\T{0.3};{}$\6
+${}\\{sum}\K\T{0.0};{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{rows};{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{sum}\MRL{+{\K}}\\{fabs}(\|w[\|t][\|i]-\|r*\|w[\\{t\_up}][\|i]);{}$\6
+\4${}\}{}$\2\6
+${}\\{sum}\MRL{*{\K}}\\{Fq}*(\T{1.000001});{}$\6
+${}\\{sum}\MRL{-{\K}}\\{fabs}(\\{cs}[\|t]-\|r*\\{cs}[\\{t\_up}]);{}$\6
+\&{if} ${}(\\{sum}<\T{0.0}){}$\5
+${}\{{}$\1\6
+${}\\{N3\_success}\PP;{}$\6
+\8\#\&{if} \T{0}\6
+${}\\{printf}(\.{"PRUNEN\ \%d\ \%d\ \%0.3lf}\)\.{\\n"},\39\|t,\39\\{t\_up},\39%
+\|r);{}$\6
+\8\#\&{endif}\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{return} \T{0};\6
+\4${}\}{}$\2\par
+\U125.\fi
+
+\M{129}Prune if there remain only zeros in a not finished row.
+The function computes two bounds $u_1$ and $u_2$ which fulfill
+$$
+\vert w +(u_{1,2}+y)\hat b \vert \leq F_q
+$$
+If in case of a zero/one problem both $u_i$'s are non-integer values
+we can not reach integer values by addition of other integers. That means,
+we may abandon enumeration at that level and step back, i.e. return $-1$.
+
+If one of the coordinates which has only zeroes to its left violates the bounds
+we make a side step. That is we return $1$.
+\Y\B\4\X129:prune zeros in row\X${}\E{}$\6
+\&{int} \\{prune\_only\_zeros}(\&{DOUBLE} ${}{*}{*}\|w,\39{}$\&{int} %
+\\{level}${},\39{}$\&{int} \\{rows}${},\39{}$\&{DOUBLE} \\{Fq}${},\39{}$\&{int}
+${}{*}\\{first\_nonzero\_in\_column},\39{}$\&{int} ${}{*}\\{firstp},\39{}$%
+\&{DOUBLE} ${}{*}{*}\\{bd},\39{}$\&{DOUBLE} ${}{*}\|y,\39{}$\&{DOUBLE} ${}{*}%
+\\{us},\39{}$\&{int} \\{columns})\1\1\2\2\6
+${}\{{}$\1\6
+\&{int} \|i;\6
+\&{int} \|f;\6
+\&{DOUBLE} \\{u1}${},{}$ \\{u2}${},{}$ \\{swp};\7
+${}\\{only\_zeros\_no}\PP;{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{first\_nonzero\_in\_column}[\\{firstp}[%
+\\{level}]];{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\|f\K\\{first\_nonzero\_in\_column}[\\{firstp}[\\{level}]+\T{1}+\|i];{}$\6
+${}\\{u1}\K(\\{Fq}-\|w[\\{level}+\T{1}][\|f])/\\{bd}[\\{level}][\|f]-\|y[%
+\\{level}];{}$\6
+${}\\{u2}\K({-}\\{Fq}-\|w[\\{level}+\T{1}][\|f])/\\{bd}[\\{level}][\|f]-\|y[%
+\\{level}];{}$\6
+\8\#\&{if} \T{0}\6
+\&{if} ${}(\\{u2}<\\{u1}){}$\5
+${}\{{}$\1\6
+${}\\{swp}\K\\{u1};{}$\6
+${}\\{u1}\K\\{u2};{}$\6
+${}\\{u2}\K\\{swp};{}$\6
+\4${}\}{}$\2\6
+${}\\{fipo\_LB}[\\{columns}][\\{level}]\K\\{u1}-\.{EPSILON};{}$\6
+${}\\{fipo\_UB}[\\{columns}][\\{level}]\K\\{u2}+\.{EPSILON};{}$\6
+\8\#\&{endif}\6
+\&{if} (\\{iszeroone})\5
+${}\{{}$\1\6
+\&{if} ${}(\\{fabs}(\\{u1}-\\{round}(\\{u1}))>\.{EPSILON}\W\\{fabs}(\\{u2}-%
+\\{round}(\\{u2}))>\.{EPSILON}){}$\5
+${}\{{}$\1\6
+${}\\{only\_zeros\_success}\PP;{}$\6
+\&{return} ${}{-}\T{1};{}$\6
+\4${}\}{}$\2\6
+\&{if} ${}(\\{fabs}(\\{fabs}(\|w[\\{level}][\|f])-\\{Fq})>\.{EPSILON}){}$\5
+${}\{{}$\1\6
+${}\\{only\_zeros\_success}\PP;{}$\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\6
+\8\#\&{if} \T{0}\6
+\&{if} ${}(\\{fabs}(\\{u1}-\\{us}[\\{level}])>\.{EPSILON}\W\\{fabs}(\\{u2}-%
+\\{us}[\\{level}])>\.{EPSILON}){}$\5
+${}\{{}$\1\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\C{ Not zero-one }\C{ Here we have to be very conservative }\1\6
+\&{if} ${}(\\{u2}-\\{u1}\Z\T{1.0}+\.{EPSILON}\W\\{fabs}(\|w[\\{level}][\|f])<%
+\.{UINT32\_MAX}\W\\{fabs}(\|w[\\{level}][\|f]-\\{round}(\|w[\\{level}][\|f]))>%
+\T{0.001}){}$\5
+${}\{{}$\1\6
+${}\\{only\_zeros\_success}\PP;{}$\6
+\&{return} ${}{-}\T{1};{}$\6
+\4${}\}{}$\2\6
+\&{if} ${}(\\{fabs}(\|w[\\{level}][\|f])>\\{Fq}*(\T{1}+\.{EPSILON})){}$\5
+${}\{{}$\1\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\6
+\8\#\&{if} \T{0}\6
+\&{if} ${}(\\{us}[\\{level}]<\\{u1}-\.{EPSILON}\V\\{us}[\\{level}]>\\{u2}+%
+\.{EPSILON}){}$\5
+${}\{{}$\1\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\8\#\&{if} \T{0}\6
+\&{if} (\\{iszeroone})\5
+${}\{{}$\1\6
+\&{if} ${}(\\{fabs}(\\{fabs}(\|w[\\{level}][\|f])-\\{Fq})>\.{EPSILON}){}$\5
+${}\{{}$\C{\PB{$\\{only\_zeros\_success}\PP;$}}\1\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+\&{if} ${}(\\{fabs}(\|w[\\{level}][\|f])>\\{Fq}*(\T{1}+\.{EPSILON})){}$\5
+${}\{{}$\1\6
+${}\\{only\_zeros\_success}\PP;{}$\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\&{return} \T{0};\6
+\4${}\}{}$\2\par
+\U125.\fi
+
+\M{130}
+\Y\B\4\X130:prune second nonzero in row\X${}\E{}$\6
+\&{int} \\{prune\_snd\_nonzero}(\&{int} \\{columns}${},\39{}$\&{int} %
+\\{rows}${},\39{}$\&{int} \\{level}${},\39{}$\&{DOUBLE} \\{Fq}${},\39{}$\&{int}
+${}{*}\\{first\_nonzero},\39{}$\&{int} ${}{*}\\{snd\_nonzero\_in\_column},%
+\39{}$\&{int} ${}{*}\\{sndp},\39{}$\&{DOUBLE} ${}{*}\\{us},\39{}$\&{struct} %
+\&{constraint} ${}{*}\\{cons}){}$\1\1\2\2\6
+${}\{{}$\1\6
+\&{int} \|i${},{}$ \|k;\6
+\&{int} \\{ro};\6
+\&{int} \\{f1};\7
+\&{return} \T{0};\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\\{snd\_nonzero\_in\_column}[\\{sndp}[%
+\\{level}]];{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+${}\\{ro}\K\\{snd\_nonzero\_in\_column}[\\{sndp}[\\{level}]+\T{1}+\|i];{}$\6
+${}\\{f1}\K\\{first\_nonzero}[\\{ro}];{}$\6
+\&{if} ${}(\\{level}-\\{f1}\Z\T{5}){}$\5
+${}\{{}$\1\6
+\&{continue};\6
+\4${}\}{}$\2\6
+${}\\{mpz\_set\_si}(\\{soltest\_s},\39\T{0});{}$\6
+\&{for} ${}(\|k\K\\{level};{}$ ${}\|k<\\{columns};{}$ ${}\|k\PP){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\.{ROUND}(\\{us}[\|k])>\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_addmul\_ui}(\\{soltest\_s},\39\\{get\_entry}(\|k,\39\\{ro}),\39%
+\.{ROUND}(\\{us}[\|k]));{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{mpz\_submul\_ui}(\\{soltest\_s},\39\\{get\_entry}(\|k,\39\\{ro}),\39{-}%
+\.{ROUND}(\\{us}[\|k]));{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+${}\\{mpz\_sub}(\\{snd\_s},\39\\{max\_norm},\39\\{soltest\_s});{}$\6
+${}\\{mpz\_fdiv\_qr}(\\{snd\_q},\39\\{snd\_r},\39\\{snd\_s},\39\\{get\_entry}(%
+\\{f1},\39\\{ro}));{}$\6
+\&{if} ${}(\\{mpz\_sgn}(\\{snd\_r})\I\T{0}){}$\5
+${}\{{}$\1\6
+\\{printf}(\.{"Contradiction\\n"});\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\6
+\8\#\&{if} \T{0}\6
+\&{if} ${}(\\{cons}[\\{f1}].\\{isSet}\E\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{cons}[\\{f1}].\\{isSet}\K\T{1};{}$\6
+${}\\{cons}[\\{f1}].\\{val}[\T{0}]\K\\{u1};{}$\6
+${}\\{cons}[\\{f1}].\\{val}[\T{1}]\K\\{u2};{}$\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\&{return} \T{0};\6
+\4${}\}{}$\2\par
+\U125.\fi
+
+\M{131}Jacobi method to compute minimum Eigen value of the symmetric matrix
+$R^topR$.
+\Y\B\4\X131:Jacobi method\X${}\E{}$\6
+\&{DOUBLE} \\{Jacobi}(\&{DOUBLE} ${}{*}{*}\\{Ain},\39{}$\&{int} \|n)\1\1\2\2\6
+${}\{{}$\1\6
+\&{int} \|i${},{}$ \|j${},{}$ \|k${},{}$ \\{nloops};\6
+\&{DOUBLE} \\{aa}${},{}$ \\{si}${},{}$ \\{co}${},{}$ \\{tt}${},{}$ \\{eps};\6
+\&{DOUBLE} \\{sum}${},{}$ \\{ssum}${},{}$ \\{amax}${},{}$ \\{amin};\6
+\&{DOUBLE} ${}{*}{*}\|V;{}$\6
+\&{DOUBLE} ${}{*}{*}\|A;{}$\7
+${}\\{sum}\K\T{0.0};{}$\6
+${}\\{eps}\K\T{0.000001};{}$\6
+${}\\{nloops}\K\T{0};{}$\6
+${}\|V\K{}$(\&{DOUBLE} ${}{*}{*}){}$ \\{calloc}${}(\|n,\39{}$\&{sizeof}(%
+\&{DOUBLE} ${}{*}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|n;{}$ ${}\PP\|i){}$\1\5
+${}\|V[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\|n,\39\&{sizeof}(%
+\&{DOUBLE}));{}$\2\6
+${}\|A\K{}$(\&{DOUBLE} ${}{*}{*}){}$ \\{calloc}${}(\|n,\39{}$\&{sizeof}(%
+\&{DOUBLE} ${}{*}));{}$\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|n;{}$ ${}\PP\|i){}$\1\5
+${}\|A[\|i]\K{}$(\&{DOUBLE} ${}{*}){}$ \\{calloc}${}(\|n,\39\&{sizeof}(%
+\&{DOUBLE})){}$;\C{ Initialization. Set initial Eigenvectors.     Compute $A =
+Ain^top\cdot Ain$    }\2\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|n;{}$ ${}\|i\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\|n;{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+${}\|V[\|i][\|j]\K\T{0.0};{}$\6
+${}\|A[\|i][\|j]\K\T{0.0};{}$\6
+\&{for} ${}(\|k\K\T{0};{}$ ${}\|k<\|n;{}$ ${}\|k\PP){}$\5
+${}\{{}$\1\6
+${}\|A[\|i][\|j]\MRL{+{\K}}\\{Ain}[\|k][\|i]*\\{Ain}[\|k][\|j];{}$\6
+\4${}\}{}$\C{\PB{$\|A[\|i][\|j]\K\\{Ain}[\|i][\|j];$}}\2\6
+${}\\{sum}\MRL{+{\K}}\\{fabs}(\|A[\|i][\|j]);{}$\6
+\4${}\}{}$\2\6
+${}\|V[\|i][\|i]\K\T{1.0};{}$\6
+\4${}\}{}$\C{ Trivial problems }\2\6
+\&{if} ${}(\|n\E\T{1}){}$\5
+${}\{{}$\1\6
+\&{return} \|A[\T{0}][\T{0}];\6
+\4${}\}{}$\2\6
+\&{if} ${}(\\{sum}\Z\T{0.0}){}$\5
+${}\{{}$\1\6
+\&{return} \T{0.0};\6
+\4${}\}{}$\2\6
+${}\\{sum}\MRL{{/}{\K}}(\|n*\|n){}$;\C{ Reduce matrix to diagonal }\6
+\&{do}\5
+${}\{{}$\1\6
+${}\\{ssum}\K\T{0.0};{}$\6
+${}\\{amax}\K\T{0.0};{}$\6
+\&{for} ${}(\|j\K\T{1};{}$ ${}\|j<\|n;{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|j;{}$ ${}\|i\PP){}$\5
+${}\{{}$\C{ Check if \PB{\|A[\|i][\|j]} is to be reduced }\1\6
+${}\\{aa}\K\\{fabs}(\|A[\|i][\|j]);{}$\6
+\&{if} ${}(\\{aa}>\\{amax}){}$\5
+${}\{{}$\1\6
+${}\\{amax}\K\\{aa};{}$\6
+\4${}\}{}$\2\6
+${}\\{ssum}\MRL{+{\K}}\\{aa};{}$\6
+\&{if} ${}(\\{aa}\G\\{eps}){}$\5
+${}\{{}$\C{ calculate rotation angle }\1\6
+${}\\{aa}\K\\{atan2}(\T{2.0}*\|A[\|i][\|j],\39\|A[\|i][\|i]-\|A[\|j][\|j])*%
+\T{0.5};{}$\6
+${}\\{si}\K\\{sin}(\\{aa});{}$\6
+${}\\{co}\K\\{cos}(\\{aa}){}$;\C{ Modify \PB{\|i} and \PB{\|j} columns }\6
+\&{for} ${}(\|k\K\T{0};{}$ ${}\|k<\|n;{}$ ${}\|k\PP){}$\5
+${}\{{}$\1\6
+${}\\{tt}\K\|A[\|k][\|i];{}$\6
+${}\|A[\|k][\|i]\K\\{co}*\\{tt}+\\{si}*\|A[\|k][\|j];{}$\6
+${}\|A[\|k][\|j]\K{-}\\{si}*\\{tt}+\\{co}*\|A[\|k][\|j];{}$\6
+${}\\{tt}\K\|V[\|k][\|i];{}$\6
+${}\|V[\|k][\|i]\K\\{co}*\\{tt}+\\{si}*\|V[\|k][\|j];{}$\6
+${}\|V[\|k][\|j]\K{-}\\{si}*\\{tt}+\\{co}*\|V[\|k][\|j];{}$\6
+\4${}\}{}$\C{ Modify diagonal terms }\2\6
+${}\|A[\|i][\|i]\K\\{co}*\|A[\|i][\|i]+\\{si}*\|A[\|j][\|i];{}$\6
+${}\|A[\|j][\|j]\K{-}\\{si}*\|A[\|i][\|j]+\\{co}*\|A[\|j][\|j];{}$\6
+${}\|A[\|i][\|j]\K\T{0.0}{}$;\C{ Make \PB{\|A} matrix symmetrical }\6
+\&{for} ${}(\|k\K\T{0};{}$ ${}\|k<\|n;{}$ ${}\|k\PP){}$\5
+${}\{{}$\1\6
+${}\|A[\|i][\|k]\K\|A[\|k][\|i];{}$\6
+${}\|A[\|j][\|k]\K\|A[\|k][\|j];{}$\6
+\4${}\}{}$\C{ \PB{\|A[\|i][\|j]} made zero by rotation }\2\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+${}\\{nloops}\PP;{}$\6
+\4${}\}{}$\2\5
+\&{while} ${}(\\{fabs}(\\{ssum})/\\{sum}>\\{eps}\W\\{nloops}<\T{100000});{}$\6
+${}\\{amin}\K\|A[\T{0}][\T{0}];{}$\6
+\&{for} ${}(\|i\K\T{1};{}$ ${}\|i<\|n;{}$ ${}\|i\PP){}$\1\6
+\&{if} ${}(\|A[\|i][\|i]<\\{amin}){}$\1\5
+${}\\{amin}\K\|A[\|i][\|i];{}$\2\2\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|n;{}$ ${}\|i\PP){}$\1\5
+\\{free}(\|A[\|i]);\2\6
+\\{free}(\|A);\6
+\&{for} ${}(\|i\K\T{0};{}$ ${}\|i<\|n;{}$ ${}\|i\PP){}$\1\5
+\\{free}(\|V[\|i]);\2\6
+\\{free}(\|V);\6
+\&{return} \\{amin};\6
+\4${}\}{}$\2\par
+\U125.\fi
+
+\M{132}Output of solutions.
+There are difficulties if there are integers bigger than
+64 bit integers, even in the
+multiprecision version.
+\Y\B\4\X132:print a solution\X${}\E{}$\6
+\&{int} \\{print\_solution}(\&{DOUBLE} ${}{*}\|w,\39{}$\&{int} \\{rows}${},%
+\39{}$\&{DOUBLE} \\{Fq}${},\39{}$\&{DOUBLE} ${}{*}\\{us},\39{}$\&{int} %
+\\{columns})\1\1 $\{$ \&{int} \|i${},{}$ \|j${},{}$ \|k;\6
+\&{int} \\{upper};\6
+\&{int} \\{end};\C{ Test again, if the vector is really a solution }\6
+\8\#\&{if} \T{1}\6
+\&{if} ${}(\\{fabs}(\\{fabs}(\|w[\\{rows}-\T{1}])-\\{Fq})>\T{0.5}*\\{Fq}*%
+\.{EPSILON})$ $\{{}$\6
+\8\#\&{else}\C{ Wrong, because it allows \PB{$\|w[\\{rows}-\T{1}]\E\T{0.0}$}.
+Why did I ever use this?}\6
+\&{if} ${}(\\{fabs}(\|w[\\{rows}-\T{1}])>\\{Fq}*(\T{1}+\.{EPSILON})){}$\5
+${}\{{}$\6
+\8\#\&{endif}\1\6
+\&{return} \T{0};\6
+\4${}\}{}$\2\6
+${}\\{upper}\K\\{rows}-\T{1}-\\{free\_RHS};{}$\6
+\8\#\&{if} \T{0}\6
+\&{if} ${}(\\{free\_RHS}\W\\{fabs}(\\{fabs}(\|w[\\{upper}])-\\{Fq})>\T{0.5}*%
+\\{Fq}*\.{EPSILON}){}$\5
+${}\{{}$\6
+\8\#\&{else}\1\6
+\&{if} ${}(\\{free\_RHS}\W\\{fabs}(\|w[\\{upper}])>\\{Fq}*(\T{1}+%
+\.{EPSILON})){}$\5
+${}\{{}$\6
+\8\#\&{endif}\1\6
+\&{return} \T{0};\6
+\4${}\}{}$\2\6
+\&{if} ${}(\R\.{SILENT}){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_set\_si}(\\{soltest\_upfac},\39\T{1});{}$\6
+\8\#\&{if} \T{0}\6
+${}\\{mpz\_set\_d}(\\{soltest\_s},\39\.{ROUND}(\|w[\\{rows}-\T{1}]));{}$\6
+\8\#\&{else}\6
+${}\\{mpz\_set\_si}(\\{soltest\_s},\39\T{0});{}$\6
+\&{for} ${}(\|k\K\T{0};{}$ ${}\|k<\\{columns};{}$ ${}\|k\PP){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\.{ROUND}(\\{us}[\|k])>\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_addmul\_ui}(\\{soltest\_s},\39\\{get\_entry}(\|k,\39\\{rows}-\T{1}),%
+\39\.{ROUND}(\\{us}[\|k]));{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{mpz\_submul\_ui}(\\{soltest\_s},\39\\{get\_entry}(\|k,\39\\{rows}-\T{1}),%
+\39{-}\.{ROUND}(\\{us}[\|k]));{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+${}\|i\K\T{0};{}$\6
+\&{if} ${}(\\{cut\_after\_coeff}\E{-}\T{1}){}$\5
+${}\{{}$\1\6
+${}\\{end}\K\\{no\_original\_columns};{}$\6
+\8\#\&{if} \T{0}\6
+\&{if} ${}(\\{nboundvars}\I\T{0}){}$\5
+${}\{{}$\C{ Conflicts with \PB{\\{original\_columns}} }\1\6
+${}\\{end}\K\\{nboundvars};{}$\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{end}\K\\{cut\_after\_coeff};{}$\6
+\4${}\}{}$\2\6
+\&{for} ${}(\|j\K\T{0};{}$ ${}\|j<\\{end};{}$ ${}\|j\PP){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{original\_columns}[\|j]\E\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_set\_si}(\\{soltest\_u},\39\T{0});{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+\&{if} ${}(\R\\{iszeroone}){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\\{mpz\_cmp\_si}(\\{upperbounds}[\|i],\39\T{0})\I\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_divexact}(\\{soltest\_upfac},\39\\{upperbounds\_max},\39%
+\\{upperbounds}[\|i]);{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{mpz\_set}(\\{soltest\_upfac},\39\\{upperbounds\_max});{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+${}\\{mpz\_set\_si}(\\{soltest\_u},\39\T{0});{}$\6
+\&{for} ${}(\|k\K\T{0};{}$ ${}\|k<\\{columns};{}$ ${}\|k\PP){}$\5
+${}\{{}$\1\6
+\&{if} ${}(\.{ROUND}(\\{us}[\|k])>\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{mpz\_addmul\_ui}(\\{soltest\_u},\39\\{get\_entry}(\|k,\39\|i),\39%
+\.{ROUND}(\\{us}[\|k]));{}$\6
+\4${}\}{}$\2\6
+\&{else}\5
+${}\{{}$\1\6
+${}\\{mpz\_submul\_ui}(\\{soltest\_u},\39\\{get\_entry}(\|k,\39\|i),\39{-}%
+\.{ROUND}(\\{us}[\|k]));{}$\6
+\4${}\}{}$\2\6
+\4${}\}{}$\2\6
+${}\\{mpz\_sub}(\\{soltest\_u},\39\\{soltest\_u},\39\\{soltest\_s});{}$\6
+${}\\{mpz\_divexact}(\\{soltest\_u},\39\\{soltest\_u},\39\\{max\_norm%
+\_initial});{}$\6
+${}\\{mpz\_divexact}(\\{soltest\_u},\39\\{soltest\_u},\39\\{soltest%
+\_upfac});{}$\6
+${}\\{mpz\_divexact\_ui}(\\{soltest\_u},\39\\{soltest\_u},\39\\{denom});{}$\6
+${}\\{mpz\_abs}(\\{soltest\_u},\39\\{soltest\_u});{}$\6
+\&{if} ${}(\R\\{iszeroone}\W(\\{mpz\_cmp\_si}(\\{soltest\_u},\39\T{0})<\T{0}\V%
+\\{mpz\_cmp}(\\{soltest\_u},\39\\{upperbounds}[\|i])>\T{0})){}$\5
+${}\{{}$\C{ upperbounds not defined for $0/1$ problems }\1\6
+${}\\{fprintf}(\\{stderr},\39\.{"\ rounding\ error\ ->\ }\)\.{this\ is\ not\ a\
+soluti}\)\.{on!\\n"});{}$\6
+\&{return} \T{0};\6
+\4${}\}{}$\2\6
+${}\|i\PP;{}$\6
+\4${}\}{}$\2\6
+${}\\{mpz\_out\_str}(\NULL,\39\T{10},\39\\{soltest\_u});{}$\6
+\\{fflush}(\\{stdout});\6
+${}\\{mpz\_out\_str}(\\{fp},\39\T{10},\39\\{soltest\_u}){}$;\C{ Meanwhile, all
+solution vectors are written with separating blanks. }\C{\PB{ \&{if} ${}(\R%
+\\{iszeroone}){}$ ${}\{\,\}{}$}}\6
+\\{printf}(\.{"\ "});\6
+${}\\{fprintf}(\\{fp},\39\.{"\ "});{}$\6
+\4${}\}{}$\2\6
+\&{if} (\\{free\_RHS})\5
+${}\{{}$\1\6
+${}\\{mpz\_set\_d}(\\{soltest\_u},\39\.{ROUND}(\|w[\|i]));{}$\6
+${}\\{mpz\_divexact}(\\{soltest\_u},\39\\{soltest\_u},\39\\{max\_up});{}$\6
+${}\\{mpz\_abs}(\\{soltest\_u},\39\\{soltest\_u});{}$\6
+\\{printf}(\.{"\ L\ =\ "});\6
+${}\\{mpz\_out\_str}(\NULL,\39\T{10},\39\\{soltest\_u});{}$\6
+\4${}\}{}$\2\6
+\\{printf}(\.{"\\n"});\5
+\\{fflush}(\\{stdout});\6
+${}\\{fprintf}(\\{fp},\39\.{"\\n"}){}$;\5
+\\{fflush}(\\{fp});\6
+\4${}\}{}$\2\6
+${}\\{nosolutions}\PP;{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\6
+\&{if} ${}(\\{nosolutions}\MOD\T{10000}\E\T{0}){}$\5
+${}\{{}$\1\6
+${}\\{printf}(\.{"\%ld\\n"},\39\\{nosolutions}){}$;\5
+\\{fflush}(\\{stdout});\6
+\4${}\}{}$\2\6
+\8\#\&{endif}\6
+\&{return} \T{1};\6
+\4${}\}{}$\2\par
+\U125.\fi
+
+\M{133}Output of the polyhedra.
+We write the basis vectors as input for the polyhedra programs cdd and lrs.
+\Y\B\4\X133:output polyhedra\X${}\E{}$\6
+\&{void} \\{basis2poly}(\,)\1\1\2\2\6
+${}\{{}$\1\6
+\&{return};\6
+\4${}\}{}$\2\par
+\U86.\fi
+
+\M{134}Output of the LP-relaxation.
+We write the linear combination of the basis vectors as LP.
+\Y\B\4\X134:output LP\X${}\E{}$\6
+\&{void} \\{basis2LP}(\&{double} ${}{*}\\{low},\39{}$\&{double} ${}{*}%
+\\{up}){}$\1\1\2\2\6
+${}\{{}$\1\6
+\&{return};\6
+\4${}\}{}$\2\par
+\U86.\fi
+
+\M{135}
+Stop the execution of the program and write out
+the number of solutions.
+\Y\B\4\X135:stop program\X${}\E{}$\6
+\&{void} \\{stopProgram}(\,)\1\1\2\2\6
+${}\{{}$\6
+\8\#\&{ifndef} \.{NO\_OUTPUT}\1\6
+${}\\{printf}(\.{"Stopped\ after\ SIGAL}\)\.{RM,\ number\ of\ soluti}\)\.{ons:\
+\%ld\\n"},\39\\{nosolutions});{}$\6
+\8\#\&{endif}\6
+\X118:close solution file\X;\6
+\\{exit}(\T{11});\6
+\4${}\}{}$\2\par
+\U28.\fi
+
+\N{1}{136}Index.
+\fi
+
+\inx
+\fin
+\con
