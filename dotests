@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PROG=./sd3
+PROG=bin/sd2
 PARAMS="-bkz -beta40 -o/dev/null"
 DIR=Tests
 

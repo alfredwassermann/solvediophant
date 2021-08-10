@@ -93,6 +93,5 @@ tags: $(SRC) Makefile
 
 .PHONY: clean
 clean:
-	rm $(SRC)/*.o
-	rm $(PDF)/*.pdf
+	rm $(SRC)/*.o $(PDF)/*.pdf dump_lattice.b */dump_lattice.b
 
