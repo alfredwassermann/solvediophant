@@ -1,5 +1,6 @@
 % Problem file by Michael Kiermaier
 % rounding error in solution?
+% Fails in exacttest()
 3 5 1
 380928 6720 140 3 -31 31
 0 130816 8760 511 -31 31

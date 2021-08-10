@@ -29,7 +29,7 @@ parameter -c being too small
 
 int main(int argc, char *argv[]) {
 	int i,j,flag;
-	
+
 	@<variables@>;
 
 	@<read command line parameters@>;
@@ -46,8 +46,8 @@ int main(int argc, char *argv[]) {
 	solfile = fopen(solfilename, "w");
 	time_0 = os_ticks();
 	diophant(A, rhs, upperb, no_columns, no_rows,
-		factor_input, norm_input, scalelastlinefactor, silent, iterate, iterate_no, bkz_beta_input, bkz_p_input, 
-		stop_after_solutions, stop_after_loops, 
+		factor_input, norm_input, scalelastlinefactor, silent, iterate, iterate_no, bkz_beta_input, bkz_p_input,
+		stop_after_solutions, stop_after_loops,
 		free_RHS, original_columns, no_original_columns, cut_after, nboundedvars,solfile);
 	time_1 = os_ticks();
 	fclose(solfile);
@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
 @ The variables. Global variables are not longer used in order to avoid
 conflicts with the global variables of |diophant|.
 @<variables@>=
-	mpz_t factor_input;      
+	mpz_t factor_input;
 	mpz_t norm_input;
 	mpz_t scalelastlinefactor;
 	mpz_t *upperb;
@@ -146,13 +146,13 @@ conflicts with the global variables of |diophant|.
 
 @ @<variables@>=
 	char suffix[1024];
-	
+
 @ @<analyse the options@>=
 	if (strcmp(argv[i],"-silent")==0) {
 		silent = 1;
 #ifndef NO_OUTPUT
 		fprintf(stderr,"No output of solutions, just counting.\n");
-#endif		
+#endif
 	} else if (strncmp(argv[i],"-iterate",8)==0) {
 		strcpy(suffix,argv[i]+8);
 		iterate_no  = atoi(suffix);
@@ -170,11 +170,11 @@ conflicts with the global variables of |diophant|.
 		maxruntime = atoi(suffix);
 	} else if (strncmp(argv[i],"-c",2)==0) {
 		strcpy(suffix,argv[i]+2);
-#if 1		
+#if 1
 		mpz_set_str(factor_input,suffix,10);  /* Regular version */
-#else 		
+#else
 		mpz_ui_pow_ui(factor_input,10,atoi(suffix)); /* Version for the NTL output */
-#endif		
+#endif
 	} else if (strncmp(argv[i],"-maxnorm",8)==0) {
 		strcpy(suffix,argv[i]+8);
 		mpz_set_str(norm_input,suffix,10);
@@ -191,7 +191,7 @@ conflicts with the global variables of |diophant|.
 		fprintf(stderr,"solvediophant");
 		fprintf(stderr," -iterate*|(-bkz -beta* -p*) [-c*] [-maxnorm*] [-scalelastline*] [-time*] [-silent] [-o*]");
 		fprintf(stderr," inputfile\n\n");
-#endif		
+#endif
 		exit(3);
 	}
 
@@ -200,14 +200,14 @@ conflicts with the global variables of |diophant|.
 #ifndef NO_OUTPUT
 		fprintf(stderr,"The last parameter on the command line\n");
 		fprintf(stderr,"has to be the input file name.\n");
-#endif		
+#endif
 		exit(1);
 	}
 	if (iterate==-1) {
 #ifndef NO_OUTPUT
 		fprintf(stderr,"No reduction was chosen.\n");
 		fprintf(stderr,"It is set to iterate=1.\n");
-#endif		
+#endif
 		iterate = 1;
 		iterate_no = 1;
 	}
@@ -215,29 +215,29 @@ conflicts with the global variables of |diophant|.
 #ifndef NO_OUTPUT
 		fprintf(stderr,"You have chosen bkz reduction. You also have to specify the parameters");
 		fprintf(stderr," -beta* -p*\n");
-#endif		
+#endif
 		exit(1);
 	}
 	if (mpz_cmp_si(factor_input,0)<=0) {
 #ifndef NO_OUTPUT
 		fprintf(stderr,"You did not supply the options -c*. ");
 		fprintf(stderr,"It is set to 10000000000000.\n");
-#endif		
+#endif
 		mpz_set_str(factor_input,"10000000000000",10);
 	}
-        
+
 	if (mpz_cmp_si(norm_input,0)<=0) {
 #ifndef NO_OUTPUT
 		fprintf(stderr,"You did not supply the options -maxnorm*. ");
 		fprintf(stderr,"It is set to 1.\n");
-#endif		
+#endif
 		mpz_set_si(norm_input,1);
 	}
 	if (mpz_cmp_si(scalelastlinefactor,0)<=0) {
 #ifndef NO_OUTPUT
 		fprintf(stderr,"You did not supply the options -scalelastline*. ");
 		fprintf(stderr,"It is set to 1.\n");
-#endif		
+#endif
 		mpz_set_si(scalelastlinefactor,1);
 	}
 
@@ -258,7 +258,7 @@ Diophantine linear system and some other control parameters.
 #ifndef NO_OUTPUT
 		printf("Could not open file '%s'!\n",inputfile_name);
 		fflush(stdout);
-#endif		
+#endif
 		exit(1);
 	}
 	flag = 0;
@@ -267,7 +267,7 @@ Diophantine linear system and some other control parameters.
 	stop_after_solutions = 0;
 	cut_after = -1;
 	do {
-		fgets(zeile,zlength,txt); 
+		fgets(zeile,zlength,txt);
 		if (strstr(zeile,"% stopafter")!=NULL) {
 			sscanf(zeile,"%% stopafter %ld",&stop_after_solutions);
 		}
@@ -282,16 +282,16 @@ Diophantine linear system and some other control parameters.
 		}
 	}
 	while (zeile[0]=='%');
-	sscanf(zeile,"%d%d%d",&no_rows,&no_columns,&flag); 
+	sscanf(zeile,"%d%d%d",&no_rows,&no_columns,&flag);
 
 @ @<allocate the matrix@>=
 	A = (mpz_t**)calloc(no_rows,sizeof(mpz_t*));
 	for(j=0;j<no_rows;j++) {
 		A[j] = (mpz_t*)calloc(no_columns,sizeof(mpz_t));
-		for (i=0;i<no_columns;i++) mpz_init(A[j][i]); 
+		for (i=0;i<no_columns;i++) mpz_init(A[j][i]);
 	}
 	rhs = (mpz_t*)calloc(no_rows,sizeof(mpz_t));
-	for (i=0;i<no_rows;i++) mpz_init(rhs[i]); 
+	for (i=0;i<no_rows;i++) mpz_init(rhs[i]);
 
 @ @<read the linear system@>=
 	for (j=0;j<no_rows;j++) {
@@ -307,7 +307,7 @@ Diophantine linear system and some other control parameters.
 		}
 	}
 @ After searching for upper bounds the input file is closed
-and opened again. 
+and opened again.
 @<read upper bounds@>=
 	upperb = NULL;
 	fclose(txt);
@@ -316,19 +316,19 @@ and opened again.
 #ifndef NO_OUTPUT
 		printf("Could not open file %s !\n",inputfile_name);
 		fflush(stdout);
-#endif		
+#endif
 		exit(1);
 	}
 	zeile[0] = '\0';
 	sprintf(detectstring,"BOUNDS");
 	do {
-		rowp=fgets(zeile,zlength,txt);  
+		rowp=fgets(zeile,zlength,txt);
 	} while ((rowp!=NULL)&&(strstr(zeile,detectstring)==NULL));
 
 	if (rowp==NULL) {
 		upperb=NULL;
 #ifndef NO_OUTPUT
-		printf("No %s \n",detectstring); @+ fflush(stdout); 
+		printf("No %s \n",detectstring); @+ fflush(stdout);
 #endif
 		nboundedvars = no_columns;
 	} else {
@@ -340,8 +340,8 @@ and opened again.
 #endif
 		} else {
 			nboundedvars = 0;
-		}	
-		
+		}
+
 		upperb = (mpz_t*)calloc(no_columns,sizeof(mpz_t));
 		for (i=0;i<nboundedvars;i++) {
 			mpz_init(upperb[i]);
@@ -362,7 +362,7 @@ and opened again.
 @<search preselected variables@>=
 	sprintf(detectstring,"SELECTEDCOLUMNS");
 	do {
-		rowp=fgets(zeile,zlength,txt);  
+		rowp=fgets(zeile,zlength,txt);
 	} while ((rowp!=NULL)&&(strstr(zeile,detectstring)==NULL));
 
 	if (rowp!=NULL) {
@@ -433,7 +433,7 @@ and opened again.
 @ Global variables and subroutines to measure the run time of the
 algorithm. The time is measured by calling |os_ticks()| before and after
 running |diophant()|. |print_delta_time()| prints the run time.
-The other subroutines are just for 
+The other subroutines are just for
 formatting purposes.
 @<run time measurements@>=
 int user_time, time_0, time_1;
@@ -444,7 +444,7 @@ char timestring[256];
 @<give time string@>;
 
 @ These are the system calls. |os_ticks()| gives the system ticks.
-|os_ticks_per_second()| gives the system dependent relation 
+|os_ticks_per_second()| gives the system dependent relation
 ticks vs. seconds.
 @<system calls@>=
 int os_ticks()
@@ -459,7 +459,7 @@ int os_ticks()
 int os_ticks_per_second()
 {
 	int clk_tck = 1;
-	
+
 	clk_tck = sysconf(_SC_CLK_TCK);
 	return(clk_tck);
 }
@@ -471,7 +471,7 @@ int os_ticks_to_hms_tps(int ticks, int tps, int *h, int *m, int *s)
 	int l1;
 
 	l1 = ticks / tps;    /* |l1| is set to overall the number of seconds. */
-	*s = l1 % 60;        /* number of seconds */  
+	*s = l1 % 60;        /* number of seconds */
 	l1 -= *s;
 	l1 /= 60;
 	*m = l1 % 60;        /* number of minutes */
@@ -509,5 +509,5 @@ void print_delta_time(int l, char *str)
 	fprintf(stderr,"total enumeration time: %s\n", timestring);
    @+	fflush(stdout);
 #endif
-	
+
 @*Index.

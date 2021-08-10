@@ -1027,12 +1027,12 @@ This is done with Gram Schmidt Orthogonalization.
                 ss = (DOUBLE)scalarproductlfp(b[k],b[j]);
             }
             for (i=0;i<j;i++) ss -= mu[j][i]*mu[k][i]*c[i];
-if (c[j] < EPSILON) {
-    fprintf(stderr, "c[%d] is very small: %lf\n", j, c[j]);
-}
             mu[k][j] = ss/c[j];
             c[k] -= ss*mu[k][j];
         }
+if (c[k] < EPSILON) {
+    fprintf(stderr, "c[%d] is very small: %lf\n", k, c[k]);
+}
 @ Step 3: size reduction. This one of the two main parts of
 LLL reduction. It is some kind of rounded Gram Schmidt orthogonalization
 of the integer basis of the lattice.
@@ -1050,12 +1050,14 @@ the new value of $b'_k$ is computed and we proceed to step 4.
 @<third step: size reduction of $b_k$@>=
         Fc = Fr = 0;
         for(j=k-1;j>=0;j--) {
-            if (fabs(mu[k][j])>0.5) {
+            if (fabs(mu[k][j]) > ETACONST) {
                 @<round the Gram Schmidt coefficient@>;
                 Fr = 1;
                 @<set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$@>;
+if (Fc == 1)
+    fprintf(stderr, "Problems in rounding mu, step back to k=%d; %lf %lf\n", k-1, mus, mu[k][j]);
                 mu[k][j] -= mus;
-                  solutiontest(k);
+                solutiontest(k);
             }
         }
         @<recompute $N_k$@>;
@@ -3158,7 +3160,7 @@ int exacttest(DOUBLE *v, int rows, DOUBLE Fq) {
     int i;
     i = rows-1;
     do {
-        if (fabs(v[i]) > Fq + EPSILON) {
+        if (fabs(v[i]) > Fq*(1.0 + EPSILON)) {
             return 0;
         }
         i--;
