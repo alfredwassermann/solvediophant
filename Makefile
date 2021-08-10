@@ -68,8 +68,8 @@ GMPINC=
 #GMPINC=-I../gmp-4.2.1/bin/include
 ###################################
 
-OBJFILES=$(SRC)/bkz.o   $(SRC)/dio2.o   $(SRC)/enum.o   $(SRC)/lattice.o   $(SRC)/lgs.o   $(SRC)/lll.o   $(SRC)/sd2.o
-PDFFILES=$(PDF)/bkz.pdf $(PDF)/dio2.pdf $(PDF)/enum.pdf $(PDF)/lattice.pdf $(PDF)/lgs.pdf $(PDF)/lll.pdf $(PDF)/sd2.pdf
+OBJFILES=$(SRC)/bkz.o   $(SRC)/dio2.o   $(SRC)/dualbkz.o   $(SRC)/enum.o   $(SRC)/lattice.o   $(SRC)/lgs.o   $(SRC)/lll.o   $(SRC)/sd2.o
+PDFFILES=$(PDF)/bkz.pdf $(PDF)/dio2.pdf $(SRC)/dualbkz.pdf $(PDF)/enum.pdf $(PDF)/lattice.pdf $(PDF)/lgs.pdf $(PDF)/lll.pdf $(PDF)/sd2.pdf
 
 all: $(BIN)/sd2 tags $(PDFFILES)
 

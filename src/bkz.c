@@ -239,8 +239,12 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
 void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t hv) {
     coeff_t **b = lattice->basis;
     coeff_t *swapvl;
-    int i, j, g;
+    int i, j;
+
+    #if FALSE
+    long g;
     long q, ui;
+    #endif
 
     /* build new basis */
     for (j = 1; j <= z; j++) {
@@ -259,7 +263,7 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
     }
     coeffinit(lattice->swap, z);
 
-    #if 1
+    #if TRUE
         swapvl = b[lattice->num_cols];
         for (i = lattice->num_cols; i > start; i--) {
             b[i] = b[i - 1];
@@ -328,9 +332,12 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
 void insert_vector_long(lattice_t *lattice, long *u, int start, int end, int z) {
     long **b = lattice->basis_long;
     long *swap;
-    int i, j, g;
-    long q, ui;
-    long hv;
+    int i, j;
+
+    #if FALSE
+    int g;
+    long q, ui, hv;
+    #endif
 
     // Store new linear combination in lattice->swap_long
     for (j = 0; j < z; j++) {
@@ -343,7 +350,7 @@ void insert_vector_long(lattice_t *lattice, long *u, int start, int end, int z) 
         }
     }
 
-    #if 1
+    #if TRUE
         swap = b[lattice->num_cols];
         for (i = lattice->num_cols; i > start; i--) {
             b[i] = b[i - 1];
@@ -416,7 +423,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     DOUBLE *u_loc;
     DOUBLE c_min;
 
-    int i, j;
+    int i;
     int t, t_max;
     int found_improvement = 0;
 
@@ -555,11 +562,10 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
 
     DOUBLE c_min;
 
-    int i, j;
-    int t, t_max;
+    int i, t, t_max;
     int found_improvement = 0;
 
-    int len, k;
+    // int len;
     double alpha, radius;
     int SCHNITT = 2000;
 
@@ -632,7 +638,7 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
 
             lds_k[t] = lds_k_start;
 
-            len = t_max + 1 - start_block;
+            // len = t_max + 1 - start_block;
             while (t <= t_max) {
                 //fprintf(stderr, "t=%d, start=%d, end=%d t_max=%d lds:%d\n", t, start_block, end_block, t_max, lds_k[t]);
                 handle_signals(lattice, R);
