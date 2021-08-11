@@ -142,14 +142,14 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         //print_lattice(lattice);
     }
 
-    #if 0
+    #if FALSE
         printf("After second reduction\n");
         print_lattice(lattice);
     #endif
 
-    #if 1  // Third reduction
+    #if TRUE  // Third reduction
     /**
-     * scale last rows
+     * Scale last rows
      */
     mpz_set(lastlines_factor, lattice->LLL_params.scalelastlinefactor);
     for (i = 0; i < lattice->num_cols; i++) {
@@ -164,18 +164,18 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     }
 
     /**
-     * third reduction
+     * Third reduction
      */
-    if (lattice->LLL_params.iterate) {
+    if (lattice->LLL_params.type == ITERATE) {
+        // ---------- Iterated LLL
         iteratedlll(lattice, lattice->num_cols, lattice->num_rows,
                 lattice->LLL_params.iterate_no,
                 lattice->LLL_params.lll.delta_high, POT_LLL);
-    } else {
-        //shufflelattice(lattice);
-
+    } else if (lattice->LLL_params.type == PROGBKZ) {
+        // ---------- Progressive BKZ
         for (block_size = 4; block_size <= lattice->LLL_params.bkz.beta; block_size += 4) {
             lD = lDnew;
-            //shufflelattice(lattice);
+            shufflelattice(lattice);
             lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
                         lattice->LLL_params.lll.delta_higher,
                         block_size, lattice->LLL_params.bkz.p,
@@ -183,12 +183,50 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
                         solutiontest, solutiontest_long);
             fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
         }
+    } else {
+        // ---------- BKZ
+        shufflelattice(lattice);
+        lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
+                    lattice->LLL_params.lll.delta_higher,
+                    lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
+                    ENUM_BLOCK, 2000,
+                    solutiontest, solutiontest_long);
+        fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
+
+
+        #if FALSE
+            lD = lDnew;
+            shufflelattice(lattice);
+            lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
+                        lattice->LLL_params.lll.delta_higher,
+                        10000, lattice->LLL_params.bkz.p,
+                        ENUM_LDS_FULL, 20,
+                        solutiontest, solutiontest_long);
+            fprintf(stderr, "LDS improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
+        #endif
+
+        #if FALSE
+            for (i = 1; i < 10; i++) {
+                lD = lDnew;
+                shufflelattice(lattice);
+                lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
+                            lattice->LLL_params.lll.delta_higher,
+                            lattice->LLL_params.bkz.beta + i, lattice->LLL_params.bkz.p,
+                            ENUM_BLOCK, 200,
+                            solutiontest, solutiontest_long);
+                fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
+            }
+        #endif
+
     }
+
+    print_gsa(lattice->decomp.R, lattice->num_cols, 0);
     fprintf(stderr, "Third reduction successful\n"); fflush(stderr);
 
     dump_lattice(lattice);
+    // print_lattice(lattice);
 
-    /* undo scaling of last rows */
+    /* Undo scaling of last rows */
     for (i = 0; i < lattice->num_cols; i++) {
         mpz_divexact(lattice->basis[i][lattice->num_rows].c, lattice->basis[i][lattice->num_rows].c, lastlines_factor);
     }
@@ -201,7 +239,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     }
     #endif // Third reduction
     #else
-    read_NTL_lattice();
+        read_NTL_lattice();
     #endif // Do reduction
 
     if (lattice->LLL_params.print_ntl) {
@@ -549,8 +587,6 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
     long *swap;
     DOUBLE lD;
 
-    //decomp_alloc(&R, &beta, &N, &H, s, z);
-
     bit_size = get_bit_size(lattice);
 
     if (bit_size < 32) {
@@ -598,58 +634,55 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
         lD = log_potential(R, s, z);
         fprintf(stderr, "%d: log(D)= %f\n", runs, lD);
         fflush(stdout);
+        print_gsa(R, s, 0);
+
     }
     if (bit_size < 32) {
         copy_lattice_to_mpz(lattice);
     }
-    //lllfree(R, beta, N, H, s);
-
     return lD;
 }
 
 DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE quality, int reduction_type) {
     DOUBLE **R = lattice->decomp.R;
     DOUBLE *beta = lattice->decomp.c;
-    //DOUBLE *N = lattice->decomp.N;
     DOUBLE **H = lattice->decomp.H;
 
     DOUBLE lD;
     int start = 0, up, size, bit_size;
     coeff_t **basis_org;
 
-    //decomp_alloc(&R, &beta, &N, &H, s, z);
     bit_size = get_bit_size(lattice);
 
     //r = lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size);
-    #if 1
-    while (start < s) {
-        fprintf(stderr, "Block reduce %d\n", start);
-        up = start + block_size;
-        up = (up > s) ? s : up;
+    #if TRUE
+        while (start < s) {
+            fprintf(stderr, "Block reduce %d\n", start);
+            up = start + block_size;
+            up = (up > s) ? s : up;
 
-        basis_org = lattice->basis;
-        lattice->basis = &(lattice->basis[start]);
-        size = (start + block_size > up) ? up - start : block_size;
-        lllH(lattice, R, beta, H, 0, 0, size, z, quality, reduction_type, bit_size, solutiontest);
-        lattice->basis = basis_org;
-        start += block_size;
-    }
+            basis_org = lattice->basis;
+            lattice->basis = &(lattice->basis[start]);
+            size = (start + block_size > up) ? up - start : block_size;
+            lllH(lattice, R, beta, H, 0, 0, size, z, quality, reduction_type, bit_size, solutiontest);
+            lattice->basis = basis_org;
+            start += block_size;
+        }
     #else
-    while (start < s) {
-        fprintf(stderr, "Block reduce %d\n", start);
-        up = start + block_size;
-        up = (up > s) ? s : up;
+        while (start < s) {
+            fprintf(stderr, "Block reduce %d\n", start);
+            up = start + block_size;
+            up = (up > s) ? s : up;
 
-        lllH(lattice, R, beta, H, start, start, up, z, quality, reduction_type, bit_size);
-        start += block_size;
-    }
+            lllH(lattice, R, beta, H, start, start, up, z, quality, reduction_type, bit_size);
+            start += block_size;
+        }
     #endif
     //print_lattice(lattice);
 
     lD = log_potential(R, s, z);
     fprintf(stderr, "   log(D)= %f\n", lD);
     fflush(stderr);
-    //lllfree(R, beta, N, H, s);
 
     return lD;
 }

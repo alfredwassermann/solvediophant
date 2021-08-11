@@ -19,7 +19,7 @@ typedef struct {
  */
 typedef struct {
     mpz_t scalelastlinefactor;
-    int iterate;
+    int type;
     int iterate_no;
 
     int silent;

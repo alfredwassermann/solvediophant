@@ -7,6 +7,10 @@
 #define DEEPINSERT 1
 #define DEEPINSERT_CONST 30
 
+#define ITERATE 0
+#define PROGBKZ 1
+#define BKZ     2
+
 #define CLASSIC_LLL -1
 #define POT_LLL -2
 

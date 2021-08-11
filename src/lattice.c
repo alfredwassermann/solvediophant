@@ -497,7 +497,7 @@ void shufflelattice(lattice_t *lattice) {
     int i, j, r;
     unsigned int s;
 
-    #if 0
+    #if TRUE
         s = (unsigned)(time(0))*getpid();
     #else
         s = 1300964772;
@@ -550,23 +550,23 @@ void print_gsa(DOUBLE **R, int n, int start) {
     DOUBLE sxy = 0.0;
     for (i = 0; i < m; i++) {
         sx += i;
-        sy += log(R[i][i] * R[i][i]);
+        sy += log2(R[i][i] * R[i][i]);
         // if (isnan(sy)) {
         //     fprintf(stderr, "%d: %lf %lf\n", i, R[i][i], log(R[i][i] * R[i][i]));
         //     break;
         // }
-        sxy += i * log(R[i][i] * R[i][i]);
+        sxy += i * log2(R[i][i] * R[i][i]);
         sx2 += i * i;
     }
     double a = (m * sxy - sx * sy) / (m * sx2 - sx * sx);
     double b = (sy - a * sx) / m;
     fprintf(stderr, "%d: %lf %lf\n", start, a, b);
 
-    b1 = log(R[0][0] * R[0][0]);
+    b1 = log2(R[0][0] * R[0][0]);
     for (i = 0; i < n; i++) {
         // fprintf(f, "%d %lf\n", i, b1 - log(R[i][i] * R[i][i]));
         // fprintf(f2, "%d %lf\n", i, b1 - log(R[n-1][n-1] * R[n-1][n-1]));
-        fprintf(f, "%d %lf\n", i, log(R[i][i] * R[i][i]));
+        fprintf(f, "%d %lf\n", i, log2(R[i][i] * R[i][i]));
         fprintf(f2, "%d %lf\n", i, a * i + b);
     }
     fclose(f);

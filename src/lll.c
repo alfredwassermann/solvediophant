@@ -146,6 +146,9 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     start_tricol:
         /* Recompute column k of R */
         i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
+        if (fabs(R[k][k]) < 1.0e-12) {
+            // goto swap_zero_vector;
+        }
 
         /* size reduction of $b_k$ */
         mu_all_zero = TRUE;
@@ -199,6 +202,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         #endif
 
         if (norm != norm || norm < 0.5) {  // nan or < 0.5
+swap_zero_vector:
             // print_lattice(lattice);
             // fprintf(stderr, "lllH: Zero vector at %d\n", k);
             // fflush(stderr);
@@ -429,7 +433,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         min_idx = householder_column_long(b, R, H, beta, k, k + 1, z, bit_size);
 
         if (fabs(R[k][k]) < 1.0e-12) {
-            goto swap_zero_vector;
+            // goto swap_zero_vector_long;
         }
 
         /* size reduction of $b_k$ */
@@ -480,7 +484,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         // Zero vector detected.
         // Swap it to the end of the whole lattice
         if (norm != norm || norm < 0.5) {  // NaN or < 0.5
-swap_zero_vector:
+swap_zero_vector_long:
             // print_lattice(lattice);
             // fprintf(stderr, "lllH_long: Zero vector at %d\n", k);
             // fflush(stderr);

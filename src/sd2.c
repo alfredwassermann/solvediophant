@@ -1,11 +1,11 @@
 #include <signal.h>
 #include <stdio.h>
-#include <gmp.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include <sys/times.h>  /* For run time measurements */
 #include <unistd.h>
+#include <gmp.h>
+
 #include "lgs.h"
 #include "const.h"
 #include "datastruct.h"
@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
     /**
      * Init structs lattice and LLL_params
      */
-    lattice.LLL_params.iterate = lattice.LLL_params.bkz.beta = lattice.LLL_params.bkz.p = -1;
+    lattice.LLL_params.type = lattice.LLL_params.bkz.beta = lattice.LLL_params.bkz.p = -1;
     lattice.LLL_params.exhaustive_enum.lds = -1;
     lattice.LLL_params.exhaustive_enum.lds_k_max = 10;
 
@@ -169,11 +169,15 @@ int main(int argc, char *argv[]) {
 
         } else if (get_param(argc, argv, i, "-iterate", suffix) != 0) {
             lattice.LLL_params.iterate_no  = (int)strtol(suffix, &endptr, 10);
-            lattice.LLL_params.iterate = 1;
+            lattice.LLL_params.type = ITERATE;
+
+        } else if (get_param(argc, argv, i, "-pbkz", suffix) != 0) {
+            //fprintf(stderr, "SUFFIX %s\n", suffix);
+            lattice.LLL_params.type = PROGBKZ;
 
         } else if (get_param(argc, argv, i, "-bkz", suffix) != 0) {
             //fprintf(stderr, "SUFFIX %s\n", suffix);
-            lattice.LLL_params.iterate = 0;
+            lattice.LLL_params.type = BKZ;
 
         } else if (get_param(argc, argv, i, "-beta", suffix) != 0) {
             lattice.LLL_params.bkz.beta = (int)strtol(suffix, &endptr, 10);
@@ -261,16 +265,16 @@ int main(int argc, char *argv[]) {
         fprintf(stderr,"The last parameter on the command line has to be the input file name or '-'.\n");
         exit(1);
     }
-    if (lattice.LLL_params.iterate == -1) {
+    if (lattice.LLL_params.type == -1) {
         fprintf(stderr,"No reduction was chosen.\n");
         fprintf(stderr,"It is set to iterate=1.\n");
 
-        lattice.LLL_params.iterate = 1;
+        lattice.LLL_params.type = ITERATE;
         lattice.LLL_params.iterate_no = 1;
     }
-    if (lattice.LLL_params.iterate == 0 &&
+    if (lattice.LLL_params.type > ITERATE &&
             (lattice.LLL_params.bkz.beta == -1 /*|| lattice.LLL_params.bkz.p == -1 */)) {
-        fprintf(stderr,"You have chosen bkz reduction. You also have to specify the parameters");
+        fprintf(stderr,"You have chosen bkz or pbkz reduction. You also have to specify the parameters");
         fprintf(stderr," -beta* [-p*]\n");
         exit(1);
     }
@@ -286,7 +290,7 @@ int main(int argc, char *argv[]) {
     }
     if (mpz_cmp_si(lattice.LLL_params.scalelastlinefactor, 0) <= 0) {
         fprintf(stderr,"You did not supply the options -scalelastline*. ");
-        fprintf(stderr,"It is set to 10000.\n");
+        fprintf(stderr,"It is set to 1000.\n");
         mpz_set_si(lattice.LLL_params.scalelastlinefactor, 1000);
     }
 

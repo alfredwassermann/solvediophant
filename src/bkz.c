@@ -81,11 +81,11 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
     }
 
     if (enum_type == ENUM_LDS_FULL) {
-        fprintf(stderr, "\n######### BKZ-LDS %d ########\n", beta);
+        fprintf(stderr, "\n######### BKZ-LDS %d ######## bits=%d\n", beta, bit_size);
     } else if (enum_type == ENUM_LDS_FULL2) {
-        fprintf(stderr, "\n######### BKZ-LDS2 %d ########\n", beta);
+        fprintf(stderr, "\n######### BKZ-LDS2 %d ######## bits=%d\n", beta, bit_size);
     } else {
-        fprintf(stderr, "\n######### BKZ %d ########\n", beta);
+        fprintf(stderr, "\n######### BKZ %d ######## bits=%d\n", beta, bit_size);
     }
 
     u = (long*)calloc(s, sizeof(long));
@@ -116,24 +116,28 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
             tour_cnt++;
         }
         if (start_block == 0) {
-            //lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size);
+            if (bit_size < bit_size_threshold) {
+                lllH_long(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest_long);
+            } else {
+                lllH     (lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
+            }
         }
 
         end_block = start_block + beta - 1;
         end_block = (end_block < last) ? end_block : last;
 
         enum_cnt++;
-        if (enum_type != ENUM_BLOCK) {
+        if (enum_type == ENUM_BLOCK) {
+            //fprintf(stderr, "BLOCK %d\n", tour_cnt);
+            // fprintf(stderr, "block at %d, \tstart at %d (%d)\n", cnt, start_block, tour_cnt);
+            new_cj = enumerate(lattice, R, u, s, start_block, end_block, delta, p, &bkz_enum);
+        } else {
             //fprintf(stderr, "LDS %d\n", tour_cnt);
             // fprintf(stderr, "lds at %d, \tstart at %d (%d)\n", cnt, start_block, tour_cnt);
             if (enum_type == ENUM_LDS_FULL || enum_type == ENUM_LDS_FULL2) {
                 end_block = last;
             }
             new_cj = lds_enumerate(lattice, R, u, s, start_block, end_block, delta, p, &bkz_enum);
-        } else {
-            //fprintf(stderr, "BLOCK %d\n", tour_cnt);
-            // fprintf(stderr, "block at %d, \tstart at %d (%d)\n", cnt, start_block, tour_cnt);
-            new_cj = enumerate(lattice, R, u, s, start_block, end_block, delta, p, &bkz_enum);
         }
 
         h = (end_block + 1 < last) ? end_block + 1 : last;
@@ -141,12 +145,12 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
         r_tt = R[start_block][start_block];
         r_tt *= r_tt;
         if (delta * r_tt > new_cj) {
-            #if FALSE
-            if (beta > 0) {
-                fprintf(stderr, "enum %d successful %d %lf improvement: %lf\n",
-                                    beta, start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
-                fflush(stderr);
-            }
+            #if TRUE
+                if (beta > 0) {
+                    fprintf(stderr, "enum %d successful %d %lf improvement: %lf\n",
+                                        beta, start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
+                    fflush(stderr);
+                }
             #endif
 
             /* successful enumeration */
@@ -158,16 +162,18 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
                 insert_vector     (lattice, u, start_block, end_block, z, hv);
             }
 
+            #define WIDTH lattice->num_cols
+            // #define WIDTH h + 1
             if (bit_size < bit_size_threshold) {
-                lllH_long(lattice, R, h_beta, H, start_block - 1, 0, lattice->num_cols /* h + 1*/, z, delta, POT_LLL, bit_size, solutiontest_long);
+                lllH_long(lattice, R, h_beta, H, start_block - 1, 0, WIDTH, z, delta, 30, bit_size, solutiontest_long);
             } else {
-                lllH     (lattice, R, h_beta, H, start_block - 1, 0, lattice->num_cols /* h + 1 */, z, delta, POT_LLL, bit_size, solutiontest);
+                lllH     (lattice, R, h_beta, H, start_block - 1, 0, WIDTH, z, delta, 30, bit_size, solutiontest);
             }
 
             if (enum_type == ENUM_LDS_FULL2) {
                 start_block--;
                 if (enum_cnt > 30000) {
-                    fprintf(stderr, "Stop ENUM_LDS_FULL2 after %d tours", 30000);
+                    fprintf(stderr, "Stop ENUM_LDS_FULL2 after %d iterations", 30000);
                     break;
                 }
             }
@@ -191,6 +197,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
 
     } /* end of |while| */
 
+    fprintf(stderr, "cnt=%d, tours=%d\n", cnt, tour_cnt);
     print_gsa(R, s, start_block);
 
     if (bit_size < bit_size_threshold) {
@@ -419,7 +426,7 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     int len, k;
     double alpha, radius;
 
-    int SCHNITT = 30;
+    int SCHNITT = 2000;
 
     c = bkz_enum->c;
     y = bkz_enum->y;
@@ -563,17 +570,17 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     int lds_k_start;
     int lds_k_max;
 
-    lds_k_max = 2;
+    lds_k_max = 3;
     lds_k = (int*)malloc((s + 1) * sizeof(int));
 
     // --------
 
     if (end_block - start_block < 30) {
-        lds_k_max = 9;
+        lds_k_max = 10;
     } else if (end_block - start_block < 60) {
-        lds_k_max = 7;
+        lds_k_max = 8;
     } else if (end_block - start_block < 100) {
-        lds_k_max = 4;
+        lds_k_max = 5;
     }
 
     c = bkz_enum->c;
@@ -671,11 +678,11 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                             u[i] = (long)round(u_loc[i]);
                         }
                         #if FALSE
-                        fprintf(stderr, "i ");
-                        for (i = start_block; i <= end_block; i++) {
-                            fprintf(stderr, "%ld ", u[i]);
-                        }
-                        fprintf(stderr, "\n");
+                            fprintf(stderr, "i ");
+                            for (i = start_block; i <= end_block; i++) {
+                                fprintf(stderr, "%ld ", u[i]);
+                            }
+                            fprintf(stderr, "\n");
                         #endif
                         found_improvement = 1;
 
