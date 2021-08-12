@@ -235,6 +235,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr,"\t inputfile: file name or '-'  for stdin\n");
             fprintf(stderr,"\t-iterate{num} do num LLL calls with delta=delta_high\n");
             fprintf(stderr,"\t-bkz -beta{num} do BKZ with blocksize num\n");
+            fprintf(stderr,"\t-pbkz -beta{num} do progressive BKZ with blocksize num\n");
             fprintf(stderr,"\t-c{num} scale equations by num (default=10000000000000)\n");
             fprintf(stderr,"\t-scalelastline{num} scale last line by num (default=1000)\n");
             fprintf(stderr,"\t-maxnorm* ???? default=1\n");
