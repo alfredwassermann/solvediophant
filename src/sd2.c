@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr,"\t-silent do not write solutions to stdout and solution file\n");
             fprintf(stderr,"\t-printntl write (shortened) lattice after third reduction in NTL format to stdout\n");
             fprintf(stderr,"\t-restart{string} Read dumped lattice basis from file 'string' and jump to third reduction phase\n");
-            fprintf(stderr,"\t-lds{num} Use LDS enumration up tp num discrepancies, otherwise use dfs (default=dfs)\n");
+            fprintf(stderr,"\t-lds{num} Use LDS enumeration up tp num discrepancies, otherwise use dfs (default=dfs)\n");
             fprintf(stderr,"Signals:\n");
             fprintf(stderr,"\t 10: print lattice, e.g. kill -10 PID\n");
             fprintf(stderr,"\t 12 Dump lattice to file 'dump_lattice.b', e.g. kill -12 PID\n");
