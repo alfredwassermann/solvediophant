@@ -713,10 +713,10 @@ void dump_lattice_sig(int sig) {
 }
 
 void print_NTL_lattice(lattice_t *lattice) {
-    int i,j;
+    int i, j;
 
-    fprintf(stderr, "%d %d\n", lattice->num_cols, lattice->num_rows);
-    //printf("%d\n",system_rows);
+    fprintf(stderr, "%d x %d\n", lattice->num_cols, lattice->num_rows);
+    // printf("%d %d\n", lattice->num_cols, lattice->num_rows);
     printf("\n[");
     for (i = 0; i < lattice->num_cols; i++) {
         printf("[");
@@ -730,16 +730,20 @@ void print_NTL_lattice(lattice_t *lattice) {
     printf("]\n");
     fflush(stdout);
 
-    printf("\n");
-    //printf("%d ", lattice->num_cols - 1);
-    mpz_out_str(NULL, 10, lattice->upperbounds_max);
-    printf("\n\n[");
-    for (i = 0; i < lattice->num_rows - 1; i++) {
-        mpz_out_str(NULL, 10, lattice->upperbounds[i]);
-        printf(" ");
+    if (!lattice->is_zero_one) {
+        printf("\n");
+
+        //printf("%d ", lattice->num_cols - 1);
+        mpz_out_str(NULL, 10, lattice->upperbounds_max);
+        printf("\n\n[");
+        for (i = 0; i < lattice->num_rows - 1; i++) {
+            fprintf(stderr, "%d\n", i);
+            mpz_out_str(NULL, 10, lattice->upperbounds[i]);
+            printf(" ");
+        }
+        printf("]\n");
+        fflush(stdout);
     }
-    printf("]\n");
-    fflush(stdout);
 
     return;
 }
