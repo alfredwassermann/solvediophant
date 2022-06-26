@@ -68,13 +68,19 @@ GMPINC=
 #GMPINC=-I../gmp-4.2.1/bin/include
 ###################################
 
+###################################
+# Print files gsa.out and gsa1.out
+# Otherwise comment out
+GSA_OUT=FALSE
+###################################
+
 OBJFILES=$(SRC)/bkz.o   $(SRC)/dio2.o   $(SRC)/dualbkz.o   $(SRC)/enum.o   $(SRC)/lattice.o   $(SRC)/lgs.o   $(SRC)/lll.o   $(SRC)/sd2.o
 PDFFILES=$(PDF)/bkz.pdf $(PDF)/dio2.pdf $(PDF)/dualbkz.pdf $(PDF)/enum.pdf $(PDF)/lattice.pdf $(PDF)/lgs.pdf $(PDF)/lll.pdf $(PDF)/sd2.pdf
 
 all: $(BIN)/sd2 tags $(PDFFILES)
 
 $(SRC)/%.o: $(SRC)/%.c $(SRC)/%.h $(SRC)/datastruct.h
-	$(CC) $(CFLAGS) -D$(BLAS) -I$(BLASINC) -c $< $(GMPINC) -o $@
+	$(CC) $(CFLAGS) -D$(GSA_OUT) -D$(BLAS) -I$(BLASINC) -c $< $(GMPINC) -o $@
 	@echo "Compiled "$<" successfully!"
 
 $(PDF)/%.pdf: $(SRC)/%.c
@@ -93,5 +99,5 @@ tags: $(SRC) Makefile
 
 .PHONY: clean
 clean:
-	rm $(SRC)/*.o $(PDF)/*.pdf dump_lattice.b */dump_lattice.b
+	rm -f $(SRC)/*.o $(PDF)/*.pdf dump_lattice.b */dump_lattice.b
 

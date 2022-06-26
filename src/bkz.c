@@ -106,7 +106,9 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
     tour_cnt = 0;
     enum_cnt = 0;
 
-    print_gsa(R, s, start_block);
+    #if GSA_OUT==TRUE
+        print_gsa(R, s, start_block);
+    #endif
 
     while (cnt < last && tour_cnt < max_tours) {
         start_block++;
@@ -178,7 +180,9 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
                 }
             }
 
+            #if GSA_OUT==TRUE
             // print_gsa(R, s, start_block);
+            #endif
             cnt = -1;
 
         } else {
@@ -198,7 +202,9 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
     } /* end of |while| */
 
     fprintf(stderr, "cnt=%d, tours=%d\n", cnt, tour_cnt);
-    print_gsa(R, s, start_block);
+    #if GSA_OUT==TRUE
+        print_gsa(R, s, start_block);
+    #endif
 
     if (bit_size < bit_size_threshold) {
         copy_lattice_to_mpz(lattice);

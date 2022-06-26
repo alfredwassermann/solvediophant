@@ -220,7 +220,9 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 
     }
 
-    print_gsa(lattice->decomp.R, lattice->num_cols, 0);
+    #if GSA_OUT==TRUE
+        print_gsa(lattice->decomp.R, lattice->num_cols, 0);
+    #endif
     fprintf(stderr, "Third reduction successful\n"); fflush(stderr);
 
     dump_lattice(lattice);
@@ -634,7 +636,9 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
         lD = log_potential(R, s, z);
         fprintf(stderr, "%d: log(D)= %f\n", runs, lD);
         fflush(stdout);
-        print_gsa(R, s, 0);
+        #if GSA_OUT==TRUE
+            print_gsa(R, s, 0);
+        #endif
 
     }
     if (bit_size < 32) {
