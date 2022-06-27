@@ -505,7 +505,7 @@ void shufflelattice(lattice_t *lattice) {
     fprintf(stderr, "Seed=%u\n",s);
     srand(s);
 
-    for (j = 0; j < 100; j++) {
+    for (j = 0; j < 10000; j++) {
         for (i = lattice->num_cols - 1; i > 0; i--) {
             r = rand() % i;
             tmp = lattice->basis[r];
