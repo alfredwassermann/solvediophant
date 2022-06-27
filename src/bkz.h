@@ -6,7 +6,7 @@
 #include "datastruct.h"
 #include "lattice.h"
 
-#define ENUM_BLOCK  0
+#define ENUM_BLOCK  1
 #define ENUM_LDS_FULL  1
 #define ENUM_LDS_FULL2 2
 #define ENUM_LDS_BLOCK 3
