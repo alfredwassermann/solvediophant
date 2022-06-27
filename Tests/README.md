@@ -17,6 +17,18 @@ All solutions are found also with lds
 ./sd3 -bkz -beta40 Tests/KM_PSL_2_23_7_8.in
 All solutions are found also with lds
 
+* KM_PSL_2_25_7_9.txt:
+- 7-(26, 9, 54) designs. Probably no solutions
+0/1 problem, ? solutions
+
+* KM_PGL_2_25_7_8.txt:
+- 7-(26, 8, 6) designs.
+0/1 problem, 14 solutions
+
+* KM_PGL_2_25_7_9.txt:
+- 7-(26, 8, 54) designs.
+0/1 problem, ? solutions
+
 * unitals_v1.txt:
 0/1 problems, 78 solutions
 ./sd3 -bkz -beta32 Tests/unitals_v1.txt
