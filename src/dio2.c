@@ -179,7 +179,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
                         lattice->LLL_params.lll.delta_higher,
                         block_size, lattice->LLL_params.bkz.p,
-                        ENUM_BLOCK, 100,
+                        ENUM_BLOCK, 30,
                         solutiontest, solutiontest_long);
             fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
         }
@@ -189,11 +189,10 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
                     lattice->LLL_params.lll.delta_higher,
                     lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
-                    ENUM_BLOCK, 100,
+                    ENUM_BLOCK, 30,
                     solutiontest, solutiontest_long);
         fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
 
-/*
         #if FALSE
             lD = lDnew;
             shufflelattice(lattice);
@@ -217,7 +216,6 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
                 fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
             }
         #endif
-*/
     }
 
     #if GSA_OUT==TRUE
