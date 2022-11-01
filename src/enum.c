@@ -1246,8 +1246,8 @@ int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *u
 
     num_solutions++;
     if (num_solutions%10000==0) {
-        printf("%ld\n", num_solutions);
-        fflush(stdout);
+        fprintf(stderr, "%ld\n", num_solutions);
+        fflush(stderr);
     }
 
     return 1;
