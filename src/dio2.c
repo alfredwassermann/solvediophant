@@ -534,7 +534,7 @@ int solutiontest_long(lattice_t *lattice, int position) {
         fprintf(stderr, " ");
         if (lattice->LLL_params.stop_after_solutions == 1) {
             mpz_out_str(solution.fp, 10, solution.u);
-            fprintf(solution.fp," ");
+            fprintf(solution.fp, " ");
         }
     }
     if (lattice->free_RHS) {
@@ -542,7 +542,7 @@ int solutiontest_long(lattice_t *lattice, int position) {
         // mpz_divexact(solution.u, solution.u, lattice->LLL_params.scalelastlinefactor);
         mpz_abs(solution.u, solution.u);
         fprintf(stderr, " L = ");
-        mpz_out_str(stderr, 10,solution.u);
+        mpz_out_str(stderr, 10, solution.u);
     }
     fprintf(stderr, " ||\n");
     fflush(stderr);

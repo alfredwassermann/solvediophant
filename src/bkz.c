@@ -71,10 +71,10 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
 
     last = s - 1;    /* |last| points to the last nonzero vector of the lattice.*/
     if (last < 1) {
-        printf("BKZ: the number of basis vectors is too small.\n");
-        printf("Probably the number of rows is less or equal");
-        printf(" to number of columns in the original system\n");
-        printf("Maybe you have to increase c0 (the first parameter)!\n");
+        fprintf(stderr, "BKZ: the number of basis vectors is too small.\n");
+        fprintf(stderr, "Probably the number of rows is less or equal");
+        fprintf(stderr, " to number of columns in the original system\n");
+        fprintf(stderr, "Maybe you have to increase c0 (the first parameter)!\n");
 
         mpz_clear(hv);
         return 0.0;
