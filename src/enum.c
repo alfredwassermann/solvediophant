@@ -1223,7 +1223,6 @@ int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *u
                 i++;
             }
             mpz_out_str(NULL, 10, solution.u);
-            fflush(stdout);
             mpz_out_str(solution.fp, 10, solution.u);
 
             /* Meanwhile, all solution vectors are written with separating blanks. */
