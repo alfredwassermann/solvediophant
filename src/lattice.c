@@ -483,13 +483,13 @@ void handle_signals(lattice_t *lattice, DOUBLE **R) {
 
 void print_lattice_stat(lattice_t *lattice, DOUBLE **R) {
     int i;
-    printf("--------------------------------\n");
+    fprintf(stderr, "--------------------------------\n");
     for (i = 0; i < lattice->num_cols; i++) {
-        printf("%0.3lf ", R[i][i] * R[i][i]);
+        fprintf(stderr, "%0.3lf ", R[i][i] * R[i][i]);
     }
-    printf("\n logD=%0.3lf\n", log_potential(R, lattice->num_cols, lattice->num_rows));
-    printf("--------------------------------\n");
-    fflush(stdout);
+    fprintf(stderr,"\n logD=%0.3lf\n", log_potential(R, lattice->num_cols, lattice->num_rows));
+    fprintf(stderr,"--------------------------------\n");
+    fflush(stderr);
 }
 
 void shufflelattice(lattice_t *lattice) {

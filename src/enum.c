@@ -832,7 +832,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice) {
         fprintf(stderr, "Total number of solutions: %ld\n", num_solutions);
     }
     fprintf(stderr, "\n");
-    fflush(stdout);
+    /* fflush(stdout); */
     fflush(stderr);
 
     /* free allocated memory for enumeration */

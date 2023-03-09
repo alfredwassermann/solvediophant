@@ -633,7 +633,7 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
         }
         lD = log_potential(R, s, z);
         fprintf(stderr, "%d: log(D)= %f\n", runs, lD);
-        fflush(stdout);
+        fflush(stderr);
         #if GSA_OUT==TRUE
             print_gsa(R, s, 0);
         #endif

@@ -335,7 +335,6 @@ int main(int argc, char *argv[]) {
 
     if (txt == NULL) {
         printf("Could not open file '%s'!\n", inputfile_name);
-        fflush(stdout);
         exit(1);
     }
 
@@ -388,7 +387,7 @@ int main(int argc, char *argv[]) {
     timestring[0] = 0;
     print_delta_time(user_time, timestring);
     fprintf(stderr,"total enumeration time: %s\n", timestring);
-    fflush(stdout);
+    /* fflush(stdout); */
 
 	lgs_free_mem(&LGS);
 
