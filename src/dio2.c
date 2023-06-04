@@ -432,7 +432,9 @@ int solutiontest(lattice_t *lattice, int position) {
         mpz_out_str(stderr, 10, solution.u);
         fprintf(stderr, " ");
         if (lattice->LLL_params.stop_after_solutions == 1) {
+            mpz_out_str(NULL, 10, solution.u);
             mpz_out_str(solution.fp, 10, solution.u);
+            printf(" ");
             fprintf(solution.fp," ");
         }
     }
@@ -441,6 +443,7 @@ int solutiontest(lattice_t *lattice, int position) {
         // mpz_divexact(solution.u, solution.u, lattice->LLL_params.scalelastlinefactor);
         mpz_abs(solution.u, solution.u);
         fprintf(stderr, " L = ");
+        mpz_out_str(NULL, 10, solution.u);
         mpz_out_str(stderr, 10, solution.u);
     }
     fprintf(stderr, " !!\n");
@@ -448,6 +451,7 @@ int solutiontest(lattice_t *lattice, int position) {
 
     /* test if one solution is enough */
     if (lattice->LLL_params.stop_after_solutions == 1) {
+        printf("\n");
         fprintf(solution.fp,"\n");
 
         fprintf(stderr, "Stopped in phase 1 after finding a random solution\n");
@@ -533,7 +537,9 @@ int solutiontest_long(lattice_t *lattice, int position) {
         mpz_out_str(stderr,10, solution.u);
         fprintf(stderr, " ");
         if (lattice->LLL_params.stop_after_solutions == 1) {
+            mpz_out_str(NULL, 10, solution.u);
             mpz_out_str(solution.fp, 10, solution.u);
+            printf(" ");
             fprintf(solution.fp, " ");
         }
     }
@@ -549,6 +555,7 @@ int solutiontest_long(lattice_t *lattice, int position) {
 
     /* Test if one solution is enough */
     if (lattice->LLL_params.stop_after_solutions == 1) {
+        printf("\n");
         fprintf(solution.fp,"\n");
 
         fprintf(stderr, "Stopped in phase 1 after finding a random solution\n");
