@@ -1,0 +1,8 @@
+% Add equations such that
+% the solution vector is lex. ordered
+3 5 1
+1  1 1  0 0   20
+1 -1 0 -1 0   0
+0  1 -1 0 -1  0
+BOUNDS 5
+10 10 10   10 10
