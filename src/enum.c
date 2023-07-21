@@ -41,7 +41,7 @@ solution_t solution;
 /**
  * Globals for enumeration
  */
-int MAX_DUAL_BOUNDS = 512; //8192; //1024;
+int MAX_DUAL_BOUNDS = 8192; // 8192; //1024;
 int level_max;
 long loops;
 
@@ -234,6 +234,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
             }
 
             if (ed->num >= MAX_DUAL_BOUNDS) {
+                fprintf(stderr, "%d vs. %d\n", ed->num, MAX_DUAL_BOUNDS);
                 fprintf(stderr, "enum_data too small! Exit\n");
                 fflush(stderr);
                 exit(1);
