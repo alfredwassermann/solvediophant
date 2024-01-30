@@ -52,7 +52,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     DOUBLE norm;
     int mu_all_zero;
 
-    DOUBLE theta, eta;
+    DOUBLE theta, theta1, eta;
 
     DOUBLE mus;
     mpz_t musvl;
@@ -142,6 +142,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         // #endif
 
         cnt_tricol = 0;
+        theta1 = theta;
     start_tricol:
         /* (Re)compute column k of R */
         i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
@@ -153,16 +154,17 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         mu_all_zero = TRUE;
         for (j = k - 1; j >= low; j--) {
             /* Subtract suitable multiple of $b_j$ from $b_k$. */
-            if (fabs(R[k][j]) > eta * fabs(R[j][j]) + theta * fabs(R[k][k])) {
+            if (fabs(R[k][j]) > eta * fabs(R[j][j]) + theta1 * fabs(R[k][k])) {
                 mus = ROUND(R[k][j] / R[j][j]);
                 mpz_set_d(musvl, mus);
                 mu_all_zero = FALSE;
 
+                theta1 += 0.001;
                 if (cnt_tricol > 10000) {
-                    fprintf(stderr, "Possible tricol error: %d: eta=%0.2lf, theta=%0.2lf, %0.2lf, %lf %lf %lf\n\t %lf\n",
-                        j, eta, theta, mus,
+                    fprintf(stderr, "Possible tricol error: %d: eta=%0.2lf, theta1=%0.2lf, %0.2lf, %lf %lf %lf\n\t %lf\n",
+                        j, eta, theta1, mus,
                         R[k][j], R[j][j], R[k][k],
-                        eta * fabs(R[j][j]) + theta * fabs(R[k][k]));
+                        eta * fabs(R[j][j]) + theta1 * fabs(R[k][k]));
                     exit(EXIT_ERR_NUMERIC);
                 }
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
