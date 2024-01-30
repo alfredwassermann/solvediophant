@@ -47,7 +47,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             int (*solutiontest)(lattice_t *lattice, int k)) {
 
     coeff_t **b = lattice->basis;
-    int i, j, k;
+    int i, j, k, kk;
     int cnt_tricol;
     DOUBLE norm;
     int mu_all_zero;
@@ -61,7 +61,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     DOUBLE r_new, r_act;
     DOUBLE pot, pot_max;
     int pot_idx;
-    int insert_pos, lowest_pos;
+    int insert_pos, lowest_pos, k_max;
     int deep_size;
     coeff_t *swapvl;
 
@@ -111,6 +111,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     }
 
     k = (start >= low) ? start : low;
+    k_max = k;
     lowest_pos = k;
 
     /* The main loop */
@@ -143,38 +144,45 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
         cnt_tricol = 0;
         theta1 = theta;
+        kk = k;
+
     start_tricol:
         /* (Re)compute column k of R */
-        i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
+        i = householder_column(b, R, H, beta, kk, kk + 1, z, bit_size);
         // if (fabs(R[k][k]) < 1.0e-12) {
         //     goto swap_zero_vector;
         // }
 
-        /* size reduction of $b_k$ */
+        /* Size reduction of $b_k$ */
         mu_all_zero = TRUE;
-        for (j = k - 1; j >= low; j--) {
-            /* Subtract suitable multiple of $b_j$ from $b_k$. */
-            if (fabs(R[k][j]) > eta * fabs(R[j][j]) + theta1 * fabs(R[k][k])) {
-                mus = ROUND(R[k][j] / R[j][j]);
+        for (j = kk - 1; j >= low; j--) {
+            /** 
+             * Subtract suitable multiple of $b_j$ from $b_k$.
+             * Lazy size reduction, see Stehle, "Floating-point LLL: theoretical and practical aspects"
+             */
+            if (fabs(R[kk][j]) > eta * fabs(R[j][j]) + theta1 * fabs(R[kk][kk])) {
+                mus = ROUND(R[kk][j] / R[j][j]);
                 mpz_set_d(musvl, mus);
                 mu_all_zero = FALSE;
 
-                theta1 += 0.001;
+                if (cnt_tricol % 100 == 0) {
+                    theta1 += 0.001;
+                }
                 if (cnt_tricol > 10000) {
                     fprintf(stderr, "Possible tricol error: %d: eta=%0.2lf, theta1=%0.2lf, %0.2lf, %lf %lf %lf\n\t %lf\n",
                         j, eta, theta1, mus,
-                        R[k][j], R[j][j], R[k][k],
-                        eta * fabs(R[j][j]) + theta1 * fabs(R[k][k]));
+                        R[kk][j], R[j][j], R[kk][k],
+                        eta * fabs(R[j][j]) + theta1 * fabs(R[kk][kk]));
                     exit(EXIT_ERR_NUMERIC);
                 }
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
-                size_reduction(b, R, musvl, mus, k, j);
-                (*solutiontest)(lattice, k);
+                size_reduction(b, R, musvl, mus, kk, j);
+                (*solutiontest)(lattice, kk);
             }
         }
 
         if (cnt_tricol > 0 && cnt_tricol % 1000 == 0) {
-            fprintf(stderr, "tricol %d at %d\n", cnt_tricol, k);
+            fprintf(stderr, "tricol %d at %d\n", cnt_tricol, kk);
             fflush(stderr);
         }
         cnt_tricol++;
@@ -183,8 +191,18 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             goto start_tricol;
         }
 
-        if (0) {
-            check_precision(b[k], R[k], z, k);
+        if (k > k_max) {
+            // Early size reduction, see Stehle, "Floating-point LLL: theoretical and practical aspects", p. 201
+            // Seems to be slower...
+            // if (kk < up - 1) {
+            //     kk++;
+            //     goto start_tricol;
+            // }
+            k_max = k;
+        }
+
+        if (FALSE) {
+            check_precision(b[kk], R[kk], z, kk);
         }
 
         /*
@@ -203,7 +221,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         #endif
 
         if (norm != norm || norm < 0.5) {  // nan or < 0.5
-swap_zero_vector:
+    swap_zero_vector:
             // print_lattice(lattice);
             // fprintf(stderr, "lllH: Zero vector at %d\n", k);
             // fflush(stderr);
