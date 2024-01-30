@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include "const.h"
 #include "lgs.h"
 
 /**
@@ -515,5 +516,5 @@ int preprocess(lgs_t *LGS) {
 void incorrect_input_file() {
     fprintf(stderr,"Incomplete input file -> exit\n");
     fflush(stderr);
-    exit(1);
+    exit(EXIT_ERR_INPUT);
 }

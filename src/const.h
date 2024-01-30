@@ -41,4 +41,26 @@ extern int DUMP_REQUIRED;
 #define SQRT sqrt
 #define DOUBLE double
 
+/** 
+ *Error codes for exit():
+ * -- 0: normal program flow (reduction plus exhaustive enumeration)
+ * -- 1: Input error or internal error
+ * -- 2: Solution not possible, system not solvable over the reals. This may also come from parameter -c being too small
+ * -- 3: Program has been called with parameters -? or -h
+ * -- 4: Stop because of numerical problems in tricol
+ * -- 8: Stopped after finding a random solution in phase one (''\% stopafter: 1'' has been set in the problem file)
+ * -- 9: Stopped after the maximum number of solutions (''\% stopafter: n'' has been set in the problem file)
+ * -- 10: Stopped after reaching the maximum number of loops (''\% stoploops: n'' has been set in the problem file)
+ * -- 11: Stopped after SIGALRM, i.e. max time has been reached
+ */
+#define EXIT_ERR_INPUT 1
+#define EXIT_NOT_SOLVABLE 2
+#define EXIT_HELP 3
+#define EXIT_ERR_NUMERIC 4
+#define EXIT_RANDOM_SOLUTION 8
+#define EXIT_MAX_SOLUTION 9
+#define EXIT_MAX_LOOPS 10
+#define EXIT_MAX_SIGALRM 11
+
+
 #endif

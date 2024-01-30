@@ -79,7 +79,7 @@ PDFFILES=$(PDF)/bkz.pdf $(PDF)/dio2.pdf $(PDF)/dualbkz.pdf $(PDF)/enum.pdf $(PDF
 
 all: $(BIN)/sd2 tags $(PDFFILES)
 
-$(SRC)/%.o: $(SRC)/%.c $(SRC)/%.h $(SRC)/datastruct.h
+$(SRC)/%.o: $(SRC)/%.c $(SRC)/%.h $(SRC)/datastruct.h $(SRC)/const.h
 	$(CC) $(CFLAGS) -D$(GSA_OUT) -D$(BLAS) -I$(BLASINC) -c $< $(GMPINC) -o $@
 	@echo "Compiled "$<" successfully!"
 

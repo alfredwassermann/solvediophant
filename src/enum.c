@@ -237,7 +237,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                 fprintf(stderr, "%d vs. %d\n", ed->num, MAX_DUAL_BOUNDS);
                 fprintf(stderr, "enum_data too small! Exit\n");
                 fflush(stderr);
-                exit(1);
+                exit(EXIT_ERR_INPUT);
             }
         }
 
@@ -825,9 +825,9 @@ DOUBLE explicit_enumeration(lattice_t *lattice) {
             print_num_solutions(num_solutions);
         if ((lattice->LLL_params.stop_after_loops <= loops &&
             lattice->LLL_params.stop_after_loops > 0)) {
-            exit(10);
+            exit(EXIT_MAX_LOOPS);
         } else {
-            exit(9);
+            exit(EXIT_MAX_SOLUTION);
         }
     } else {
         fprintf(stderr, "Total number of solutions: %ld\n", num_solutions);

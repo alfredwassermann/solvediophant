@@ -20,7 +20,7 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
                      int (*solutiontest)(lattice_t *lattice, int k)) {
     DOUBLE **R     = lattice->decomp.R;
     DOUBLE *h_beta = lattice->decomp.c;
-    DOUBLE *N      = lattice->decomp.N;
+    // DOUBLE *N      = lattice->decomp.N;
     DOUBLE **H     = lattice->decomp.H;
 
     DOUBLE r_tt;
@@ -132,7 +132,7 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
                 int (*solutiontest)(lattice_t *lattice, int k)) {
     DOUBLE **R     = lattice->decomp.R;
     DOUBLE *h_beta = lattice->decomp.c;
-    DOUBLE *N      = lattice->decomp.N;
+    // DOUBLE *N      = lattice->decomp.N;
     DOUBLE **H     = lattice->decomp.H;
 
     DOUBLE r_tt;
@@ -205,7 +205,7 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
             if (FALSE && fabs(new_cj2 - new_cj) > EPSILON) {
                 fprintf(stderr, "???????????????? We have a problem at %d: %lf %lf\n", i, new_cj2, new_cj);
                 fflush(stderr);
-                exit(1);
+                exit(EXIT_ERR_INPUT);
             }
             lllH(lattice, R, h_beta, H, h, 0, h_end, z, delta, CLASSIC_LLL, bit_size, solutiontest);
             //cnt = -1;
@@ -359,8 +359,9 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
 void dual_insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t hv) {
     coeff_t **b = lattice->basis;
     coeff_t *swapvl;
-    int i, j, g;
-    long q, ui;
+    int i, j;
+    // int g;
+    // long q ui;
 
     /* build new basis */
     for (j = 1; j <= z; j++) {
@@ -379,55 +380,55 @@ void dual_insert_vector(lattice_t *lattice, long *u, int start, int end, int z, 
     }
     coeffinit(lattice->swap, z);
 
-    #if TRUE
+    // #if TRUE
         swapvl = b[lattice->num_cols];
         for (i = lattice->num_cols; i > start; i--)
             b[i] = b[i - 1];
         b[start] = lattice->swap;
         lattice->swap = swapvl;
         lattice->num_cols++;
-    #else
-        g = start;
-        while (u[g] == 0) g++;
-        i = g + 1;
-        while (labs(u[g]) > 1) {
-            while (u[i] == 0) i++;
-            q = (long)ROUND((1.0 * u[g]) / u[i]);
-            ui = u[i];
-            u[i] = u[g] - q * u[i];
-            u[g] = ui;
+    // #else
+    //     g = start;
+    //     while (u[g] == 0) g++;
+    //     i = g + 1;
+    //     while (labs(u[g]) > 1) {
+    //         while (u[i] == 0) i++;
+    //         q = (long)ROUND((1.0 * u[g]) / u[i]);
+    //         ui = u[i];
+    //         u[i] = u[g] - q * u[i];
+    //         u[g] = ui;
 
-            // (b[g], b[i]) = (b[g] * q + b[i], b[g])
-            for (j = 1; j <= z; j++) {
-                mpz_set(hv, b[g][j].c);
-                mpz_mul_si(b[g][j].c, b[g][j].c, (long)q);
-                mpz_add(b[g][j].c, b[g][j].c, b[i][j].c);
-                mpz_set(b[i][j].c, hv);
-            }
-            coeffinit(b[g], z);
-            coeffinit(b[i], z);
-        }
+    //         // (b[g], b[i]) = (b[g] * q + b[i], b[g])
+    //         for (j = 1; j <= z; j++) {
+    //             mpz_set(hv, b[g][j].c);
+    //             mpz_mul_si(b[g][j].c, b[g][j].c, (long)q);
+    //             mpz_add(b[g][j].c, b[g][j].c, b[i][j].c);
+    //             mpz_set(b[i][j].c, hv);
+    //         }
+    //         coeffinit(b[g], z);
+    //         coeffinit(b[i], z);
+    //     }
     
-        // (b[g], b[g+1], ... , b[end]) -> (b[g+1], ... , b[end], b[g])
-        swapvl = b[g];
-        for (i = g; i < end; i++) {
-            b[i] = b[i + 1];
-        }
-        b[end] = lattice->swap;
-        coeffinit(b[end], z);
+    //     // (b[g], b[g+1], ... , b[end]) -> (b[g+1], ... , b[end], b[g])
+    //     swapvl = b[g];
+    //     for (i = g; i < end; i++) {
+    //         b[i] = b[i + 1];
+    //     }
+    //     b[end] = lattice->swap;
+    //     coeffinit(b[end], z);
     
-        lattice->swap = swapvl;
-        for (j = 1; j <= z; j++)
-            mpz_set_si(lattice->swap[j].c, 0);
-        coeffinit(lattice->swap, z);
+    //     lattice->swap = swapvl;
+    //     for (j = 1; j <= z; j++)
+    //         mpz_set_si(lattice->swap[j].c, 0);
+    //     coeffinit(lattice->swap, z);
     
-        #if FALSE
-            for (j = 0; j < z; j++) {
-                mpz_out_str(stderr, 10, get_entry(lattice->basis, start, j));
-                fprintf(stderr, " ");
-            }
-            fprintf(stderr, "\n");
-            fflush(stderr);
-        #endif
-    #endif
+    //     #if FALSE
+    //         for (j = 0; j < z; j++) {
+    //             mpz_out_str(stderr, 10, get_entry(lattice->basis, start, j));
+    //             fprintf(stderr, " ");
+    //         }
+    //         fprintf(stderr, "\n");
+    //         fflush(stderr);
+    //     #endif
+    // #endif
 }

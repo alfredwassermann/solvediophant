@@ -97,14 +97,17 @@ int DUMP_REQUIRED;
  * Main program
  * @param  argc number of command line arguments
  * @param  argv command line arguments
+ * @see const.h
  * @return
  * -- 0: normal program flow (reduction plus exhaustive enumeration)
  * -- 1: Input error or internal error
  * -- 2: Solution not possible, system not solvable over the reals. This may also come from parameter -c being too small
  * -- 3: Program has been called with parameters -? or -h
+ * -- 4: Stop because of numerical problems in tricol
  * -- 8: Stopped after finding a random solution in phase one (''\% stopafter: 1'' has been set in the problem file)
  * -- 9: Stopped after the maximum number of solutions (''\% stopafter: n'' has been set in the problem file)
  * -- 10: Stopped after reaching the maximum number of loops (''\% stoploops: n'' has been set in the problem file)
+ * -- 11: Stopped after SIGALRM, i.e. max time has been reached
  *
  */
 int main(int argc, char *argv[]) {
@@ -129,6 +132,7 @@ int main(int argc, char *argv[]) {
     char sol_filename[1024];
     char restart_filename[1024];
     int restart = 0;
+    char *res;
 
     strcpy(sol_filename, "solutions");
 
@@ -254,7 +258,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr,"\t 10: print lattice, e.g. kill -10 PID\n");
             fprintf(stderr,"\t 12 Dump lattice to file 'dump_lattice.b', e.g. kill -12 PID\n");
 
-            exit(3);
+            exit(EXIT_HELP);
         }
     }
 
@@ -264,7 +268,7 @@ int main(int argc, char *argv[]) {
     if (argc < 2 ||
         (strlen(argv[argc-1]) > 1 && argv[argc-1][0] == '-')) {
         fprintf(stderr,"The last parameter on the command line has to be the input file name or '-'.\n");
-        exit(1);
+        exit(EXIT_ERR_INPUT);
     }
     if (lattice.LLL_params.type == -1) {
         fprintf(stderr,"No reduction was chosen.\n");
@@ -277,7 +281,7 @@ int main(int argc, char *argv[]) {
             (lattice.LLL_params.bkz.beta == -1 /*|| lattice.LLL_params.bkz.p == -1 */)) {
         fprintf(stderr,"You have chosen bkz or pbkz reduction. You also have to specify the parameters");
         fprintf(stderr," -beta* [-p*]\n");
-        exit(1);
+        exit(EXIT_ERR_INPUT);
     }
     if (mpz_cmp_si(lattice.matrix_factor, 0) <= 0) {
         fprintf(stderr,"You did not supply the options -c*. ");
@@ -335,7 +339,7 @@ int main(int argc, char *argv[]) {
 
     if (txt == NULL) {
         printf("Could not open file '%s'!\n", inputfile_name);
-        exit(1);
+        exit(EXIT_ERR_INPUT);
     }
 
     /**
@@ -347,7 +351,10 @@ int main(int argc, char *argv[]) {
     lattice.LLL_params.stop_after_loops = 0;
     lattice.LLL_params.stop_after_solutions = 0;
     do {
-        fgets(zeile, ZLENGTH, txt);
+        res = fgets(zeile, ZLENGTH, txt);
+        if (res == NULL) {
+            exit(EXIT_ERR_INPUT);
+        }
         if (strstr(zeile,"% stopafter")!=NULL) {
             sscanf(zeile,"%% stopafter %ld",&(lattice.LLL_params.stop_after_solutions));
         }

@@ -159,12 +159,12 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 mpz_set_d(musvl, mus);
                 mu_all_zero = FALSE;
 
-                if (cnt_tricol > 1000) {
+                if (cnt_tricol > 10000) {
                     fprintf(stderr, "Possible tricol error: %d: eta=%0.2lf, theta=%0.2lf, %0.2lf, %lf %lf %lf\n\t %lf\n",
                         j, eta, theta, mus,
                         R[k][j], R[j][j], R[k][k],
                         eta * fabs(R[j][j]) + theta * fabs(R[k][k]));
-                    //exit(1);
+                    exit(EXIT_ERR_NUMERIC);
                 }
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
                 size_reduction(b, R, musvl, mus, k, j);
@@ -445,10 +445,11 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 musl = (long)mus;
                 mu_all_zero = FALSE;
 
-                if (cnt_tricol > 1000) {
+                if (cnt_tricol > 10000) {
                     fprintf(stderr, "%d: eta=%0.2lf, theta=%0.2lf, mus=%0.2lf, %lf %lf\n %lf > %lf\n", j, eta, theta, mus,
                         fabs(R[j][j]), fabs(R[k][k]),
                         fabs(R[k][j]), eta * fabs(R[j][j]) + theta * fabs(R[k][k]));
+                    exit(EXIT_ERR_NUMERIC);
                 }
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
                 size_reduction_long(b, R, musl, mus, k, j, z);

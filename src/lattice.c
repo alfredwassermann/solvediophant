@@ -91,9 +91,19 @@ void load_lattice(lattice_t *lattice, char *fname) {
 
     fprintf(stderr, "LOAD lattice from file %s\n", fname);
     FILE* f = fopen(fname, "r");
-    fscanf(f, "%d%d\n", &(lattice->num_rows), &(lattice->num_cols));
-    fscanf(f, "%d\n", &(lattice->cut_after));
-    fscanf(f, "%d\n", &(lattice->free_RHS));
+    res = fscanf(f, "%d%d\n", &(lattice->num_rows), &(lattice->num_cols));
+    if (res != 2) { 
+        exit(EXIT_ERR_INPUT);
+    }
+    res = fscanf(f, "%d\n", &(lattice->cut_after));
+    if (res != 2) { 
+        exit(EXIT_ERR_INPUT);
+    }
+    res = fscanf(f, "%d\n", &(lattice->free_RHS));
+        if (res != 1) { 
+        exit(EXIT_ERR_INPUT);
+    }
+
 
     fprintf(stderr, "LOAD:  %d %d\n", lattice->num_rows, lattice->num_cols);
 
@@ -539,7 +549,8 @@ void copy_lattice_to_mpz(lattice_t *lattice) {
 
 void print_gsa(DOUBLE **R, int n, int start) {
     int i, m;
-    DOUBLE b1;
+    int res;
+    // DOUBLE b1;
     FILE* f = fopen("gsa.tmp", "w");
     FILE* f2 = fopen("gsa1.tmp", "w");
 
@@ -562,7 +573,7 @@ void print_gsa(DOUBLE **R, int n, int start) {
     double b = (sy - a * sx) / m;
     fprintf(stderr, "%d: %lf %lf\n", start, a, b);
 
-    b1 = log2(R[0][0] * R[0][0]);
+    // b1 = log2(R[0][0] * R[0][0]);
     for (i = 0; i < n; i++) {
         // fprintf(f, "%d %lf\n", i, b1 - log(R[i][i] * R[i][i]));
         // fprintf(f2, "%d %lf\n", i, b1 - log(R[n-1][n-1] * R[n-1][n-1]));
@@ -571,7 +582,13 @@ void print_gsa(DOUBLE **R, int n, int start) {
     }
     fclose(f);
     fclose(f2);
-    system("mv gsa.tmp gsa.out");
-    system("mv gsa1.tmp gsa1.out");
+    res = system("mv gsa.tmp gsa.out");
+    if (res != 0) {
+        fprintf(stderr, "mv gsa.tmp gsa.out failed.\n");
+    }
+    res = system("mv gsa1.tmp gsa1.out");
+    if (res != 0) {
+        fprintf(stderr, "mv gsa1.tmp gsa1.out failed!\n");
+    }
 
 }

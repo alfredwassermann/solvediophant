@@ -68,7 +68,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     if (!preprocess(LGS)) {
         fprintf(stderr, "Preprocess found contradiction\n");
         fprintf(stderr, "Total number of solutions: 0\n\n");
-        exit(2);
+        exit(EXIT_NOT_SOLVABLE);
     }
     fprintf(stderr, "Num variables after preprocess: %d\n", LGS->num_cols);
     lgs_to_lattice(LGS, lattice);
@@ -329,7 +329,7 @@ int cutlattice(lattice_t *lattice) {
 
     if (flag == 0) {
         fprintf(stderr, "Nonhomogenous solution not possible.\n"); fflush(stderr);
-        exit(2);
+        exit(EXIT_NOT_SOLVABLE);
 
         return 0;  /* Just for the compiler */
     }
@@ -455,7 +455,7 @@ int solutiontest(lattice_t *lattice, int position) {
         fprintf(solution.fp,"\n");
 
         fprintf(stderr, "Stopped in phase 1 after finding a random solution\n");
-        exit(8);
+        exit(EXIT_RANDOM_SOLUTION);
     }
 
     return 1;
@@ -559,7 +559,7 @@ int solutiontest_long(lattice_t *lattice, int position) {
         fprintf(solution.fp,"\n");
 
         fprintf(stderr, "Stopped in phase 1 after finding a random solution\n");
-        exit(8);
+        exit(EXIT_RANDOM_SOLUTION);
     }
 
     return 1;
@@ -573,12 +573,12 @@ void lll(lattice_t *lattice, int s, int z, DOUBLE quality, int reduction_type) {
     DOUBLE *beta = lattice->decomp.c;
     //DOUBLE *N = lattice->decomp.N;
     DOUBLE **H = lattice->decomp.H;
-    int r, bit_size;
+    // int r;
+    int bit_size;
 
-    //decomp_alloc(lattice); //&R, &beta, &N, &H, s, z);
     bit_size = get_bit_size(lattice);
-    r = lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest);
-    //lllfree(R, beta, N, H, s);
+    // Ignore return value of lllH
+    lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest);
 
     return;
 }
@@ -704,7 +704,7 @@ void stop_program_sig(int sig) {
     if (!SILENT)
         print_num_solutions(num_solutions);
 
-    exit(11);
+    exit(EXIT_MAX_SIGALRM);
 }
 
 void print_lattice_sig(int sig) {
