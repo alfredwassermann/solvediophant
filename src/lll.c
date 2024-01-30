@@ -127,28 +127,27 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         #endif
         handle_signals(lattice, R);
 
-        #if FALSE
-        // Look ahead
-        i = householder_column(b, R, H, beta, k, s, z, bit_size);
-        if (i > k) {
-            swapvl = b[i];
-            for (j = i; j > k; --j) {
-                b[j] = b[j - 1];
-            }
-            b[k] = swapvl;
+        // #if FALSE
+        // // Look ahead
+        // i = householder_column(b, R, H, beta, k, s, z, bit_size);
+        // if (i > k) {
+        //     swapvl = b[i];
+        //     for (j = i; j > k; --j) {
+        //         b[j] = b[j - 1];
+        //     }
+        //     b[k] = swapvl;
 
-            //fprintf(stderr, "GET %d from %d\n", k, i);
-        }
-        #endif
-
+        //     //fprintf(stderr, "GET %d from %d\n", k, i);
+        // }
+        // #endif
 
         cnt_tricol = 0;
     start_tricol:
-        /* Recompute column k of R */
+        /* (Re)compute column k of R */
         i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
-        if (fabs(R[k][k]) < 1.0e-12) {
-            // goto swap_zero_vector;
-        }
+        // if (fabs(R[k][k]) < 1.0e-12) {
+        //     goto swap_zero_vector;
+        // }
 
         /* size reduction of $b_k$ */
         mu_all_zero = TRUE;
@@ -169,7 +168,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
                 size_reduction(b, R, musvl, mus, k, j);
                 (*solutiontest)(lattice, k);
-            } else {}
+            }
         }
 
         if (cnt_tricol > 0 && cnt_tricol % 1000 == 0) {
@@ -412,29 +411,28 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         #endif
         handle_signals(lattice, R);
 
-        #if FALSE
-        // Look ahead
-        i = householder_column(b, R, H, beta, k, s, z, bit_size);
-        if (i > k) {
-            swapvl = b[i];
-            for (j = i; j > k; --j) {
-                b[j] = b[j - 1];
-            }
-            b[k] = swapvl;
+        // #if FALSE
+        // // Look ahead
+        // i = householder_column(b, R, H, beta, k, s, z, bit_size);
+        // if (i > k) {
+        //     swapvl = b[i];
+        //     for (j = i; j > k; --j) {
+        //         b[j] = b[j - 1];
+        //     }
+        //     b[k] = swapvl;
 
-            //fprintf(stderr, "GET %d from %d\n", k, i);
-        }
-        #endif
-
+        //     //fprintf(stderr, "GET %d from %d\n", k, i);
+        // }
+        // #endif
 
         cnt_tricol = 0;
-    start_tricol:
+    start_tricol_long:
         /* Recompute column k of R */
         min_idx = householder_column_long(b, R, H, beta, k, k + 1, z, bit_size);
 
-        if (fabs(R[k][k]) < 1.0e-12) {
-            // goto swap_zero_vector_long;
-        }
+        // if (fabs(R[k][k]) < 1.0e-12) {
+        //     goto swap_zero_vector_long;
+        // }
 
         /* size reduction of $b_k$ */
         mu_all_zero = TRUE;
@@ -454,7 +452,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
                 size_reduction_long(b, R, musl, mus, k, j, z);
                 (*solutiontest)(lattice, k);
-            } else {}
+            }
         }
 
         if (cnt_tricol > 0 && cnt_tricol % 1000 == 0) {
@@ -464,7 +462,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         cnt_tricol++;
 
         if (!mu_all_zero) {
-            goto start_tricol;
+            goto start_tricol_long;
         }
 
         /*
@@ -590,23 +588,23 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
         /* $\lceil\mu_{k,j}\rfloor = 1$ */
         i = b[j][0].p;
         while (i != 0) {
-                bb = &(b[k][i]);
-                mpz_sub(bb->c, bb->c, b[j][i].c);
-                iii = bb->p;
-                if ((b[k][i-1].p != i) && (mpz_sgn(bb->c) != 0))
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == iii); ii--)
-                        b[k][ii].p = i;
-                else if (mpz_sgn(bb->c) == 0) {
-                    for (ii = i - 1;  (ii >= 0) && (b[k][ii].p == i); ii--)
-                        b[k][ii].p = iii;
-                }
-                i = b[j][i].p;
+            bb = &(b[k][i]);
+            mpz_sub(bb->c, bb->c, b[j][i].c);
+            iii = bb->p;
+            if ((b[k][i-1].p != i) && (mpz_sgn(bb->c) != 0))
+                for (ii = i - 1; (ii >= 0) && (b[k][ii].p == iii); ii--)
+                    b[k][ii].p = i;
+            else if (mpz_sgn(bb->c) == 0) {
+                for (ii = i - 1;  (ii >= 0) && (b[k][ii].p == i); ii--)
+                    b[k][ii].p = iii;
+            }
+            i = b[j][i].p;
         }
-    #if BLAS
-        cblas_daxpy(j, -1.0, mu[j], 1, mu[k], 1);
-    #else
-        for (i = 0; i < j; i++) mu[k][i] -= mu[j][i];
-    #endif
+        #if BLAS
+            cblas_daxpy(j, -1.0, mu[j], 1, mu[k], 1);
+        #else
+            for (i = 0; i < j; i++) mu[k][i] -= mu[j][i];
+        #endif
 
         break;
 
@@ -614,37 +612,37 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
         /* $\lceil\mu_{k,j}\rfloor = -1$ */
         i = b[j][0].p;
         while (i != 0) {
-                bb = &(b[k][i]);
-                mpz_add(bb->c, bb->c, b[j][i].c);
-                iii = bb->p;
-                if ((b[k][i-1].p!=i)&&(mpz_sgn(bb->c)!=0))
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == iii); ii--) b[k][ii].p = i;
-                else if (mpz_sgn(bb->c)==0) {
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--) b[k][ii].p = iii;
-                }
-                i = b[j][i].p;
+            bb = &(b[k][i]);
+            mpz_add(bb->c, bb->c, b[j][i].c);
+            iii = bb->p;
+            if ((b[k][i-1].p!=i)&&(mpz_sgn(bb->c)!=0))
+                for (ii = i - 1; (ii >= 0) && (b[k][ii].p == iii); ii--) b[k][ii].p = i;
+            else if (mpz_sgn(bb->c)==0) {
+                for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--) b[k][ii].p = iii;
+            }
+            i = b[j][i].p;
         }
 
-    #if BLAS
-        cblas_daxpy(j, 1.0, mu[j], 1, mu[k], 1);
-    #else
-        for (i = 0; i < j; i++) mu[k][i] += mu[j][i];
-    #endif
+        #if BLAS
+            cblas_daxpy(j, 1.0, mu[j], 1, mu[k], 1);
+        #else
+            for (i = 0; i < j; i++) mu[k][i] += mu[j][i];
+        #endif
         break;
 
     default:
         /* $\lceil\mu_{k,j}\rfloor \neq \pm 1$ */
         i = b[j][0].p;
         while (i != 0) {
-                bb = &(b[k][i]);
-                mpz_submul(bb->c, b[j][i].c, musvl);
-                iii = bb->p;
-                if ((b[k][i-1].p != i) && (mpz_sgn(bb->c) != 0))
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p ==  iii); ii--) b[k][ii].p = i;
-                else if (mpz_sgn(bb->c) == 0) {
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--) b[k][ii].p = iii;
-                }
-                i = b[j][i].p;
+            bb = &(b[k][i]);
+            mpz_submul(bb->c, b[j][i].c, musvl);
+            iii = bb->p;
+            if ((b[k][i-1].p != i) && (mpz_sgn(bb->c) != 0))
+                for (ii = i - 1; (ii >= 0) && (b[k][ii].p ==  iii); ii--) b[k][ii].p = i;
+            else if (mpz_sgn(bb->c) == 0) {
+                for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--) b[k][ii].p = iii;
+            }
+            i = b[j][i].p;
         }
     #if BLAS
         cblas_daxpy(j, -mus, mu[j], 1, mu[k], 1);
