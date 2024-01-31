@@ -41,7 +41,7 @@ extern int DUMP_REQUIRED;
 #define SQRT sqrt
 #define DOUBLE double
 
-/** 
+/**$
  *Error codes for exit():
  * -- 0: normal program flow (reduction plus exhaustive enumeration)
  * -- 1: Input error or internal error

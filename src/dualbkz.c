@@ -408,7 +408,7 @@ void dual_insert_vector(lattice_t *lattice, long *u, int start, int end, int z, 
     //         coeffinit(b[g], z);
     //         coeffinit(b[i], z);
     //     }
-    
+$
     //     // (b[g], b[g+1], ... , b[end]) -> (b[g+1], ... , b[end], b[g])
     //     swapvl = b[g];
     //     for (i = g; i < end; i++) {
@@ -416,12 +416,12 @@ void dual_insert_vector(lattice_t *lattice, long *u, int start, int end, int z, 
     //     }
     //     b[end] = lattice->swap;
     //     coeffinit(b[end], z);
-    
+$
     //     lattice->swap = swapvl;
     //     for (j = 1; j <= z; j++)
     //         mpz_set_si(lattice->swap[j].c, 0);
     //     coeffinit(lattice->swap, z);
-    
+$
     //     #if FALSE
     //         for (j = 0; j < z; j++) {
     //             mpz_out_str(stderr, 10, get_entry(lattice->basis, start, j));

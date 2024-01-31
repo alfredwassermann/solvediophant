@@ -92,15 +92,15 @@ void load_lattice(lattice_t *lattice, char *fname) {
     fprintf(stderr, "LOAD lattice from file %s\n", fname);
     FILE* f = fopen(fname, "r");
     res = fscanf(f, "%d%d\n", &(lattice->num_rows), &(lattice->num_cols));
-    if (res != 2) { 
+    if (res != 2) {$
         exit(EXIT_ERR_INPUT);
     }
     res = fscanf(f, "%d\n", &(lattice->cut_after));
-    if (res != 2) { 
+    if (res != 2) {$
         exit(EXIT_ERR_INPUT);
     }
     res = fscanf(f, "%d\n", &(lattice->free_RHS));
-        if (res != 1) { 
+        if (res != 1) {$
         exit(EXIT_ERR_INPUT);
     }
 
@@ -311,7 +311,7 @@ void handle_preselection(lgs_t *LGS, lattice_t *lattice) {
 void init_diagonal_part(lgs_t *LGS, lattice_t *lattice) {
     int j;
     mpz_t upfac;
-    
+$
     mpz_init(upfac);
 
     // Append the other (diagonal) parts of lattice

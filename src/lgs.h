@@ -13,7 +13,7 @@ typedef struct {
 
     int num_boundedvars;
     int rank;
-    
+$
     int num_original_cols;
     int *original_cols;
 } lgs_t;
