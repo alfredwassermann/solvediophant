@@ -182,7 +182,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
 
         if (cnt_tricol > 0 && cnt_tricol % 1000 == 0) {
-            fprintf(stderr, "tricol %d at %d (eta: %lf, theta1: %lf)\n", cnt_tricol, kk, eta, theta1);
+            fprintf(stderr, "tricol %d at %d (eta: %lf, theta1: %lf, bitsize: %d)\n", cnt_tricol, kk, eta, theta1, bit_size);
             fflush(stderr);
         }
         cnt_tricol++;
