@@ -31,7 +31,7 @@ extern void coeffinit(coeff_t *v, int z);
 extern DOUBLE scalarproductlfp (coeff_t *v, coeff_t *w);
 extern DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n);
 
-extern int decomp_alloc(lattice_t *lattice);$
+extern int decomp_alloc(lattice_t *lattice);
 extern int decomp_free(lattice_t *lattice); //DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs, int s);
 extern double orthogonality_defect(lattice_t *lattice, DOUBLE **R, int s, int z);
 extern double log_potential(DOUBLE **R, int s, int z);
