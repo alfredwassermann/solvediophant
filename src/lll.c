@@ -386,8 +386,10 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         eta = 0.52;
     } else if (bit_size > 55) {
         theta = 0.1;
+        eta = 0.52;
     } else if (bit_size > 30) {
-        theta = 0.04;
+        theta = 0.08;
+        eta = 0.51;
     } else {
         theta = 0.0;
     }
