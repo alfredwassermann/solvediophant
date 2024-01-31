@@ -171,7 +171,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 if (cnt_tricol > 10000) {
                     fprintf(stderr, "Possible tricol error: %d: eta=%0.2lf, theta1=%0.2lf, %0.2lf, %lf %lf %lf\n\t %lf\n",
                         j, eta, theta1, mus,
-                        R[kk][j], R[j][j], R[kk][k],
+                        R[kk][j], R[j][j], R[kk][kk],
                         eta * fabs(R[j][j]) + theta1 * fabs(R[kk][kk]));
                     exit(EXIT_ERR_NUMERIC);
                 }
