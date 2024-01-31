@@ -156,7 +156,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         /* Size reduction of $b_k$ */
         mu_all_zero = TRUE;
         for (j = kk - 1; j >= low; j--) {
-            /** 
+            /**
              * Subtract suitable multiple of $b_j$ from $b_k$.
              * Lazy size reduction, see Stehle, "Floating-point LLL: theoretical and practical aspects"
              */
@@ -182,7 +182,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
 
         if (cnt_tricol > 0 && cnt_tricol % 1000 == 0) {
-            fprintf(stderr, "tricol %d at %d\n", cnt_tricol, kk);
+            fprintf(stderr, "tricol %d at %d (eta: %lf, theta1: %lf)\n", cnt_tricol, kk, eta, theta1);
             fflush(stderr);
         }
         cnt_tricol++;
@@ -694,7 +694,7 @@ void householder_column_inner(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int l
         #endif
 
         w_beta = w * beta[i];
-        
+
         #if BLAS
             cblas_daxpy(z - i, -w_beta, &(H[i][i]), 1, &(R[k][i]), 1);
         #else
@@ -726,7 +726,7 @@ void householder_column_inner(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int l
                 }
             }
         #endif
-        
+
         #if BLAS
             cblas_dscal(z - k, 1 / zeta, &(R[k][k]), 1);
             norm = zeta * cblas_dnrm2(z - k, &(R[k][k]), 1);
