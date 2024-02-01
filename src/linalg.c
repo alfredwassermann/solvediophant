@@ -169,7 +169,7 @@ DOUBLE dotNaiveQP(DOUBLE* x, DOUBLE* y, int n) {
     if (n <= 0) return 0.0;
 
     for (i = 0, s = 0.0; i < n; i++) {
-        s += (_Float128)x[i] * (_Float128)y[i];
+        s += x[i] * y[i];
     }
     return (DOUBLE)s;
 }
