@@ -85,8 +85,8 @@ void twoProd2(DOUBLE a, DOUBLE b, DOUBLE *x, DOUBLE *y) {
 
 DOUBLE sumNaive(DOUBLE* p, int n) {
     DOUBLE s;
-    int i;      
-    
+    int i;
+
     for (i = 0, s = 0.0; i < n; i++) {
         s += p[i];
     }
@@ -100,7 +100,7 @@ DOUBLE sum2s(DOUBLE* p, int n) {
 
     if (n <= 0) return 0.0;
 
-    s.x = p[0];  
+    s.x = p[0];
     sigma = 0.0;
 
     for (i = 1; i < n; i++) {
@@ -163,6 +163,17 @@ DOUBLE dotNaive(DOUBLE* x, DOUBLE* y, int n) {
     return s;
 }
 
+DOUBLE dotNaiveQP(DOUBLE* x, DOUBLE* y, int n) {
+    _Float128 s;
+    int i;
+    if (n <= 0) return 0.0;
+
+    for (i = 0, s = 0.0; i < n; i++) {
+        s += (_Float128)x[i] * (_Float128)y[i];
+    }
+    return (DOUBLE)s;
+}
+
 DOUBLE dot2(DOUBLE* x, DOUBLE* y, int n) {
     DOUBLE p, q, s, h, r;
     int i;
@@ -215,7 +226,7 @@ int main(int argc, char *argv[]) {
         int i;
         const int n = 10000;
         DOUBLE p[n];
-    
+
         for (i = 0, sgn = 1.0; i < n; i++) {
             // p[i] = 2.0 / (DOUBLE)(i + 1);
             // p[i] = 10000.0 * (DOUBLE)(sgn * i);
@@ -224,7 +235,7 @@ int main(int argc, char *argv[]) {
             // printf("%lf ", p[i]);
         }
         // printf("\n");
-    
+
         printf("Naive %0.20lf\n", sumNaive(p, n));
         printf("sum2s %0.20lf\n", sum2s(p, n));
         printf("sum2  %0.20lf\n", sumKvert(p, n, 2));
@@ -236,16 +247,17 @@ int main(int argc, char *argv[]) {
     #if 1
         printf("--------- Dot\n");
         int i;
-        const int n = 20000;
+        const int n = 60000;
         DOUBLE p[n];
         DOUBLE q[n];
-    
+
         for (i = 0, sgn = 1.0; i < n; i++) {
             p[i] = 2.0 / (DOUBLE)(i + 1);
             q[i] = 1.0 / ((i+1) * (i+1));
         }
-    
+
         printf("Naive %0.20lf\n", dotNaive(p, q, n));
+        printf("NaiQP %0.20lf\n", dotNaiveQP(p, q, n));
         printf("dot2  %0.20lf\n", dot2(p, q, n));
     #endif
 
