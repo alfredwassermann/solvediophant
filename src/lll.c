@@ -148,12 +148,12 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         theta1 = theta;
         kk = k;
 
-    start_tricol:
         /* (Re)compute column k of R */
         i = householder_column(b, R, H, beta, kk, kk + 1, z, bit_size);
         // if (fabs(R[k][k]) < 1.0e-12) {
         //     goto swap_zero_vector;
         // }
+    start_tricol:
 
         /* Size reduction of $b_k$ */
         mu_all_zero = TRUE;
@@ -166,14 +166,13 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
              */
             if (fabs(R[kk][j]) > eta * fabs(R[j][j]) + theta1 * fabs(R[kk][kk])) {
                 mus = ROUND(R[kk][j] / R[j][j]);
-                // fprintf(stderr, "%0.20lf %0.20lf %0.20lf\n", R[kk][j], R[j][j], mus);
                 mpz_set_d(musvl, mus);
                 mu_all_zero = FALSE;
 
-                if (cnt_tricol % 100 == 0) {
+                if (cnt_tricol % 5 == 0) {
                     theta1 += 0.001;
                 }
-                if (cnt_tricol > 10000) {
+                if (cnt_tricol > 100) {
                     fprintf(stderr, "Possible tricol error: k=%d, j=%d eta=%0.2lf, theta1=%0.2lf, mus=%0.2lf, %lf %lf %lf\n\t %lf %lf\n\t %lf\n",
                         kk, j, eta, theta1, mus,
                         R[kk][j], R[j][j], R[kk][kk],
@@ -188,15 +187,9 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             }
         }
 
-        if (cnt_tricol > 0 && cnt_tricol % 1 == 0) {
+        if (cnt_tricol > 0 && cnt_tricol % 5 == 0) {
             fprintf(stderr, "tricol %d at k=%d (eta: %lf, theta1: %lf, bitsize: %d)\n",
                 cnt_tricol, kk, eta, theta1, bit_size);
-            for (j = kk - 1; j >= low; j--) {
-                if (fabs(R[kk][j]) > eta * fabs(R[j][j]) + theta1 * fabs(R[kk][kk])) {
-                    fprintf(stderr, "[%d, %0.15lf] ", j, R[kk][j]);
-                }
-            }
-            fprintf(stderr, "\n");
             fflush(stderr);
         }
         cnt_tricol++;
@@ -637,7 +630,7 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
             i = b[j][i].p;
         }
         #if BLAS
-            cblas_daxpy(j, -1.0, mu[j], 1, mu[k], 1);
+            cblas_daxpy(k, -1.0, mu[j], 1, mu[k], 1);
         #else
             for (i = 0; i < j; i++) mu[k][i] -= mu[j][i];
         #endif
@@ -660,10 +653,11 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
         }
 
         #if BLAS
-            cblas_daxpy(j, 1.0, mu[j], 1, mu[k], 1);
+            cblas_daxpy(k, 1.0, mu[j], 1, mu[k], 1);
         #else
             for (i = 0; i < j; i++) mu[k][i] += mu[j][i];
         #endif
+
         break;
 
     default:
@@ -680,12 +674,12 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
             }
             i = b[j][i].p;
         }
-    #if BLAS
-        cblas_daxpy(j, -mus, mu[j], 1, mu[k], 1);
-    #else
-        for (i = 0; i < j; i++) mu[k][i] -= mu[j][i] * mus;
-    #endif
 
+        #if BLAS
+            cblas_daxpy(k, -mus, mu[j], 1, mu[k], 1);
+        #else
+            for (i = 0; i < j; i++) mu[k][i] -= mu[j][i] * mus;
+        #endif
     }
 }
 
