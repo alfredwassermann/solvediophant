@@ -1,13 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "const.h"
-
-typedef struct dblexact {
-    DOUBLE x;
-    DOUBLE y;
-} doubleExact;
-
+#include "linalg.h"
 
 /*
 * Ogita, Rump, Oishi:
@@ -33,15 +29,17 @@ void twoSum2(DOUBLE a, DOUBLE b, DOUBLE *x, DOUBLE *y) {
     DOUBLE z;
 
     (*x) = a + b;
-
     z = (*x) - a;
-
     (*y) = (a - ((*x) - z)) + (b - z);
-    // FastTwoSum for a > b
-    // (*y) = (a - (*x)) + b;
 }
 
-/** in place summation*/
+void fastTwoSum2(DOUBLE a, DOUBLE b, DOUBLE *x, DOUBLE *y) {
+    // FastTwoSum for |a| > |b|
+    (*x) = a + b;
+    (*y) = (a - (*x)) + b;
+}
+
+/** In-place summation*/
 void twoSum2i(DOUBLE *a, DOUBLE *b) {
     DOUBLE z, x;
 
@@ -81,6 +79,37 @@ void twoProd2(DOUBLE a, DOUBLE b, DOUBLE *x, DOUBLE *y) {
     a_e = split(a);
     b_e = split(b);
     (*y) = a_e.y * b_e.y - ((((*x) - a_e.x * b_e.x) - a_e.y * b_e.x) - a_e.x * b_e.y);
+}
+
+doubleExact twoSquare(DOUBLE a) {
+    doubleExact ret, a_e;
+    ret.x = a * a;
+    a_e = split(a);
+    ret.y = a_e.y * a_e.y - ((ret.x - a_e.x * a_e.x) - 2 * a_e.y * a_e.x);
+    return ret;
+}
+
+void twoSquare2(DOUBLE a, DOUBLE *x, DOUBLE *y) {
+    doubleExact a_e;
+    (*x) = a * a;
+    a_e = split(a);
+    (*y) = a_e.y * a_e.y - (((*x) - a_e.x * a_e.x) - 2 * a_e.y * a_e.x);
+}
+
+DOUBLE accSqrt(DOUBLE T, DOUBLE t) {
+    DOUBLE P, p, H, h;
+    DOUBLE r;
+
+    P = sqrt(T);
+
+    twoSquare2(P, &H, &h);
+    r = (T - H) - h;
+    // printf("%0.20lf %0.20f %0.20lf %0.20lf\n", H, h, r, t);
+    r = t + r;
+    p = r / (2 * P);
+
+    // printf("%0.20lf %0.20f %0.20lf\n", P, p, r);
+    return P + p;
 }
 
 DOUBLE sumNaive(DOUBLE* p, int n) {
@@ -152,6 +181,65 @@ DOUBLE sumKvert(DOUBLE* p, int n, int K) {
     return s + q[K - 2];
 }
 
+DOUBLE sumAbs2s(DOUBLE* p, int n) {
+    DOUBLE sigma;
+    doubleExact s;
+    int i;
+
+    if (n <= 0) return 0.0;
+
+    s.x = abs(p[0]);
+    sigma = 0.0;
+
+    for (i = 1; i < n; i++) {
+        s = twoSum(s.x, abs(p[i]));
+        sigma += s.y;
+    }
+
+    return s.x + sigma;
+}
+
+DOUBLE sumAbsKvert(DOUBLE* p, int n, int K) {
+    DOUBLE s, alpha;
+    DOUBLE q[K - 1];
+    int i, j, k;
+
+    if (n <= 0) return 0.0;
+
+    K = (n < K) ? n : K;
+
+    for (i = 0; i < K; i++) {
+        q[i] = 0.0;
+    }
+
+    for (i = 0; i < K - 1; i++) {
+        s = abs(p[i]);
+        for (k = 0; k < i - 1; k++) {
+            twoSum2i(&q[k], &s);
+        }
+        q[i] = s;
+    }
+    s = q[K - 1];
+
+    for (i = K - 1; i < n; i++) {
+        alpha = abs(p[i]);
+        for (k = 0; k < K - 1; k++) {
+            twoSum2i(&q[k], &alpha);
+        }
+        s += alpha;
+    }
+
+    for (j = 0; j < K - 2; j++) {
+        alpha = q[j];
+        for (k = j + 1; k < K - 1; k++) {
+            twoSum2i(&q[k], &alpha);
+        }
+        s += alpha;
+    }
+
+    return s + q[K - 2];
+}
+
 DOUBLE dotNaive(DOUBLE* x, DOUBLE* y, int n) {
     DOUBLE s;
     int i;
@@ -188,78 +276,21 @@ DOUBLE dot2(DOUBLE* x, DOUBLE* y, int n) {
     return p + s;
 }
 
-int main(int argc, char *argv[]) {
+DOUBLE norm(DOUBLE* x, int n) {
+    DOUBLE S, s, P, p, H, h;
+    DOUBLE c, d;
+    int i;
 
-    DOUBLE x = 0.00000000001;
-    DOUBLE y = 100000.0;
-    DOUBLE z, sgn;
-    doubleExact a;
+    if (n <= 0) return 0.0;
 
-    #if 0
-        printf("--------- ADD\n");
-        z = x + y;
-        printf("%0.20lf\n", z);
-        a = twoSum(x, y);
-        printf("%0.20lf %0.20lf\n", a.x, a.y);
-
-        printf("--------- Split\n");
-        a = split(z);
-        printf("%0.20lf %0.20lf\n", a.x, a.y);
-    #endif
-
-    #if 0
-        printf("--------- TwoProduct\n");
-        x = 11111111.111111111;
-        y = 7.777777777;
-        a = twoProd(x, y);
-        printf("twoProd : %0.20lf %0.20lf\n", a.x, a.y);
-        DOUBLE x1, y1;
-        twoProd2(x, y, &x1, &y1);
-        printf("twoProd2: %0.20lf %0.20lf\n", x1, y1);
-
-        z = x * y;
-        printf("FMA: %0.20lf %0.20lf\n", z, x * y - z);
-    #endif
-
-    #if 0
-        printf("--------- Sum2s\n");
-        int i;
-        const int n = 10000;
-        DOUBLE p[n];
-
-        for (i = 0, sgn = 1.0; i < n; i++) {
-            // p[i] = 2.0 / (DOUBLE)(i + 1);
-            // p[i] = 10000.0 * (DOUBLE)(sgn * i);
-            p[i] = 1.0 / ((i+1) * (i+1));
-            // sgn *= (-1.0);
-            // printf("%lf ", p[i]);
-        }
-        // printf("\n");
-
-        printf("Naive %0.20lf\n", sumNaive(p, n));
-        printf("sum2s %0.20lf\n", sum2s(p, n));
-        printf("sum2  %0.20lf\n", sumKvert(p, n, 2));
-        printf("sum3  %0.20lf\n", sumKvert(p, n, 3));
-        printf("sum4  %0.20lf\n", sumKvert(p, n, 4));
-        printf("sum5  %0.20lf\n", sumKvert(p, n, 5));
-    #endif
-
-    #if 1
-        printf("--------- Dot\n");
-        int i;
-        const int n = 60000;
-        DOUBLE p[n];
-        DOUBLE q[n];
-
-        for (i = 0, sgn = 1.0; i < n; i++) {
-            p[i] = 2.0 / (DOUBLE)(i + 1);
-            q[i] = 1.0 / ((i+1) * (i+1));
-        }
-
-        printf("Naive %0.20lf\n", dotNaive(p, q, n));
-        printf("NaiQP %0.20lf\n", dotNaiveQP(p, q, n));
-        printf("dot2  %0.20lf\n", dot2(p, q, n));
-    #endif
-
-    return 0;
+    S = 0.0;
+    s = 0.0;
+    for (i = 0; i < n; i++) {
+        twoSquare2(x[i], &P, &p);
+        twoSum2(S, P, &H, &h);
+        c = s + p;
+        d = h + c;
+        fastTwoSum2(H, d, &S, &s);
+    }
+    return accSqrt(S, s);
 }

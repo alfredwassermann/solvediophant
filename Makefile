@@ -24,7 +24,6 @@ CFLAGS= -O3 -Wall \
 	#-ftree-vectorizer-verbose=2
 	#-mveclibabi=svml
 	#-mfpmath=sse+387  # unstable
-	#-ffast-math
 	#-fprofile-generate -fprofile-use\
 
 #CFLAGS= -O3 -Wall
@@ -77,7 +76,7 @@ GSA_OUT=FALSE
 OBJFILES=$(SRC)/bkz.o   $(SRC)/dio2.o   $(SRC)/dualbkz.o   $(SRC)/enum.o   $(SRC)/lattice.o   $(SRC)/lgs.o   $(SRC)/lll.o   $(SRC)/sd2.o
 PDFFILES=$(PDF)/bkz.pdf $(PDF)/dio2.pdf $(PDF)/dualbkz.pdf $(PDF)/enum.pdf $(PDF)/lattice.pdf $(PDF)/lgs.pdf $(PDF)/lll.pdf $(PDF)/sd2.pdf
 
-all: $(BIN)/sd2 tags $(PDFFILES)
+all: $(BIN)/sd2 tags $(PDFFILES) $(BIN)/test_la
 
 $(SRC)/%.o: $(SRC)/%.c $(SRC)/%.h $(SRC)/datastruct.h $(SRC)/const.h
 	$(CC) $(CFLAGS) -D$(GSA_OUT) -D$(BLAS) -I$(BLASINC) -c $< $(GMPINC) -o $@
@@ -93,6 +92,9 @@ $(BIN)/sd2: $(OBJFILES)
 	$(CC) $(CFLAGS) -o $(BIN)/sd2 $(OBJFILES) \
 	-static $(BLASLIB) \
 	-lgmp $(GMPLIB) $(GMPINC) -lm -lc
+
+$(BIN)/test_la: $(SRC)/test_la.o $(SRC)/linalg.o
+	$(CC) $(CFLAGS) -o $(BIN)/test_la $(SRC)/test_la.o $(SRC)/linalg.o -lm -lc
 
 tags: $(SRC) Makefile
 	ctags $</*.c $</*.h
