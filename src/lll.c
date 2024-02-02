@@ -4,6 +4,8 @@
 #include "const.h"
 #include "lattice.h"
 #include "lll.h"
+#include "linalg.h"
+
 
 #if defined(USE_BLAS)
     #define BLAS 1
@@ -158,12 +160,13 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         for (j = kk - 1; j >= low; j--) {
             /**
              * Subtract suitable multiple of $b_j$ from $b_k$.
-             * 
+             *
              * Size reduction according to Schnorr.
              * Lazy size reduction, see Stehle, "Floating-point LLL: theoretical and practical aspects"
              */
             if (fabs(R[kk][j]) > eta * fabs(R[j][j]) + theta1 * fabs(R[kk][kk])) {
                 mus = ROUND(R[kk][j] / R[j][j]);
+                // fprintf(stderr, "%0.20lf %0.20lf %0.20lf\n", R[kk][j], R[j][j], mus);
                 mpz_set_d(musvl, mus);
                 mu_all_zero = FALSE;
 
@@ -185,9 +188,15 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             }
         }
 
-        if (cnt_tricol > 0 && cnt_tricol % 1000 == 0) {
-            fprintf(stderr, "tricol %d at k=%d (eta: %lf, theta1: %lf, bitsize: %d)\n", 
+        if (cnt_tricol > 0 && cnt_tricol % 1 == 0) {
+            fprintf(stderr, "tricol %d at k=%d (eta: %lf, theta1: %lf, bitsize: %d)\n",
                 cnt_tricol, kk, eta, theta1, bit_size);
+            for (j = kk - 1; j >= low; j--) {
+                if (fabs(R[kk][j]) > eta * fabs(R[j][j]) + theta1 * fabs(R[kk][kk])) {
+                    fprintf(stderr, "[%d, %0.15lf] ", j, R[kk][j]);
+                }
+            }
+            fprintf(stderr, "\n");
             fflush(stderr);
         }
         cnt_tricol++;
@@ -789,6 +798,69 @@ void householder_column_inner(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int l
     // }
 }
 
+void householder_column_inner_high(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int l, int z, int bit_size) {
+    int i, j;
+    DOUBLE zeta;
+    DOUBLE w, w_beta;
+    DOUBLE norm;
+    DOUBLE eps =  1.0e-15; // 0.0000000001;
+    #if !BLAS
+        DOUBLE x;
+    #endif
+
+    // Compute R[k]
+    for (i = 0; i < k; ++i) {
+        // w = < R[k], H[i] >
+        w = dot2(&(R[k][i]), &(H[i][i]), z - i);
+        w_beta = w * beta[i];
+
+        #if BLAS
+            cblas_daxpy(z - i, -w_beta, &(H[i][i]), 1, &(R[k][i]), 1);
+        #else
+            for (j = i; j < z; ++j) {
+                R[k][j] -= w_beta * H[i][j];
+            }
+        #endif
+    }
+
+    // Compute || R[k] ||
+    norm = 1.0 / norm_l2(&(R[k][k]), z - k);
+
+    // Compute H[k] = R[k] / || R[k] ||
+    #if BLAS
+        cblas_dcopy(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
+        cblas_dscal(z - k,  norm, &(H[k][k]), 1);
+    #else
+        for (j = k; j < z; ++j) {
+            H[k][j] = R[k][j] * norm;
+        }
+    #endif
+
+    H[k][k] += (R[k][k] >= -eps) ? 1.0 : -1.0;
+    beta[k] = 1.0/ (1.0 + fabs(R[k][k]) * norm);
+
+    // Compute w = <R[k], H[k]>
+    w = dot2(&(R[k][k]), &(H[k][k]), z - k);
+    w_beta = w * beta[k];
+
+    // Compute R[k] -= w * beta * H[k]
+    #if BLAS
+        cblas_daxpy(z - k, -w_beta, &(H[k][k]), 1, &(R[k][k]), 1);
+    #else
+        for (j = k; j < z; ++j) {
+            R[k][j] -= w_beta * H[k][j];
+        }
+    #endif
+
+    // if (isnan(R[k][k])) {
+    //     fprintf(stderr, "%d> ", k);
+    //     for (j = k; j < k + 1; ++j) {
+    //         fprintf(stderr, "%lf ", R[k][j]);
+    //     }
+    //     fprintf(stderr, "%lf %lf %lf\n", w_beta, H[k][k], norm);
+    // }
+}
+
 // void householder_column_inner_quad(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int l, int z, int bit_size) {
 //     int i, j;
 //     DOUBLE eps =  1.0e-15; // 0.0000000001;
@@ -857,7 +929,7 @@ int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k,
             R[k][j] = (DOUBLE)mpz_get_d(b[l][j+1].c);
         }
 
-        householder_column_inner(R, H, beta, k, l, z, bit_size);
+        householder_column_inner_high(R, H, beta, k, l, z, bit_size);
 
         if (l == k || R[k][k] * R[k][k] < min_val) {
             min_val = R[k][k] * R[k][k];

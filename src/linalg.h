@@ -27,6 +27,6 @@ extern DOUBLE sumAbsKvert(DOUBLE* p, int n, int K);
 extern DOUBLE dotNaive(DOUBLE* x, DOUBLE* y, int n);
 extern DOUBLE dotNaiveQP(DOUBLE* x, DOUBLE* y, int n);
 extern DOUBLE dot2(DOUBLE* x, DOUBLE* y, int n);
-extern DOUBLE norm(DOUBLE* x, int n);
+extern DOUBLE norm_l2(DOUBLE* x, int n);
 
 #endif

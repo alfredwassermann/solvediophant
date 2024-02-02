@@ -276,7 +276,7 @@ DOUBLE dot2(DOUBLE* x, DOUBLE* y, int n) {
     return p + s;
 }
 
-DOUBLE norm(DOUBLE* x, int n) {
+DOUBLE norm_l2(DOUBLE* x, int n) {
     DOUBLE S, s, P, p, H, h;
     DOUBLE c, d;
     int i;

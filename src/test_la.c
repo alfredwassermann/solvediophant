@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
         printf("dot2  %0.20lf\n", dot2(p, q, n));
         printf("NaiveNorm   %0.20lf\n", sqrt(dotNaive(p, p, n)));
         printf("NaiveNormQP %0.20lf\n", sqrt(dotNaiveQP(p, p, n)));
-        printf("norm        %0.20lf\n", norm(p, n));
+        printf("norm        %0.20lf\n", norm_l2(p, n));
     }
     #endif
 
