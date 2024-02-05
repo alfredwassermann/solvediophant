@@ -88,10 +88,10 @@ int main(int argc, char *argv[]) {
 
         printf("Naive %0.20lf\n", dotNaive(p, q, n));
         printf("NaiQP %0.20lf\n", dotNaiveQP(p, q, n));
-        printf("dot2  %0.20lf\n", dot2(p, q, n));
+        printf("dot2  %0.20lf\n", hiprec_dot2(p, q, n));
         printf("NaiveNorm   %0.20lf\n", sqrt(dotNaive(p, p, n)));
         printf("NaiveNormQP %0.20lf\n", sqrt(dotNaiveQP(p, p, n)));
-        printf("norm        %0.20lf\n", norm_l2(p, n));
+        printf("norm        %0.20lf\n", hiprec_norm_l2(p, n));
     }
     #endif
 

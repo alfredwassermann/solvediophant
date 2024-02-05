@@ -7,7 +7,7 @@
 
 /*
 * Ogita, Rump, Oishi:
-* Accurate sum and dot product (205)
+* Accurate sum and dot product (2005)
 */
 
 doubleExact twoSum(DOUBLE a, DOUBLE b) {
@@ -39,7 +39,7 @@ void fastTwoSum2(DOUBLE a, DOUBLE b, DOUBLE *x, DOUBLE *y) {
     (*y) = (a - (*x)) + b;
 }
 
-/** In-place summation*/
+/** In-place summation */
 void twoSum2i(DOUBLE *a, DOUBLE *b) {
     DOUBLE z, x;
 
@@ -96,7 +96,7 @@ void twoSquare2(DOUBLE a, DOUBLE *x, DOUBLE *y) {
     (*y) = a_e.y * a_e.y - (((*x) - a_e.x * a_e.x) - 2 * a_e.y * a_e.x);
 }
 
-DOUBLE accSqrt(DOUBLE T, DOUBLE t) {
+DOUBLE hiprec_sqrt(DOUBLE T, DOUBLE t) {
     DOUBLE P, p, H, h;
     DOUBLE r;
 
@@ -112,17 +112,7 @@ DOUBLE accSqrt(DOUBLE T, DOUBLE t) {
     return P + p;
 }
 
-DOUBLE sumNaive(DOUBLE* p, int n) {
-    DOUBLE s;
-    int i;
-
-    for (i = 0, s = 0.0; i < n; i++) {
-        s += p[i];
-    }
-    return s;
-}
-
-DOUBLE sum2s(DOUBLE* p, int n) {
+DOUBLE hiprec_sum2(DOUBLE* p, int n) {
     DOUBLE sigma;
     doubleExact s;
     int i;
@@ -140,7 +130,7 @@ DOUBLE sum2s(DOUBLE* p, int n) {
     return s.x + sigma;
 }
 
-DOUBLE sumKvert(DOUBLE* p, int n, int K) {
+DOUBLE hiprec_sumK(DOUBLE* p, int n, int K) {
     DOUBLE s, alpha;
     DOUBLE q[K - 1];
     int i, j, k;
@@ -181,7 +171,7 @@ DOUBLE sumKvert(DOUBLE* p, int n, int K) {
     return s + q[K - 2];
 }
 
-DOUBLE sumAbs2s(DOUBLE* p, int n) {
+DOUBLE hiprec_norm_l1(DOUBLE* p, int n) {
     DOUBLE sigma;
     doubleExact s;
     int i;
@@ -199,7 +189,7 @@ DOUBLE sumAbs2s(DOUBLE* p, int n) {
     return s.x + sigma;
 }
 
-DOUBLE sumAbsKvert(DOUBLE* p, int n, int K) {
+DOUBLE hiprec_normK_l1(DOUBLE* p, int n, int K) {
     DOUBLE s, alpha;
     DOUBLE q[K - 1];
     int i, j, k;
@@ -240,6 +230,52 @@ DOUBLE sumAbsKvert(DOUBLE* p, int n, int K) {
     return s + q[K - 2];
 }
 
+DOUBLE hiprec_dot2(DOUBLE* x, DOUBLE* y, int n) {
+    DOUBLE p, q, s, h, r;
+    int i;
+    if (n <= 0) return 0.0;
+
+    twoProd2(x[0], y[0], &p, &s);
+    for (i = 1; i < n; i++) {
+        twoProd2(x[i], y[i], &h, &r);
+        twoSum2(p, h, &p, &q);
+        s += (q + r);
+    }
+    return p + s;
+}
+
+DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
+    DOUBLE S, s, P, p, H, h;
+    DOUBLE c, d;
+    int i;
+
+    if (n <= 0) return 0.0;
+
+    S = 0.0;
+    s = 0.0;
+    for (i = 0; i < n; i++) {
+        twoSquare2(x[i], &P, &p);
+        twoSum2(S, P, &H, &h);
+        c = s + p;
+        d = h + c;
+        fastTwoSum2(H, d, &S, &s);
+    }
+    return hiprec_sqrt(S, s);
+}
+
+//
+// Naive implementations for comparison
+//
+DOUBLE sumNaive(DOUBLE* p, int n) {
+    DOUBLE s;
+    int i;
+
+    for (i = 0, s = 0.0; i < n; i++) {
+        s += p[i];
+    }
+    return s;
+}
+
 DOUBLE dotNaive(DOUBLE* x, DOUBLE* y, int n) {
     DOUBLE s;
     int i;
@@ -260,37 +296,4 @@ DOUBLE dotNaiveQP(DOUBLE* x, DOUBLE* y, int n) {
         s += x[i] * y[i];
     }
     return (DOUBLE)s;
-}
-
-DOUBLE dot2(DOUBLE* x, DOUBLE* y, int n) {
-    DOUBLE p, q, s, h, r;
-    int i;
-    if (n <= 0) return 0.0;
-
-    twoProd2(x[0], y[0], &p, &s);
-    for (i = 1; i < n; i++) {
-        twoProd2(x[i], y[i], &h, &r);
-        twoSum2(p, h, &p, &q);
-        s += (q + r);
-    }
-    return p + s;
-}
-
-DOUBLE norm_l2(DOUBLE* x, int n) {
-    DOUBLE S, s, P, p, H, h;
-    DOUBLE c, d;
-    int i;
-
-    if (n <= 0) return 0.0;
-
-    S = 0.0;
-    s = 0.0;
-    for (i = 0; i < n; i++) {
-        twoSquare2(x[i], &P, &p);
-        twoSum2(S, P, &H, &h);
-        c = s + p;
-        d = h + c;
-        fastTwoSum2(H, d, &S, &s);
-    }
-    return accSqrt(S, s);
 }

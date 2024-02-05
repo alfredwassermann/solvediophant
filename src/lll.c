@@ -240,7 +240,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         //     }
         //     norm = SQRT(norm);
         // #endif
-        norm = norm_l2(R[k], k + 1);
+        norm = hiprec_norm_l2(R[k], k + 1);
 
         if (norm != norm || norm < 0.5) {  // nan or < 0.5
     swap_zero_vector:
@@ -825,7 +825,7 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
     // Compute R[k]
     for (i = 0; i < k; ++i) {
         // w = < R[k], H[i] >
-        w = dot2(&(R[k][i]), &(H[i][i]), z - i);
+        w = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
         w_beta = w * beta[i];
 
         #if BLAS
@@ -838,7 +838,7 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
     }
 
     // Compute || R[k] ||
-    norm = 1.0 / norm_l2(&(R[k][k]), z - k);
+    norm = 1.0 / hiprec_norm_l2(&(R[k][k]), z - k);
 
     // Compute H[k] = R[k] / || R[k] ||
     #if BLAS
@@ -854,7 +854,7 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
     beta[k] = 1.0/ (1.0 + fabs(R[k][k]) * norm);
 
     // Compute w = <R[k], H[k]>
-    w = dot2(&(R[k][k]), &(H[k][k]), z - k);
+    w = hiprec_dot2(&(R[k][k]), &(H[k][k]), z - k);
     w_beta = w * beta[k];
 
     // Compute R[k] -= w * beta * H[k]
@@ -866,7 +866,7 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
         }
     #endif
 
-    fprintf(stderr, "%d> %0.20lf ", k, norm_l2(&(R[k][k + 1]), z - (k + 1)));
+    fprintf(stderr, "%d> %0.20lf ", k, hiprec_norm_l2(&(R[k][k + 1]), z - (k + 1)));
 
     // if (isnan(R[k][k])) {
     //     fprintf(stderr, "%d> ", k);
