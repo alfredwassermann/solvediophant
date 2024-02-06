@@ -150,8 +150,8 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         count_tricols = 0;
     again:
         /* Apply Householder vectors to column k of R */
-        // householder_part1(b, R, H, beta, k, z, bit_size);
-        i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
+        householder_part1(b, R, H, beta, k, z, bit_size);
+        // i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
 
         // if (fabs(R[k][k]) < 1.0e-12) {
         //     goto swap_zero_vector;
@@ -380,11 +380,16 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     int insert_pos, lowest_pos;
     int deep_size;
     long *swap;
+    int redo_tricol = 0;
+    int max_tricols = 0;
+    int count_tricols = 0;
 
     // fprintf(stderr, "delta=%lf\n", delta);
     #if VERBOSE > 1
         int counter = 0;
     #endif
+
+    fprintf(stderr, "-------------------------- Do LLLH_long -------------------------------------------------------------\n");
 
     lattice->work_on_long = TRUE;
 
@@ -445,20 +450,24 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         #endif
         handle_signals(lattice, R);
 
+        count_tricols = 0;
+    again:
         /* Recompute column k of R */
-        // min_idx = householder_column_long(b, R, H, beta, k, k + 1, z, bit_size);
-        householder_part1_long(b, R, H, beta, k, z, bit_size);
+        min_idx = householder_column_long(b, R, H, beta, k, k + 1, z, bit_size);
+        // householder_part1_long(b, R, H, beta, k, z, bit_size);
 
         // if (fabs(R[k][k]) < 1.0e-12) {
         //     goto swap_zero_vector_long;
         // }
 
+        redo_tricol = 0;
         /* size reduction of $b_k$ */
         for (j = k - 1; j >= low; j--) {
             /* Subtract suitable multiple of $b_j$ from $b_k$. */
             if (fabs(R[k][j]) > eta * fabs(R[j][j])) {
                 mus = ROUND(R[k][j] / R[j][j]);
                 musl = (long)mus;
+                redo_tricol = 1;
 
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
                 size_reduction_long(b, R, musl, mus, k, j, z);
@@ -466,6 +475,15 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             }
         }
 
+        if (redo_tricol) {
+            count_tricols++;
+            max_tricols = (count_tricols > max_tricols) ? count_tricols : max_tricols;
+            if (count_tricols > 100) {
+                fprintf(stderr, "Too much tricol_iterations\n");
+                exit(EXIT_ERR_NUMERIC);
+            }
+            goto again;
+        }
         min_idx = householder_column_long(b, R, H, beta, k, k + 1, z, bit_size);
 
         /*
@@ -578,6 +596,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
     }
 
+    fprintf(stderr, "Max tricol iterations: %d\n", max_tricols);
     return lowest_pos;
 }
 

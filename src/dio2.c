@@ -226,7 +226,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     fprintf(stderr, "Third reduction successful\n"); fflush(stderr);
 
     dump_lattice(lattice);
-    print_lattice(lattice);
+    // print_lattice(lattice);
 
     /* Undo scaling of last rows */
     for (i = 0; i < lattice->num_cols; i++) {
