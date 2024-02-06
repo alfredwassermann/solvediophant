@@ -121,11 +121,11 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             fprintf(stderr, "First reduction not successful\n"); fflush(stderr);
             return 0;
         }
-        #if TRUE
+        #if FALSE
             printf("After cutting\n");
             print_lattice(lattice);
         #endif
-        exit(-1);
+        // exit(-1);
 
         #if 1
             shufflelattice(lattice);
@@ -144,7 +144,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         //print_lattice(lattice);
     }
 
-    #if TRUE
+    #if FALSE
         printf("After second reduction\n");
         print_lattice(lattice);
     #endif
@@ -226,7 +226,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     fprintf(stderr, "Third reduction successful\n"); fflush(stderr);
 
     dump_lattice(lattice);
-    // print_lattice(lattice);
+    print_lattice(lattice);
 
     /* Undo scaling of last rows */
     for (i = 0; i < lattice->num_cols; i++) {
