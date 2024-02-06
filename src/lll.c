@@ -69,6 +69,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     #if VERBOSE > 1
         int counter = 0;
     #endif
+    fprintf(stderr, "-------------------------- Do LLLH -------------------------------------------------------------\n");
 
     lattice->work_on_long = FALSE;
 
@@ -143,7 +144,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         // }
         // #endif
 
-        /* (Re)compute column k of R */
+        /* Apply Householder vectors to column k of R */
         householder_part1(b, R, H, beta, k, z, bit_size);
 
         // if (fabs(R[k][k]) < 1.0e-12) {
@@ -160,6 +161,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
 
         /* Size reduction of $b_k$ */
+        fprintf(stderr, "k=%d\n", k);
         for (j = k - 1; j >= low; j--) {
             /**
              * Subtract suitable multiple of $b_j$ from $b_k$.
@@ -171,12 +173,14 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             if (fabs(R[k][j]) > eta * fabs(R[j][j])) {
                 mus = ROUND(R[k][j] / R[j][j]);
                 mpz_set_d(musvl, mus);
+                fprintf(stderr, "%0.0lf ", mus);
 
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
                 size_reduction(b, musvl, k, j);
                 (*solutiontest)(lattice, k);
             }
         }
+        fprintf(stderr, "\n");
 
         // Determine the Householder vector for k
         i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
@@ -298,7 +302,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             }
             b[insert_pos] = swapvl;
 
-            //fprintf(stderr, "INSERT %d at %d\n", k, insert_pos);
+            // fprintf(stderr, "INSERT %d at %d\n", k, insert_pos);
             k = insert_pos;
         } else {
             k++;

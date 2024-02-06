@@ -107,7 +107,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     if (!restart) {
         lll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.lll.delta_low, CLASSIC_LLL);
 
-        #if 0
+        #if FALSE
             printf("After first reduction\n");
             print_lattice(lattice);
         #endif
@@ -120,7 +120,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             fprintf(stderr, "First reduction not successful\n"); fflush(stderr);
             return 0;
         }
-        #if 0
+        #if FALSE
             printf("After cutting\n");
             print_lattice(lattice);
         #endif
@@ -142,7 +142,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         //print_lattice(lattice);
     }
 
-    #if FALSE
+    #if TRUE
         printf("After second reduction\n");
         print_lattice(lattice);
     #endif
@@ -315,7 +315,6 @@ int cutlattice(lattice_t *lattice) {
             lattice->num_cols--;
         }
     } while (j < lattice->num_cols);
-
 
     /**
      * test for right hand side columns
