@@ -161,7 +161,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
 
         /* Size reduction of $b_k$ */
-        fprintf(stderr, "k=%d\n", k);
+        // fprintf(stderr, "k=%d\n", k);
         for (j = k - 1; j >= low; j--) {
             /**
              * Subtract suitable multiple of $b_j$ from $b_k$.
@@ -173,14 +173,14 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             if (fabs(R[k][j]) > eta * fabs(R[j][j])) {
                 mus = ROUND(R[k][j] / R[j][j]);
                 mpz_set_d(musvl, mus);
-                fprintf(stderr, "%0.0lf ", mus);
+                // fprintf(stderr, "%0.0lf ", mus);
 
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
                 size_reduction(b, musvl, k, j);
                 (*solutiontest)(lattice, k);
             }
         }
-        fprintf(stderr, "\n");
+        // fprintf(stderr, "\n");
 
         // Determine the Householder vector for k
         i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
@@ -241,7 +241,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
 
         /* Fourth step: swap columns */
-        if (reduction_type == POT_LLL) {
+        if (0 && reduction_type == POT_LLL) {
             // Pot-LLL
             pot = pot_max = 0.0;
             pot_idx = k;
@@ -259,7 +259,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
             insert_pos = pot_idx;
         } else {
-            if (reduction_type == CLASSIC_LLL) {
+            if (1 || reduction_type == CLASSIC_LLL) {
                 // Standard LLL
                 i = (k > low) ? k - 1 : low;
                 r_new = R[k][k] * R[k][k] + R[k][i] * R[k][i];
@@ -344,7 +344,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             DOUBLE delta, int reduction_type,
             int bit_size,
             int (*solutiontest)(lattice_t *lattice, int k)) {
-
+exit(-1);
     long **b = lattice->basis_long;
     int i, j, k, min_idx;
     int cnt_tricol, max_tricol = 0;
@@ -794,6 +794,9 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
 
     // Apply rotation to R[k][k] only
     R[k][k] = mu;
+    for (i = k + 1; i < z; ++i) {
+        R[k][i] = 0.0;
+    }
 
     // fprintf(stderr, "R[%d]:", k);
     // for (i = 0; i < z; ++i) {
