@@ -111,6 +111,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             printf("After first reduction\n");
             print_lattice(lattice);
         #endif
+
         /**
          * cut the lattice
          */
@@ -120,10 +121,11 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             fprintf(stderr, "First reduction not successful\n"); fflush(stderr);
             return 0;
         }
-        #if FALSE
+        #if TRUE
             printf("After cutting\n");
             print_lattice(lattice);
         #endif
+        exit(-1);
 
         #if 1
             shufflelattice(lattice);

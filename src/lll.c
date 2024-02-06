@@ -145,7 +145,8 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         // #endif
 
         /* Apply Householder vectors to column k of R */
-        householder_part1(b, R, H, beta, k, z, bit_size);
+        // householder_part1(b, R, H, beta, k, z, bit_size);
+        i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
 
         // if (fabs(R[k][k]) < 1.0e-12) {
         //     goto swap_zero_vector;
@@ -344,7 +345,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             DOUBLE delta, int reduction_type,
             int bit_size,
             int (*solutiontest)(lattice_t *lattice, int k)) {
-exit(-1);
+
     long **b = lattice->basis_long;
     int i, j, k, min_idx;
     int cnt_tricol, max_tricol = 0;
