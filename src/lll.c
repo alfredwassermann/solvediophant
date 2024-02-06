@@ -49,12 +49,10 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             int (*solutiontest)(lattice_t *lattice, int k)) {
 
     coeff_t **b = lattice->basis;
-    int i, j, k, kk;
-    int cnt_tricol, max_tricol = 0;
+    int i, j, k;
     DOUBLE norm;
-    int mu_all_zero;
 
-    DOUBLE theta, theta1, eta;
+    DOUBLE theta, eta;
 
     DOUBLE mus;
     mpz_t musvl;
@@ -145,81 +143,51 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         // }
         // #endif
 
-        cnt_tricol = 0;
-        theta1 = theta;
-        kk = k;
-
-    start_reduction:
-    start_tricol:
         /* (Re)compute column k of R */
-        i = householder_column(b, R, H, beta, kk, kk + 1, z, bit_size);
+        householder_part1(b, R, H, beta, k, z, bit_size);
 
         // if (fabs(R[k][k]) < 1.0e-12) {
         //     goto swap_zero_vector;
         // }
 
+        if (0 && k > 0) {
+            fprintf(stderr, "\nBefore: R[%d]: ", k);
+            for (j = 0; j <= k; j++) {
+                fprintf(stderr, " %0.20lf", R[k][j]);
+            }
+            fprintf(stderr, "\n");
+            fprintf(stderr, "mu: %0.20lf\n", R[k][k-1] / R[k-1][k-1]);
+        }
+
         /* Size reduction of $b_k$ */
-        mu_all_zero = TRUE;
-        for (j = kk - 1; j >= low; j--) {
+        for (j = k - 1; j >= low; j--) {
             /**
              * Subtract suitable multiple of $b_j$ from $b_k$.
              *
              * Size reduction according to Schnorr.
              * Lazy size reduction, see Stehle, "Floating-point LLL: theoretical and practical aspects"
              */
-            if (fabs(R[kk][j]) > eta * fabs(R[j][j]) + theta1 * fabs(R[kk][kk])) {
-                mus = ROUND(R[kk][j] / R[j][j]);
+            // if (fabs(R[k][j]) > eta * fabs(R[j][j]) + theta1 * fabs(R[k][k])) {
+            if (fabs(R[k][j]) > eta * fabs(R[j][j])) {
+                mus = ROUND(R[k][j] / R[j][j]);
                 mpz_set_d(musvl, mus);
-                mu_all_zero = FALSE;
 
-                if (cnt_tricol % 5 == 0) {
-                    // theta1 += 0.001;
-                }
-                if (cnt_tricol > 1000) {
-                    fprintf(stderr, "Possible tricol error: k=%d, j=%d eta=%0.2lf, theta1=%0.2lf, mus=%0.2lf, %lf %lf %lf\n\t %lf %lf\n\t %lf\n",
-                        kk, j, eta, theta1, mus,
-                        R[kk][j], R[j][j], R[kk][kk],
-                        fabs(R[kk][j]), eta * fabs(R[j][j]) + theta1 * fabs(R[kk][kk]),
-                        fabs(R[kk][j]) - (eta * fabs(R[j][j]) + theta1 * fabs(R[kk][kk]))
-                    );
-                    exit(EXIT_ERR_NUMERIC);
-                }
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
-                size_reduction(b, R, musvl, mus, kk, j);
-                (*solutiontest)(lattice, kk);
+                size_reduction(b, musvl, k, j);
+                (*solutiontest)(lattice, k);
             }
         }
 
-        if (cnt_tricol > 0 && cnt_tricol % 1 == 0) {
-            fprintf(stderr, "tricol %d at low=%d, k=%d (eta: %lf, theta1: %lf, bitsize: %d)\n",
-                cnt_tricol, low, kk, eta, theta1, bit_size);
+        // Determine the Householder vector for k
+        i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
 
-            for (j = kk - 1; j >= low; j--) {
-                if (fabs(R[kk][j]) > eta * fabs(R[j][j]) + theta1 * fabs(R[kk][kk])) {
-                    fprintf(stderr, "\t j:%d: %0.20lf %0.20lf\n",
-                        j, (R[kk][j]/R[j][j]),  (fabs(R[kk][j]) - eta * fabs(R[j][j])) / fabs(R[kk][kk]));
-                }
+        if (0 && k > 0) {
+            fprintf(stderr, "After: R[%d]: ", k);
+            for (j = 0; j <= k; j++) {
+                fprintf(stderr, " %0.20lf", R[k][j]);
             }
-            fflush(stderr);
-        }
-        cnt_tricol++;
-
-        if (!mu_all_zero) {
-            goto start_tricol;
-        }
-        if (cnt_tricol > max_tricol) {
-            max_tricol = cnt_tricol;
-            fprintf(stderr, "new max_tricol %d, k=%d, bit size:%d\n", max_tricol, k, bit_size);
-        }
-
-        if (k > k_max) {
-            // Early size reduction, see Stehle, "Floating-point LLL: theoretical and practical aspects", p. 201
-            // Seems to be slower...
-            // if (kk < up - 1) {
-            //     kk++;
-            //     goto start_reduction;
-            // }
-            k_max = k;
+            fprintf(stderr, "\n");
+            fprintf(stderr, "mu: %0.20lf\n", R[k][k-1] / R[k-1][k-1]);
         }
 
         if (FALSE) {
@@ -338,7 +306,6 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     }
     mpz_clear(hv);
     mpz_clear(musvl);
-    fprintf(stderr, "max tricol iterates: %d\n", max_tricol);
 
     return lowest_pos;
 
@@ -456,64 +423,28 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         #endif
         handle_signals(lattice, R);
 
-        // #if FALSE
-        // // Look ahead
-        // i = householder_column(b, R, H, beta, k, s, z, bit_size);
-        // if (i > k) {
-        //     swapvl = b[i];
-        //     for (j = i; j > k; --j) {
-        //         b[j] = b[j - 1];
-        //     }
-        //     b[k] = swapvl;
-
-        //     //fprintf(stderr, "GET %d from %d\n", k, i);
-        // }
-        // #endif
-
-        cnt_tricol = 0;
-
-    start_tricol_long:
         /* Recompute column k of R */
-        min_idx = householder_column_long(b, R, H, beta, k, k + 1, z, bit_size);
+        // min_idx = householder_column_long(b, R, H, beta, k, k + 1, z, bit_size);
+        householder_part1_long(b, R, H, beta, k, z, bit_size);
 
         // if (fabs(R[k][k]) < 1.0e-12) {
         //     goto swap_zero_vector_long;
         // }
 
         /* size reduction of $b_k$ */
-        mu_all_zero = TRUE;
         for (j = k - 1; j >= low; j--) {
             /* Subtract suitable multiple of $b_j$ from $b_k$. */
-            if (fabs(R[k][j]) > eta * fabs(R[j][j]) + theta * fabs(R[k][k])) {
+            if (fabs(R[k][j]) > eta * fabs(R[j][j])) {
                 mus = ROUND(R[k][j] / R[j][j]);
                 musl = (long)mus;
-                mu_all_zero = FALSE;
 
-                if (cnt_tricol > 10000) {
-                    fprintf(stderr, "Tricol problem: %d: eta=%0.2lf, theta=%0.2lf, mus=%0.2lf, %lf %lf\n %lf > %lf\n", j, eta, theta, mus,
-                        fabs(R[j][j]), fabs(R[k][k]),
-                        fabs(R[k][j]), eta * fabs(R[j][j]) + theta * fabs(R[k][k]));
-                    exit(EXIT_ERR_NUMERIC);
-                }
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
-                size_reduction_long(b, R, musl, mus, k, j, z);
+                size_reduction_long(b, musl, k, j, z);
                 (*solutiontest)(lattice, k);
             }
         }
 
-        if (cnt_tricol > 0 && cnt_tricol % 1000 == 0) {
-            fprintf(stderr, "tricol %d at %d\n", cnt_tricol, k);
-            fflush(stderr);
-        }
-        cnt_tricol++;
-
-        if (!mu_all_zero) {
-            goto start_tricol_long;
-        }
-
-        if (cnt_tricol > max_tricol) {
-            max_tricol = cnt_tricol;
-        }
+        min_idx = householder_column_long(b, R, H, beta, k, k + 1, z, bit_size);
 
         /*
             Before going to step 4 we test if $b_k$ is linear dependent.
@@ -625,11 +556,10 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
     }
 
-    fprintf(stderr, "max tricol iterates: %d\n", max_tricol);
     return lowest_pos;
 }
 
-void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, int j) {
+void size_reduction(coeff_t **b, mpz_t musvl, int k, int j) {
     int i, ii, iii;
     coeff_t *bb;
 
@@ -650,11 +580,6 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
             }
             i = b[j][i].p;
         }
-        #if BLAS
-            cblas_daxpy(k, -1.0, mu[j], 1, mu[k], 1);
-        #else
-            for (i = 0; i < j; i++) mu[k][i] -= mu[j][i];
-        #endif
 
         break;
 
@@ -673,12 +598,6 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
             i = b[j][i].p;
         }
 
-        #if BLAS
-            cblas_daxpy(k, 1.0, mu[j], 1, mu[k], 1);
-        #else
-            for (i = 0; i < j; i++) mu[k][i] += mu[j][i];
-        #endif
-
         break;
 
     default:
@@ -695,12 +614,6 @@ void size_reduction(coeff_t **b, DOUBLE  **mu, mpz_t musvl, double mus, int k, i
             }
             i = b[j][i].p;
         }
-
-        #if BLAS
-            cblas_daxpy(k, -mus, mu[j], 1, mu[k], 1);
-        #else
-            for (i = 0; i < j; i++) mu[k][i] -= mu[j][i] * mus;
-        #endif
     }
 }
 
@@ -816,13 +729,13 @@ void householder_column_inner(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int l
 void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int l, int z, int bit_size) {
     int i, j;
     DOUBLE w, w_beta;
-    DOUBLE norm;
+    DOUBLE norm, norm_inv;
+    DOUBLE sigma, mu, sq;
     DOUBLE eps = 1.0e-15; // 0.0000000001;
-    #if !BLAS
-        DOUBLE x;
-    #endif
 
-    // Compute R[k]
+    // Apply Householder vectors H[0],..., H[k-1]
+    // to R[k] = b[k]:
+    //   R[k] -= beta_i * <R[k], H[i]> H[i]
     for (i = 0; i < k; ++i) {
         // w = < R[k], H[i] >
         w = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
@@ -837,44 +750,78 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
         #endif
     }
 
-    // Compute || R[k] ||
-    norm = 1.0 / hiprec_norm_l2(&(R[k][k]), z - k);
+    // Initialize H[k]
+    H[k][k] = 1.0;
+    for (j = k + 1; j < z; ++j) {
+        H[k][j] = R[k][j];
+    }
 
-    // Compute H[k] = R[k] / || R[k] ||
-    #if BLAS
-        cblas_dcopy(z - k, &(R[k][k]), 1, &(H[k][k]), 1);
-        cblas_dscal(z - k,  norm, &(H[k][k]), 1);
-    #else
-        for (j = k; j < z; ++j) {
-            H[k][j] = R[k][j] * norm;
+    // Determine beta and H[k]
+    sigma = hiprec_normsq_l2(&(R[k][k + 1]), z - k - 1);
+    // fprintf(stderr, "Sigma:\n");
+    // fprintf(stderr, "high:%0.20lf, low:%0.20lf\n", sigma, dotNaive(&(R[k][k + 1]), &(R[k][k + 1]), z - k - 1));
+
+    DOUBLE h1;
+    if (sigma == 0.0) {
+        beta[k] = 0.0;
+    } else {
+        mu = SQRT (R[k][k] * R[k][k] + sigma ); // mu = ||R[k]||
+        if (R[k][k] < -eps) {
+            H[k][k] = R[k][k] - mu;
+        } else {
+            H[k][k] =  -sigma / (R[k][k] + mu);
         }
-    #endif
-
-    H[k][k] += (R[k][k] >= -eps) ? 1.0 : -1.0;
-    beta[k] = 1.0/ (1.0 + fabs(R[k][k]) * norm);
-
-    // Compute w = <R[k], H[k]>
-    w = hiprec_dot2(&(R[k][k]), &(H[k][k]), z - k);
-    w_beta = w * beta[k];
-
-    // Compute R[k] -= w * beta * H[k]
-    #if BLAS
-        cblas_daxpy(z - k, -w_beta, &(H[k][k]), 1, &(R[k][k]), 1);
-    #else
-        for (j = k; j < z; ++j) {
-            R[k][j] -= w_beta * H[k][j];
+        h1 = H[k][k];
+        sq = H[k][k] * H[k][k];
+        beta[k] = 2.0 * sq / ( sigma + sq);
+        for (j = k + 1; j < z; ++j) {
+            H[k][j] /= H[k][k];
         }
-    #endif
+        H[k][k] = 1.0;
+    }
 
-    fprintf(stderr, "%d> %0.20lf ", k, hiprec_norm_l2(&(R[k][k + 1]), z - (k + 1)));
+    // fprintf(stderr, "sigma:%0.20lf, mu:%0.20lf, beta:%0.20lf, v1=%0.20lf, , v1^2=%0.20lf\n", sigma, mu, beta[k], h1, sq);
 
-    // if (isnan(R[k][k])) {
-    //     fprintf(stderr, "%d> ", k);
-    //     for (int j = k; j < k + 1; ++j) {
-    //         fprintf(stderr, "%lf ", R[k][j]);
-    //     }
-    //     fprintf(stderr, "%lf %lf %lf\n", w_beta, H[k][k], 1.0/norm);
+    // fprintf(stderr, "H[%d]:", k);
+    // for (i = 0; i < z; ++i) {
+    //     fprintf(stderr, "%0.20lf ", H[k][i]);
     // }
+    // fprintf(stderr, "\n");
+
+    // Apply rotation to R[k][k] only
+    R[k][k] = mu;
+
+    // fprintf(stderr, "R[%d]:", k);
+    // for (i = 0; i < z; ++i) {
+    //     fprintf(stderr, "%0.20lf ", R[k][i]);
+    // }
+    // fprintf(stderr, "\n");
+}
+
+void householder_part1(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int z, int bit_size) {
+    int i, j;
+    DOUBLE w, w_beta;
+
+    for (j = 0; j < z; ++j) {
+        R[k][j] = (DOUBLE)mpz_get_d(b[k][j+1].c);
+    }
+
+    // Apply Householder vectors H[0],..., H[k-1]
+    // to R[k] = b[k]:
+    //   R[k] -= beta_i * <R[k], H[i]> H[i]
+    for (i = 0; i < k; ++i) {
+        // w = < R[k], H[i] >
+        w = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
+        w_beta = w * beta[i];
+
+        #if BLAS
+            cblas_daxpy(z - i, -w_beta, &(H[i][i]), 1, &(R[k][i]), 1);
+        #else
+            for (j = i; j < z; ++j) {
+                R[k][j] -= w_beta * H[i][j];
+            }
+        #endif
+    }
 }
 
 int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int s, int z, int bit_size) {
@@ -888,13 +835,39 @@ int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k,
         }
 
         householder_column_inner_hiprec(R, H, beta, k, l, z, bit_size);
-fprintf(stderr, "\n");
+
         if (l == k || R[k][k] * R[k][k] < min_val) {
             min_val = R[k][k] * R[k][k];
             min_idx = l;
         }
     }
     return min_idx;
+}
+
+void householder_part1_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int z, int bit_size) {
+    int i, j;
+    DOUBLE w, w_beta;
+
+    for (j = 0; j < z; ++j) {
+        R[k][j] = (DOUBLE)b[k][j];
+    }
+
+    // Apply Householder vectors H[0],..., H[k-1]
+    // to R[k] = b[k]:
+    //   R[k] -= beta_i * <R[k], H[i]> H[i]
+    for (i = 0; i < k; ++i) {
+        // w = < R[k], H[i] >
+        w = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
+        w_beta = w * beta[i];
+
+        #if BLAS
+            cblas_daxpy(z - i, -w_beta, &(H[i][i]), 1, &(R[k][i]), 1);
+        #else
+            for (j = i; j < z; ++j) {
+                R[k][j] -= w_beta * H[i][j];
+            }
+        #endif
+    }
 }
 
 int householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int s, int z, int bit_size) {
@@ -907,7 +880,7 @@ int householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int 
             R[k][j] = (DOUBLE)b[l][j];
         }
 
-        householder_column_inner(R, H, beta, k, l, z, bit_size);
+        householder_column_inner_hiprec(R, H, beta, k, l, z, bit_size);
 
         if (l == k || R[k][k] * R[k][k] < min_val) {
             min_val = R[k][k] * R[k][k];
@@ -917,17 +890,12 @@ int householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int 
     return min_idx;
 }
 
-void size_reduction_long(long **b, DOUBLE  **mu, long musl, double mus, int k, int j, int z) {
+void size_reduction_long(long **b, long musl, int k, int j, int z) {
     int i;
 
     for (i = 0; i < z; ++i) {
         b[k][i] -= musl * b[j][i];
     }
-    #if BLAS
-        cblas_daxpy(j, -mus, mu[j], 1, mu[k], 1);
-    #else
-        for (i = 0; i < j; i++) mu[k][i] -= mu[j][i] * mus;
-    #endif
 }
 
 void check_precision(coeff_t *b, DOUBLE *R, int z, int k) {

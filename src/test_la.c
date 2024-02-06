@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
         printf("%0.20lf %0.20lf\n", a.x, a.y);
     #endif
 
-    #if 0
+    #if 1
         printf("--------- TwoProduct\n");
         x = 11111111.111111111;
         y = 7.777777777;
@@ -37,8 +37,8 @@ int main(int argc, char *argv[]) {
         z = x * y;
         printf("FMA: %0.20lf %0.20lf\n", z, x * y - z);
 
-        x = 11111111.11111111111111111111;
-        printf("Naive: %0.20lf\n", x * x);
+        x = 10000000000000.0;
+        printf("Naive:      %0.20lf\n", x * x);
         a = twoSquare(x);
         printf("twoSquare : %0.20lf %0.20lf\n", a.x, a.y);
         twoSquare2(x, &x1, &y1);
@@ -47,7 +47,17 @@ int main(int argc, char *argv[]) {
         printf("twoSquare2: %0.20lf %0.20lf\n", x1, y1);
 
         printf("sqrt   : %0.20lf\n", sqrt(x1));
-        printf("accSqrt: %0.20lf\n", accSqrt(x1, y1));
+        printf("accSqrt: %0.20lf\n", hiprec_sqrt(x1, y1));
+    #endif
+
+    #if 0
+        printf("--------- sqrt\n");
+        x = 5000000000000000.0 + 2.0;
+        printf("Naive: %0.20lf\n", sqrt(x * x));
+        y = 5000000000000000.0; 
+        z = 2;
+        printf("Hi1  : %0.20lf\n", hiprec_sqrt(y*y + 2* y * z, z));
+        printf("Hi2  : %0.20lf\n", hiprec_sqrt(y*y, 2* y * z + z));
     #endif
 
     #if 0
@@ -74,7 +84,7 @@ int main(int argc, char *argv[]) {
     }
     #endif
 
-    #if 1
+    #if 0
     {
         printf("--------- Dot\n");
         const int n = 60000;

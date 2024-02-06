@@ -244,6 +244,25 @@ DOUBLE hiprec_dot2(DOUBLE* x, DOUBLE* y, int n) {
     return p + s;
 }
 
+DOUBLE hiprec_normsq_l2(DOUBLE* x, int n) {
+    DOUBLE S, s, P, p, H, h;
+    DOUBLE c, d;
+    int i;
+
+    if (n <= 0) return 0.0;
+
+    S = 0.0;
+    s = 0.0;
+    for (i = 0; i < n; i++) {
+        twoSquare2(x[i], &P, &p);
+        twoSum2(S, P, &H, &h);
+        c = s + p;
+        d = h + c;
+        fastTwoSum2(H, d, &S, &s);
+    }
+    return S + s;
+}
+
 DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
     DOUBLE S, s, P, p, H, h;
     DOUBLE c, d;
