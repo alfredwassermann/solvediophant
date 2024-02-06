@@ -64,6 +64,9 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     int insert_pos, lowest_pos, k_max;
     int deep_size;
     coeff_t *swapvl;
+    int redo_tricol = 0;
+    int max_tricols = 0;
+    int count_tricols = 0;
 
     // fprintf(stderr, "delta=%lf\n", delta);
     #if VERBOSE > 1
@@ -144,6 +147,8 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         // }
         // #endif
 
+        count_tricols = 0;
+    again:
         /* Apply Householder vectors to column k of R */
         // householder_part1(b, R, H, beta, k, z, bit_size);
         i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
@@ -161,6 +166,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             fprintf(stderr, "mu: %0.20lf\n", R[k][k-1] / R[k-1][k-1]);
         }
 
+        redo_tricol = 0;
         /* Size reduction of $b_k$ */
         // fprintf(stderr, "k=%d\n", k);
         for (j = k - 1; j >= low; j--) {
@@ -175,6 +181,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 mus = ROUND(R[k][j] / R[j][j]);
                 mpz_set_d(musvl, mus);
                 // fprintf(stderr, "%0.0lf ", mus);
+                redo_tricol = 1;
 
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
                 size_reduction(b, musvl, k, j);
@@ -183,8 +190,17 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
         // fprintf(stderr, "\n");
 
-        // Determine the Householder vector for k
-        i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
+        // Determine the Householder vector for column k
+        // i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
+        if (redo_tricol) {
+            count_tricols++;
+            max_tricols = (count_tricols > max_tricols) ? count_tricols : max_tricols;
+            if (count_tricols > 100) {
+                fprintf(stderr, "Too much tricol_iterations\n");
+                exit(EXIT_ERR_NUMERIC);
+            }
+            goto again;
+        }
 
         if (0 && k > 0) {
             fprintf(stderr, "After: R[%d]: ", k);
@@ -242,7 +258,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
 
         /* Fourth step: swap columns */
-        if (0 && reduction_type == POT_LLL) {
+        if (reduction_type == POT_LLL) {
             // Pot-LLL
             pot = pot_max = 0.0;
             pot_idx = k;
@@ -260,7 +276,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
             insert_pos = pot_idx;
         } else {
-            if (1 || reduction_type == CLASSIC_LLL) {
+            if (reduction_type == CLASSIC_LLL) {
                 // Standard LLL
                 i = (k > low) ? k - 1 : low;
                 r_new = R[k][k] * R[k][k] + R[k][i] * R[k][i];
@@ -285,7 +301,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 if (0.8 * r_act > r_new ||                      // outside of deep-insert slices
                     (
                         (i < deep_size || k - i < deep_size) && // inside of deep-insert slices
-                        r_act > r_new
+                        r_new < r_act
                     )
                    ) {
                     insert_pos = i;
@@ -312,6 +328,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     mpz_clear(hv);
     mpz_clear(musvl);
 
+    fprintf(stderr, "Max tricol iterations: %d\n", max_tricols);
     return lowest_pos;
 
 }
@@ -766,7 +783,6 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
     // fprintf(stderr, "Sigma:\n");
     // fprintf(stderr, "high:%0.20lf, low:%0.20lf\n", sigma, dotNaive(&(R[k][k + 1]), &(R[k][k + 1]), z - k - 1));
 
-    DOUBLE h1;
     if (sigma == 0.0) {
         beta[k] = 0.0;
     } else {
@@ -776,7 +792,6 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
         } else {
             H[k][k] =  -sigma / (R[k][k] + mu);
         }
-        h1 = H[k][k];
         sq = H[k][k] * H[k][k];
         beta[k] = 2.0 * sq / ( sigma + sq);
         for (j = k + 1; j < z; ++j) {
@@ -795,9 +810,9 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
 
     // Apply rotation to R[k][k] only
     R[k][k] = mu;
-    for (i = k + 1; i < z; ++i) {
-        R[k][i] = 0.0;
-    }
+    // for (i = k + 1; i < z; ++i) {
+    //     R[k][i] = 0.0;
+    // }
 
     // fprintf(stderr, "R[%d]:", k);
     // for (i = 0; i < z; ++i) {
