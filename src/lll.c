@@ -72,7 +72,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     #if VERBOSE > 1
         int counter = 0;
     #endif
-    fprintf(stderr, "-------------------------- Do LLLH -------------------------------------------------------------\n");
+    // fprintf(stderr, "-------------------------- Do LLLH -------------------------------------------------------------\n");
 
     lattice->work_on_long = FALSE;
 
@@ -150,8 +150,8 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         count_tricols = 0;
     again:
         /* Apply Householder vectors to column k of R */
-        householder_part1(b, R, H, beta, k, z, bit_size);
-        // i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
+        // householder_part1(b, R, H, beta, k, z, bit_size);
+        i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
 
         // if (fabs(R[k][k]) < 1.0e-12) {
         //     goto swap_zero_vector;
@@ -180,7 +180,6 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             if (fabs(R[k][j]) > eta * fabs(R[j][j])) {
                 mus = ROUND(R[k][j] / R[j][j]);
                 mpz_set_d(musvl, mus);
-                // fprintf(stderr, "%0.0lf ", mus);
                 redo_tricol = 1;
 
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
@@ -328,7 +327,9 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     mpz_clear(hv);
     mpz_clear(musvl);
 
-    fprintf(stderr, "Max tricol iterations: %d\n", max_tricols);
+    if (max_tricols > 1) {
+        fprintf(stderr, "Max tricol iterations: %d\n", max_tricols);
+    }
     return lowest_pos;
 
 }
@@ -389,7 +390,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         int counter = 0;
     #endif
 
-    fprintf(stderr, "-------------------------- Do LLLH_long -------------------------------------------------------------\n");
+    // fprintf(stderr, "-------------------------- Do LLLH_long -------------------------------------------------------------\n");
 
     lattice->work_on_long = TRUE;
 
@@ -596,7 +597,9 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
     }
 
-    fprintf(stderr, "Max tricol iterations: %d\n", max_tricols);
+    if (max_tricols > 1) {
+        fprintf(stderr, "Max tricol iterations: %d\n", max_tricols);
+    }
     return lowest_pos;
 }
 
