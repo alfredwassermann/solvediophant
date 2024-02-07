@@ -66,6 +66,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     coeff_t *swapvl;
     int redo_tricol = 0;
     int max_tricols = 0;
+    int stop_tricol = 10000;
     int count_tricols = 0;
 
     // fprintf(stderr, "delta=%lf\n", delta);
@@ -87,7 +88,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         eta = 0.505;
         theta = 0.1;
     } else {
-        theta = 0.0;
+        theta = 0.2;
     }
 
     #if VERBOSE > 1
@@ -176,7 +177,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
              * Lazy size reduction, see Stehle, "Floating-point LLL: theoretical and practical aspects"
              */
             // if (fabs(R[k][j]) > eta * fabs(R[j][j]) + theta1 * fabs(R[k][k])) {
-            if (fabs(R[k][j]) > eta * fabs(R[j][j])) {
+            if (fabs(R[k][j]) > eta * fabs(R[j][j]) + theta * fabs(R[k][k])) {
                 mus = ROUND(R[k][j] / R[j][j]);
                 mpz_set_d(musvl, mus);
                 redo_tricol = 1;
@@ -191,8 +192,8 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         if (redo_tricol) {
             count_tricols++;
             max_tricols = (count_tricols > max_tricols) ? count_tricols : max_tricols;
-            if (count_tricols > 100) {
-                fprintf(stderr, "Too much tricol_iterations\n");
+            if (count_tricols > stop_tricol) {
+                fprintf(stderr, "LLLH: too much tricol iterations (%d), k=%d, bit size: %d\n", stop_tricol, k, bit_size);
                 exit(EXIT_ERR_NUMERIC);
             }
             goto again;
@@ -381,6 +382,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     int redo_tricol = 0;
     int max_tricols = 0;
     int count_tricols = 0;
+    int stop_tricol = 100;
 
     // fprintf(stderr, "delta=%lf\n", delta);
     #if VERBOSE > 1
@@ -461,7 +463,7 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         /* size reduction of $b_k$ */
         for (j = k - 1; j >= low; j--) {
             /* Subtract suitable multiple of $b_j$ from $b_k$. */
-            if (fabs(R[k][j]) > eta * fabs(R[j][j])) {
+            if (fabs(R[k][j]) > eta * fabs(R[j][j]) + theta * fabs(R[k][k])) {
                 mus = ROUND(R[k][j] / R[j][j]);
                 musl = (long)mus;
                 redo_tricol = 1;
@@ -475,8 +477,8 @@ int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         if (redo_tricol) {
             count_tricols++;
             max_tricols = (count_tricols > max_tricols) ? count_tricols : max_tricols;
-            if (count_tricols > 100) {
-                fprintf(stderr, "Too much tricol_iterations\n");
+            if (count_tricols > stop_tricol) {
+                fprintf(stderr, "LLLH_long: too much tricol iterations (%d), k=%d, bit size: %d\n", stop_tricol, k, bit_size);
                 exit(EXIT_ERR_NUMERIC);
             }
             goto again;
@@ -710,7 +712,6 @@ void householder_column_inner(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int l
 void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int l, int z, int bit_size) {
     int i, j;
     DOUBLE w, w_beta;
-    DOUBLE norm, norm_inv;
     DOUBLE sigma, mu, sq;
     DOUBLE eps = 1.0e-15; // 0.0000000001;
 
@@ -909,7 +910,7 @@ void size_reduction_long(long **b, DOUBLE  **R, long musl, double mus, int k, in
 void check_precision(coeff_t *b, DOUBLE *R, int z, int k) {
     int j;
     mpz_t b_norm;
-    DOUBLE b_nrm, r_norm;
+    DOUBLE r_norm;
 
     mpz_init(b_norm);
     for (j = 0, r_norm = 0.0; j < z; ++j) {
