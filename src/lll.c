@@ -718,19 +718,29 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
     // Apply Householder vectors H[0],..., H[k-1]
     // to R[k] = b[k]:
     //   R[k] -= beta_i * <R[k], H[i]> H[i]
-    for (i = 0; i < k; ++i) {
-        // w = < R[k], H[i] >
-        w = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
-        w_beta = w * beta[i];
+    #if 1
+        for (i = 0; i < k; ++i) {
+            // w = < R[k], H[i] >
+            w = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
+            w_beta = w * beta[i];
 
-        #if BLAS
-            cblas_daxpy(z - i, -w_beta, &(H[i][i]), 1, &(R[k][i]), 1);
-        #else
-            for (j = i; j < z; ++j) {
-                R[k][j] -= w_beta * H[i][j];
-            }
-        #endif
-    }
+            #if BLAS
+                cblas_daxpy(z - i, -w_beta, &(H[i][i]), 1, &(R[k][i]), 1);
+            #else
+                for (j = i; j < z; ++j) {
+                    R[k][j] -= w_beta * H[i][j];
+                }
+            #endif
+        }
+    #else
+        for (i = 0; i < k; ++i) {
+            R[i][z - 1] = beta[i] * hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
+        }
+        for (j = 0; j < z; ++j) {
+            R[k][j] -= hiprec_dot2_row(&(R[j][z - 1]), z, &(H[j][j]), z, k - j);
+        }
+    #endif
+
 
     // Initialize H[k]
     H[k][k] = 1.0;
