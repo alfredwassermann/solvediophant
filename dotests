@@ -19,7 +19,9 @@ eqs,16
 KM_PSL_2_23_7_8.in,2
 n8_282.txt,104
 unitals_v1.txt,78
-4-arcs.txt,32708"
+4-arcs.txt,32705
+KM_PGGL_2_32_t7_k8.in,4996426"
+# 4-arcs.txt,32708"
 ###############          #################################
 # FILESLONG="KM_PGGL_2_32_t7_k8.in,4996426
 # n8_279.txt,1848
