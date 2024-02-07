@@ -733,14 +733,16 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
 
     // Initialize H[k]
     H[k][k] = 1.0;
-    for (j = k + 1; j < z; ++j) {
-        H[k][j] = R[k][j];
-    }
+    #if BLAS
+        cblas_dcopy(z - k - 1, &(R[k][k + 1]), 1, &(H[k][k + 1]), 1);
+    #else
+        for (j = k + 1; j < z; ++j) {
+            H[k][j] = R[k][j];
+        }
+    #endif
 
-    // Determine beta and H[k]
+    // Determine beta and Householder vector H[k]
     sigma = hiprec_normsq_l2(&(R[k][k + 1]), z - k - 1);
-    // fprintf(stderr, "Sigma:\n");
-    // fprintf(stderr, "high:%0.20lf, low:%0.20lf\n", sigma, dotNaive(&(R[k][k + 1]), &(R[k][k + 1]), z - k - 1));
 
     if (sigma == 0.0) {
         beta[k] = 0.0;
@@ -749,7 +751,7 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
         if (R[k][k] < -eps) {
             H[k][k] = R[k][k] - mu;
         } else {
-            H[k][k] =  -sigma / (R[k][k] + mu);
+            H[k][k] = -sigma / (R[k][k] + mu);
         }
         sq = H[k][k] * H[k][k];
         beta[k] = 2.0 * sq / ( sigma + sq);
@@ -758,9 +760,6 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
         }
         H[k][k] = 1.0;
     }
-
-    // fprintf(stderr, "sigma:%0.20lf, mu:%0.20lf, beta:%0.20lf, v1=%0.20lf, , v1^2=%0.20lf\n", sigma, mu, beta[k], h1, sq);
-
     // fprintf(stderr, "H[%d]:", k);
     // for (i = 0; i < z; ++i) {
     //     fprintf(stderr, "%0.20lf ", H[k][i]);

@@ -65,3 +65,7 @@ sd3:
 non 0/1 problem 25 solutions.
 A buggy version found 24 solutions.
 With lds: 13 solutions
+
+- precision_problem.txt
+Huge 0/1 problem with 37071 equations and 2673 variables.
+Probably no solution
