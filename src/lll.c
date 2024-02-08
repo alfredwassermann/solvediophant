@@ -88,8 +88,8 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         eta = 0.505;
         theta = 0.1;
     } else {
-        eta = 0.52;
-        theta = 0.3;
+        eta = ETACONST;
+        theta = 0.0;
     }
 
     #if VERBOSE > 1
