@@ -25,6 +25,7 @@ int main(int argc, char *argv[]) {
     #endif
 
     #if 1
+        printf("fma: %lf\n", fma(3.0, 1700000000.0, -1.0));
         printf("--------- TwoProduct\n");
         x = 11111111.111111111;
         y = 7.777777777;
