@@ -66,7 +66,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     coeff_t *swapvl;
     int redo_tricol = 0;
     int max_tricols = 0;
-    int stop_tricol = 10000;
+    int stop_tricol = 20;
     int count_tricols = 0;
 
     // fprintf(stderr, "delta=%lf\n", delta);
@@ -88,7 +88,8 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         eta = 0.505;
         theta = 0.1;
     } else {
-        theta = 0.2;
+        eta = 0.52;
+        theta = 0.3;
     }
 
     #if VERBOSE > 1
@@ -181,6 +182,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 mus = ROUND(R[k][j] / R[j][j]);
                 mpz_set_d(musvl, mus);
                 redo_tricol = 1;
+                // fprintf(stderr, "%0.2lf ", R[k][j] / R[j][j]);
 
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
                 size_reduction(b, R, musvl, mus, k, j);
@@ -189,11 +191,24 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
         // fprintf(stderr, "\n");
 
+        if (FALSE && redo_tricol > 0) {
+            fprintf(stderr, "\n");
+            fprintf(stderr, "redo=%d, tricol=%d \n", redo_tricol, count_tricols+1);
+            check_precision(b[k - 1], R[k - 1], z, k - 1);
+            check_precision(b[k], R[k], z, k);
+        }
+
         if (redo_tricol) {
             count_tricols++;
             max_tricols = (count_tricols > max_tricols) ? count_tricols : max_tricols;
             if (count_tricols > stop_tricol) {
                 fprintf(stderr, "LLLH: too much tricol iterations (%d), k=%d, bit size: %d\n", stop_tricol, k, bit_size);
+
+                // for (i = 0; i < k; i++) {
+                //     fprintf(stderr, "%0.0lf ", R[i][i]);
+                // }
+                // fprintf(stderr, "\n");
+
                 exit(EXIT_ERR_NUMERIC);
             }
             goto again;
@@ -208,9 +223,6 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             fprintf(stderr, "mu: %0.20lf\n", R[k][k-1] / R[k-1][k-1]);
         }
 
-        if (FALSE) {
-            check_precision(b[k], R[k], z, k);
-        }
 
         /*
             Before going to step 4 we test if $b_k$ is linear dependent.
@@ -741,9 +753,10 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
         }
     #endif
 
+    // Determine beta and Householder vector H[k]
 
-    // Initialize H[k]
-    H[k][k] = 1.0;
+    // H[k][k] = 1.0;   // Golub, van Loan
+    H[k][k] = R[k][k];  // Higham, p.356
     #if BLAS
         cblas_dcopy(z - k - 1, &(R[k][k + 1]), 1, &(H[k][k + 1]), 1);
     #else
@@ -752,42 +765,63 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
         }
     #endif
 
-    // Determine beta and Householder vector H[k]
-    sigma = hiprec_normsq_l2(&(R[k][k + 1]), z - k - 1);
+    // Golub, van Loan approach:
+    // It ensures that R[k][k] becomes >= 0
+    // Higham, p.356: this might cause stability problems
+    // sigma = hiprec_normsq_l2(&(R[k][k + 1]), z - k - 1);
+    // if (sigma == 0.0) {
+    //     beta[k] = 0.0;
+    // } else {
+    //     mu = SQRT (R[k][k] * R[k][k] + sigma); // mu = ||R[k]||
+    //     if (R[k][k] < -eps) {
+    //         H[k][k] = R[k][k] - mu;
+    //     } else {
+    //         H[k][k] = -sigma / (R[k][k] + mu);
+    //     }
+    //     sq = H[k][k] * H[k][k];
+    //     beta[k] = 2.0 * sq / ( sigma + sq);
+    //     for (j = k + 1; j < z; ++j) {
+    //         H[k][j] /= H[k][k];
+    //     }
+    //     H[k][k] = 1.0;
+    // }
 
-    if (sigma == 0.0) {
-        beta[k] = 0.0;
-    } else {
-        mu = SQRT (R[k][k] * R[k][k] + sigma ); // mu = ||R[k]||
-        if (R[k][k] < -eps) {
-            H[k][k] = R[k][k] - mu;
-        } else {
-            H[k][k] = -sigma / (R[k][k] + mu);
-        }
-        sq = H[k][k] * H[k][k];
-        beta[k] = 2.0 * sq / ( sigma + sq);
-        for (j = k + 1; j < z; ++j) {
-            H[k][j] /= H[k][k];
-        }
-        H[k][k] = 1.0;
+    // More stable suggestion from Higham:
+    mu = hiprec_norm_l2(&(R[k][k]), z - k);
+    if (R[k][k] < -eps) {
+        mu = -mu;
     }
+    H[k][k] += mu;
+    beta[k] = 1.0 / (mu * H[k][k]);
+
     // fprintf(stderr, "H[%d]:", k);
     // for (i = 0; i < z; ++i) {
     //     fprintf(stderr, "%0.20lf ", H[k][i]);
     // }
     // fprintf(stderr, "\n");
 
-    // Apply rotation to R[k][k] only
-    R[k][k] = mu;
-    // for (i = k + 1; i < z; ++i) {
-    //     R[k][i] = 0.0;
-    // }
+    #if 0
+    if (k >= 0) {
+        // Rotate vector R[k] in order to check if
+        // H[k] is good enough
+        w = hiprec_dot2(&(R[k][k]), &(H[k][k]), z - k);
+        w_beta = -w * beta[i];
 
-    // fprintf(stderr, "R[%d]:", k);
-    // for (i = 0; i < z; ++i) {
-    //     fprintf(stderr, "%0.20lf ", R[k][i]);
-    // }
-    // fprintf(stderr, "\n");
+        for (j = k; j < z; ++j) {
+            R[k][j] += w_beta * H[k][j];
+        }
+
+        fprintf(stderr, "k: %d, -mu: %0.20lf\n", k, -mu);
+        for (j = k; j < z; ++j) {
+            fprintf(stderr, "%0.20lf ", R[k][j]);
+        }
+        fprintf(stderr, "\n");
+        exit(1);
+    }
+    #endif
+    // Apply rotation to R[k][k] only
+    // R[k][k] = mu;  // Golub, van Loan
+    R[k][k] = -mu;    // Higham
 }
 
 int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int s, int z, int bit_size) {
@@ -852,9 +886,9 @@ void size_reduction(coeff_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, in
                 i = b[j][i].p;
         }
     #if BLAS
-        cblas_daxpy(j, -1.0, R[j], 1, R[k], 1);
+        cblas_daxpy(j + 1, -1.0, R[j], 1, R[k], 1);
     #else
-        for (i = 0; i < j; i++) R[k][i] -= R[j][i];
+        for (i = 0; i <= j; i++) R[k][i] -= R[j][i];
     #endif
 
         break;
@@ -875,9 +909,9 @@ void size_reduction(coeff_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, in
         }
 
     #if BLAS
-        cblas_daxpy(j, 1.0, R[j], 1, R[k], 1);
+        cblas_daxpy(j + 1, 1.0, R[j], 1, R[k], 1);
     #else
-        for (i = 0; i < j; i++) R[k][i] += R[j][i];
+        for (i = 0; i <= j; i++) R[k][i] += R[j][i];
     #endif
         break;
 
@@ -896,9 +930,9 @@ void size_reduction(coeff_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, in
                 i = b[j][i].p;
         }
     #if BLAS
-        cblas_daxpy(j, -mus, R[j], 1, R[k], 1);
+        cblas_daxpy(j + 1, -mus, R[j], 1, R[k], 1);
     #else
-        for (i = 0; i < j; i++) R[k][i] -= R[j][i] * mus;
+        for (i = 0; i <= j; i++) R[k][i] -= R[j][i] * mus;
     #endif
 
     }
@@ -910,10 +944,11 @@ void size_reduction_long(long **b, DOUBLE  **R, long musl, double mus, int k, in
     for (i = 0; i < z; ++i) {
         b[k][i] -= musl * b[j][i];
     }
+
     #if BLAS
-        cblas_daxpy(j, -mus, R[j], 1, R[k], 1);
+        cblas_daxpy(j + 1, -mus, R[j], 1, R[k], 1);
     #else
-        for (i = 0; i < j; i++) R[k][i] -= R[j][i] * mus;
+        for (i = 0; i <= j; i++) R[k][i] -= R[j][i] * mus;
     #endif
 }
 
@@ -929,8 +964,8 @@ void check_precision(coeff_t *b, DOUBLE *R, int z, int k) {
     for (j = 0, r_norm = 0.0; j <= k; ++j) {
         r_norm += R[j] * R[j];
     }
-    if (fabs(mpz_get_d(b_norm) - r_norm) > 0.1) {
-        fprintf(stderr, "precision check fails at %d: ", k);
+    if (1 || fabs(mpz_get_d(b_norm) - r_norm) > 0.1) {
+        fprintf(stderr, "precision check at %d: ", k);
         mpz_out_str(stderr, 10, b_norm);
         fprintf(stderr, " %lf\n", r_norm);
         fflush(stderr);

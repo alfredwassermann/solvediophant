@@ -86,18 +86,22 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     #endif
 
     #if 1 // Do reduction
-    /**
-     * permute lattice columns
-     */
-    swap_vec = lattice->basis[lattice->num_cols-1];
-    for (i = lattice->num_cols - 1; i > 0; i--)
-        lattice->basis[i] = lattice->basis[i - 1];
-    lattice->basis[0] = swap_vec;
+
+        /**
+         * permute lattice columns
+         */
+        #if 1
+        swap_vec = lattice->basis[lattice->num_cols-1];
+        for (i = lattice->num_cols - 1; i > 0; i--)
+            lattice->basis[i] = lattice->basis[i - 1];
+        lattice->basis[0] = swap_vec;
+        #endif
 
     #if 0
-    printf("After permute\n");
-    print_lattice(lattice);
+       printf("After permute\n");
+       print_lattice(lattice);
     #endif
+
     //shufflelattice(lattice);
     /**
      * first reduction
