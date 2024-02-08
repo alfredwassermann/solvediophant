@@ -90,6 +90,8 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     } else {
         eta = ETACONST;
         theta = 0.0;
+        eta = 0.52;
+        theta = 0.3;
     }
 
     #if VERBOSE > 1
@@ -151,6 +153,11 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
         count_tricols = 0;
     again:
+        if (count_tricols > 0) {
+            fprintf(stderr, "Before householder\n");
+            check_precision(b[k], R[k], z, k);
+        }
+
         // Apply Householder vectors to column k of R  and
         // determine the Householder vector for column k
         i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
@@ -167,9 +174,14 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             fprintf(stderr, "mu: %0.20lf\n", R[k][k-1] / R[k-1][k-1]);
         }
 
+        if (count_tricols > 0) {
+            fprintf(stderr, "After householder\n");
+            check_precision(b[k], R[k], z, k);
+        }
+
         redo_tricol = 0;
         /* Size reduction of $b_k$ */
-        // fprintf(stderr, "k=%d\n", k);
+        fprintf(stderr, "k=%d\n", k);
         for (j = k - 1; j >= low; j--) {
             /**
              * Subtract suitable multiple of $b_j$ from $b_k$.
@@ -182,16 +194,16 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 mus = ROUND(R[k][j] / R[j][j]);
                 mpz_set_d(musvl, mus);
                 redo_tricol = 1;
-                // fprintf(stderr, "%0.2lf ", R[k][j] / R[j][j]);
+                fprintf(stderr, "%0.2lf ", R[k][j] / R[j][j]);
 
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
                 size_reduction(b, R, musvl, mus, k, j);
                 (*solutiontest)(lattice, k);
             }
         }
-        // fprintf(stderr, "\n");
+        fprintf(stderr, "\n");
 
-        if (FALSE && redo_tricol > 0) {
+        if (TRUE && redo_tricol > 0) {
             fprintf(stderr, "\n");
             fprintf(stderr, "redo=%d, tricol=%d \n", redo_tricol, count_tricols+1);
             check_precision(b[k - 1], R[k - 1], z, k - 1);
@@ -725,6 +737,7 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
     int i, j;
     DOUBLE w, w_beta;
     DOUBLE sigma, mu, sq;
+    int K = 2;
     DOUBLE eps = 1.0e-15; // 0.0000000001;
 
     // Apply Householder vectors H[0],..., H[k-1]
@@ -734,6 +747,7 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
         for (i = 0; i < k; ++i) {
             // w = < R[k], H[i] >
             w = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
+            // w = hiprec_dotK(&(R[k][i]), &(H[i][i]), z - i, K);
             w_beta = w * beta[i];
 
             #if BLAS
@@ -788,6 +802,7 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
 
     // More stable suggestion from Higham:
     mu = hiprec_norm_l2(&(R[k][k]), z - k);
+    // mu = hiprec_normK_l2(&(R[k][k]), z - k, K);
     if (R[k][k] < -eps) {
         mu = -mu;
     }
@@ -805,6 +820,7 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
         // Rotate vector R[k] in order to check if
         // H[k] is good enough
         w = hiprec_dot2(&(R[k][k]), &(H[k][k]), z - k);
+        // w = hiprec_dotK(&(R[k][k]), &(H[k][k]), z - k, K);
         w_beta = -w * beta[i];
 
         for (j = k; j < z; ++j) {
@@ -816,7 +832,7 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
             fprintf(stderr, "%0.20lf ", R[k][j]);
         }
         fprintf(stderr, "\n");
-        exit(1);
+        // exit(1);
     }
     #endif
     // Apply rotation to R[k][k] only

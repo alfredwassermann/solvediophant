@@ -29,8 +29,10 @@ extern DOUBLE hiprec_normK_l1(DOUBLE* p, int n, int K);
 extern DOUBLE dotNaive(DOUBLE* x, DOUBLE* y, int n);
 extern DOUBLE dotNaiveQP(DOUBLE* x, DOUBLE* y, int n);
 extern DOUBLE hiprec_dot2(DOUBLE* x, DOUBLE* y, int n);
+extern DOUBLE hiprec_dotK(DOUBLE* x, DOUBLE* y, int n, int K);
 extern DOUBLE hiprec_dot2_row(DOUBLE* x, int dx, DOUBLE* y, int dy, int n);
 extern DOUBLE hiprec_normsq_l2(DOUBLE* x, int n);
 extern DOUBLE hiprec_norm_l2(DOUBLE* x, int n);
+extern DOUBLE hiprec_normK_l2(DOUBLE* x, int n, int K);
 
 #endif

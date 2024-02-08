@@ -244,6 +244,21 @@ DOUBLE hiprec_dot2(DOUBLE* x, DOUBLE* y, int n) {
     return p + s;
 }
 
+DOUBLE hiprec_dotK(DOUBLE* x, DOUBLE* y, int n, int K) {
+    DOUBLE p, q, s, h;
+    DOUBLE r[2 * n];
+    int i;
+    if (n <= 0) return 0.0;
+
+    twoProd2(x[0], y[0], &p, &(r[0]));
+    for (i = 1; i < n; i++) {
+        twoProd2(x[i], y[i], &h, &(r[i]));
+        twoSum2(p, h, &p, &(r[n + i - 1]));
+    }
+    r[2 * n - 1] = p;
+    return hiprec_sumK(r, 2 * n, K);
+}
+
 DOUBLE hiprec_dot2_row(DOUBLE* x, int dx, DOUBLE* y, int dy, int n) {
     DOUBLE p, q, s, h, r;
     int i, jx, jy;
@@ -294,6 +309,25 @@ DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
         fastTwoSum2(H, d, &S, &s);
     }
     return hiprec_sqrt(S, s);
+}
+
+DOUBLE hiprec_normK_l2(DOUBLE* x, int n, int K) {
+    DOUBLE S, s, P, p, H, h;
+    DOUBLE c, d;
+    DOUBLE r[2 * n];
+    int i;
+
+    if (n <= 0) return 0.0;
+
+    S = 0.0;
+    s = 0.0;
+    for (i = 0; i < n; i++) {
+        twoSquare2(x[i], &P, &(r[i]));
+        twoSum2(S, P, &S, &(r[n + i - 1]));
+    }
+    r[2 * n - 1] = S;
+    
+    return hiprec_sqrt(hiprec_sumK(r, 2 * n, K), 0.0);
 }
 
 //

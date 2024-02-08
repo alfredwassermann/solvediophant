@@ -285,8 +285,10 @@ int main(int argc, char *argv[]) {
     }
     if (mpz_cmp_si(lattice.matrix_factor, 0) <= 0) {
         fprintf(stderr,"You did not supply the options -c*. ");
-        fprintf(stderr,"It is set to 10000000000000.\n");
-        mpz_set_str(lattice.matrix_factor, "10000000000000", 10);
+        // fprintf(stderr,"It is set to 10000000000000.\n");
+        // mpz_set_str(lattice.matrix_factor, "10000000000000", 10);
+        fprintf(stderr,"It is set to 2147483648.\n");
+        mpz_set_str(lattice.matrix_factor, "2147483648", 10);
     }
     if (mpz_cmp_si(lattice.max_norm, 0) <= 0) {
         fprintf(stderr,"You did not supply the options -maxnorm*. ");
