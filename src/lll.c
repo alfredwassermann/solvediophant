@@ -154,7 +154,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         count_tricols = 0;
     again:
         if (count_tricols > 0) {
-            fprintf(stderr, "Before householder\n");
+            fprintf(stderr, "\nBefore householder\n");
             check_precision(b[k], R[k], z, k);
         }
 
@@ -201,7 +201,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 (*solutiontest)(lattice, k);
             }
         }
-        fprintf(stderr, "\n");
+        // fprintf(stderr, "\n");
 
         if (TRUE && redo_tricol > 0) {
             fprintf(stderr, "\n");
@@ -901,11 +901,11 @@ void size_reduction(coeff_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, in
                 }
                 i = b[j][i].p;
         }
-    #if BLAS
-        cblas_daxpy(j + 1, -1.0, R[j], 1, R[k], 1);
-    #else
-        for (i = 0; i <= j; i++) R[k][i] -= R[j][i];
-    #endif
+        #if BLAS
+            cblas_daxpy(j + 1, -1.0, R[j], 1, R[k], 1);
+        #else
+            for (i = 0; i <= j; i++) R[k][i] -= R[j][i];
+        #endif
 
         break;
 
@@ -924,11 +924,11 @@ void size_reduction(coeff_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, in
                 i = b[j][i].p;
         }
 
-    #if BLAS
-        cblas_daxpy(j + 1, 1.0, R[j], 1, R[k], 1);
-    #else
-        for (i = 0; i <= j; i++) R[k][i] += R[j][i];
-    #endif
+        #if BLAS
+            cblas_daxpy(j + 1, 1.0, R[j], 1, R[k], 1);
+        #else
+            for (i = 0; i <= j; i++) R[k][i] += R[j][i];
+        #endif
         break;
 
     default:
@@ -945,11 +945,11 @@ void size_reduction(coeff_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, in
                 }
                 i = b[j][i].p;
         }
-    #if BLAS
-        cblas_daxpy(j + 1, -mus, R[j], 1, R[k], 1);
-    #else
-        for (i = 0; i <= j; i++) R[k][i] -= R[j][i] * mus;
-    #endif
+        #if BLAS
+            cblas_daxpy(j + 1, -mus, R[j], 1, R[k], 1);
+        #else
+            for (i = 0; i <= j; i++) R[k][i] -= R[j][i] * mus;
+        #endif
 
     }
 }
