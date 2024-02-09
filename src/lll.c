@@ -197,7 +197,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 fprintf(stderr, "%0.2lf ", R[k][j] / R[j][j]);
 
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
-                size_reduction(b, R, musvl, mus, k, j);
+                size_reduction(b, R, musvl, mus, k, j, z);
                 (*solutiontest)(lattice, k);
             }
         }
@@ -880,10 +880,11 @@ int householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int 
     return min_idx;
 }
 
-void size_reduction(coeff_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, int j) {
+void size_reduction(coeff_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, int j, int z) {
     int i, ii, iii;
     coeff_t *bb;
 
+#if 0
     switch (mpz_get_si(musvl)) {
     case 1:
         /* $\lceil\mu_{k,j}\rfloor = 1$ */
@@ -953,8 +954,19 @@ void size_reduction(coeff_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, in
         #else
             for (i = 0; i <= j; i++) R[k][i] -= R[j][i] * mus;
         #endif
-
     }
+#else
+    for (i = 0; i < z; ++i) {
+        mpz_submul(b[k][i + 1].c, b[j][i + 1].c, musvl);
+    }
+    coeffinit(b[k], z);
+
+    #if BLAS
+        cblas_daxpy(j + 1, -mus, R[j], 1, R[k], 1);
+    #else
+        for (i = 0; i <= j; i++) R[k][i] -= R[j][i] * mus;
+    #endif
+#endif
 }
 
 void size_reduction_long(long **b, DOUBLE  **R, long musl, double mus, int k, int j, int z) {
