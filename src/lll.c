@@ -906,7 +906,6 @@ void size_reduction(coeff_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, in
         #else
             for (i = 0; i <= j; i++) R[k][i] -= R[j][i];
         #endif
-
         break;
 
     case -1:
@@ -916,10 +915,12 @@ void size_reduction(coeff_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, in
                 bb = &(b[k][i]);
                 mpz_add(bb->c, bb->c, b[j][i].c);
                 iii = bb->p;
-                if ((b[k][i-1].p!=i)&&(mpz_sgn(bb->c)!=0))
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == iii); ii--) b[k][ii].p = i;
-                else if (mpz_sgn(bb->c)==0) {
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--) b[k][ii].p = iii;
+                if ((b[k][i-1].p != i)&&(mpz_sgn(bb->c) != 0))
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == iii); ii--)
+                        b[k][ii].p = i;
+                else if (mpz_sgn(bb->c) == 0) {
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--)
+                        b[k][ii].p = iii;
                 }
                 i = b[j][i].p;
         }
@@ -939,9 +940,11 @@ void size_reduction(coeff_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, in
                 mpz_submul(bb->c, b[j][i].c, musvl);
                 iii = bb->p;
                 if ((b[k][i-1].p != i) && (mpz_sgn(bb->c) != 0))
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p ==  iii); ii--) b[k][ii].p = i;
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p ==  iii); ii--)
+                        b[k][ii].p = i;
                 else if (mpz_sgn(bb->c) == 0) {
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--) b[k][ii].p = iii;
+                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--)
+                        b[k][ii].p = iii;
                 }
                 i = b[j][i].p;
         }
