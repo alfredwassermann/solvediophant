@@ -90,8 +90,8 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     } else {
         eta = ETACONST;
         theta = 0.0;
-        eta = 0.52;
-        theta = 0.3;
+        // eta = 0.52;
+        // theta = 0.3;
     }
 
     #if VERBOSE > 1
@@ -340,7 +340,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             }
             b[insert_pos] = swapvl;
 
-            // fprintf(stderr, "INSERT %d at %d\n", k, insert_pos);
+            fprintf(stderr, "Swap / rotate %d and %d\n", insert_pos, k);
             k = insert_pos;
         } else {
             k++;
