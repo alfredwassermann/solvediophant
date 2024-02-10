@@ -66,7 +66,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     mpz_t *swapvl;
     int redo_tricol = 0;
     int max_tricols = 0;
-    int stop_tricol = 20;
+    int stop_tricol = 10;
     int count_tricols = 0;
 
     // fprintf(stderr, "delta=%lf\n", delta);
@@ -179,9 +179,9 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             check_precision(b[k], R[k], z, k);
         }
 
+        if (FALSE) fprintf(stderr, "k=%d\n", k);
         redo_tricol = 0;
         /* Size reduction of $b_k$ */
-        if (TRUE) fprintf(stderr, "k=%d\n", k);
         for (j = k - 1; j >= low; j--) {
             /**
              * Subtract suitable multiple of $b_j$ from $b_k$.
@@ -194,7 +194,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 mus = ROUND(R[k][j] / R[j][j]);
                 mpz_set_d(musvl, mus);
                 redo_tricol = 1;
-                fprintf(stderr, "%0.2lf ", R[k][j] / R[j][j]);
+                // fprintf(stderr, "%0.2lf ", R[k][j] / R[j][j]);
 
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
                 size_reduction(b, R, musvl, mus, k, j, z);
@@ -203,7 +203,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
         // fprintf(stderr, "\n");
 
-        if (TRUE && redo_tricol > 0) {
+        if (FALSE && redo_tricol > 0) {
             fprintf(stderr, "\n");
             fprintf(stderr, "redo=%d, tricol=%d \n", redo_tricol, count_tricols+1);
             // check_precision(b[k - 1], R[k - 1], z, k - 1);
@@ -226,7 +226,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             goto again;
         }
 
-        if (0 && k > 0) {
+        if (FALSE && k > 0) {
             fprintf(stderr, "After: R[%d]: ", k);
             for (j = 0; j <= k; j++) {
                 fprintf(stderr, " %0.20lf", R[k][j]);
