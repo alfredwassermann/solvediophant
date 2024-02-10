@@ -206,7 +206,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         if (TRUE && redo_tricol > 0) {
             fprintf(stderr, "\n");
             fprintf(stderr, "redo=%d, tricol=%d \n", redo_tricol, count_tricols+1);
-            check_precision(b[k - 1], R[k - 1], z, k - 1);
+            // check_precision(b[k - 1], R[k - 1], z, k - 1);
             check_precision(b[k], R[k], z, k);
         }
 

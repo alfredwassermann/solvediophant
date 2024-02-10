@@ -109,7 +109,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     mpz_set_ui(lastlines_factor, 1);
     fprintf(stderr, "\n"); fflush(stderr);
     if (!restart) {
-        lll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.lll.delta_low, CLASSIC_LLL);
+        lll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.lll.delta_low, DEEP_LLL);
 
         #if FALSE
             printf("After first reduction\n");

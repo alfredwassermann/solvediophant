@@ -260,7 +260,7 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
                 if (u[i] > 0) {
                     mpz_addmul_ui(lattice->swap[j], b[i][j], u[i]);
                 } else {
-                    mpz_submul_ui(lattice->swap[j], b[i][j], -u[i]); // Is this correct?
+                    mpz_submul_ui(lattice->swap[j], b[i][j], -u[i]);
                 }
             }
         }

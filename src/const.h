@@ -5,7 +5,7 @@
 #define FALSE 0
 
 #define DEEPINSERT 1
-#define DEEPINSERT_CONST 30
+#define DEEPINSERT_CONST 60
 
 #define ITERATE 0
 #define PROGBKZ 1
@@ -13,6 +13,7 @@
 
 #define CLASSIC_LLL -1
 #define POT_LLL -2
+#define DEEP_LLL -3
 
 #define VERBOSE 1
 
