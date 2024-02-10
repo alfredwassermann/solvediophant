@@ -615,8 +615,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice) {
 
     enum_level_t* enum_data;
     DOUBLE *us;
-
-    coeff_t *swap_vec;
+    mpz_t *swap_vec;
 
     DOUBLE **fipo;
     /* test the size of the basis */

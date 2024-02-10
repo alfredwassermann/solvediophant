@@ -9,9 +9,9 @@
 /**
  * Inline functions
  */
-#define put_to(mat, i, j, val) mpz_set(mat[i][j+1].c, val)
-#define mult_by(mat, i, j, factor) mpz_mul(mat[i][j+1].c, mat[i][j+1].c, factor)
-#define get_entry(mat, i, j) mat[i][j+1].c
+#define put_to(mat, i, j, val) mpz_set(mat[i][j], val)
+#define mult_by(mat, i, j, factor) mpz_mul(mat[i][j], mat[i][j], factor)
+#define get_entry(mat, i, j) mat[i][j]
 
 extern void handle_signals(lattice_t *lattice, DOUBLE **R);
 extern void stop_program_sig(int sig);
@@ -26,9 +26,8 @@ extern void dump_lattice(lattice_t *lattice);
 extern void load_lattice(lattice_t *lattice, char *fname);
 
 extern long gcd(long n1, long n2);
-extern void coeffinit(coeff_t *v, int z);
 
-extern DOUBLE scalarproductlfp (coeff_t *v, coeff_t *w);
+extern DOUBLE scalarproductlfp (mpz_t *v, mpz_t *w, int z);
 extern DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n);
 
 extern int decomp_alloc(lattice_t *lattice);

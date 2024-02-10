@@ -114,26 +114,13 @@ void load_lattice(lattice_t *lattice, char *fname) {
 
     for (i = 0; i < lattice->num_cols; i++) {
         for (j = 0; j < lattice->num_rows; j++) {
-            res = mpz_inp_str(lattice->basis[i][j + 1].c, f, 10);
+            res = mpz_inp_str(lattice->basis[i][j], f, 10);
             if (res == 0) {
                 incorrect_input_file();
             }
         }
-        coeffinit(lattice->basis[i], lattice->num_rows);
     }
     fclose(f);
-    return;
-}
-
-void coeffinit(coeff_t *v, int z) {
-    short r = 0;
-    short i;
-
-    for (i = z; i >= 0; i--) {
-        v[i].p = r;
-        if (mpz_sgn(v[i].c) != 0) r = i;
-    }
-
     return;
 }
 
@@ -174,46 +161,16 @@ int get_bit_size(lattice_t *lattice) {
 /**
  * LLL-subroutines
  */
-DOUBLE scalarproductlfp (coeff_t *v, coeff_t *w) {
-    DOUBLE erg;
-    long t1, t2;
-    coeff_t *vv, *ww;
+DOUBLE scalarproductlfp (mpz_t *v, mpz_t *w, int z) {
+    int i;
+    mpz_t sum;
 
-    erg = 0.0;
-    t1 = v[0].p;
-    t2 = w[0].p;
-    if ((t1 == 0) || (t2 == 0))
-        return 0;
+    mpz_init(sum);
+    for (i = 0; i < z; ++i) {
+        mpz_addmul(sum, v[i], w[i]);
+    }
 
-    do {
-        if (t2>t1) {
-            t1 = v[t2-1].p;
-            if (t2!=t1) {
-                if (t1==0) break;
-                t2 = w[t2].p;
-                if (t2==0) break;
-            }
-            else goto gleich;
-        } else if (t2<t1) {
-            t2 = w[t1-1].p;
-            if (t2!=t1) {
-                if (t2==0) break;
-                t1 = v[t1].p;
-                if (t1==0) break;
-            }
-            else goto gleich;
-        } else {
- gleich:    vv = &(v[t1]);
-            ww = &(w[t2]);
-            erg += (DOUBLE)mpz_get_d(vv->c) * (DOUBLE)mpz_get_d(ww->c);
-            t1 = vv->p;
-            if (t1==0) break;
-            t2 = ww->p;
-            if (t2==0) break;
-        }
-    } while (1);
-
-    return (erg);
+    return mpz_get_d(sum);
 }
 
 DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n) {
@@ -232,21 +189,21 @@ void allocate_basis (lattice_t *lattice) {
     int i, j;
 
     // Allocate memory for the gmp basis and the long basis
-    lattice->basis = (coeff_t**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(coeff_t*));
+    lattice->basis = (mpz_t**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(mpz_t*));
     lattice->basis_long = (long**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(long*));
     for (j = 0; j < lattice->num_cols + ADDITIONAL_COLS; j++) {
         lattice->basis_long[j] = (long*)calloc((unsigned int)lattice->num_rows, sizeof(long));
-        lattice->basis[j] = (coeff_t*)calloc((unsigned int)lattice->num_rows + 1, sizeof(coeff_t));
-        for (i = 0; i <= lattice->num_rows; i++) {
-            mpz_init(lattice->basis[j][i].c);
+        lattice->basis[j] = (mpz_t*)calloc((unsigned int)lattice->num_rows + 1, sizeof(mpz_t));
+        for (i = 0; i < lattice->num_rows; i++) {
+            mpz_init(lattice->basis[j][i]);
         }
     }
 
     // Allocate memory for swap vector
-    lattice->swap = (coeff_t*)calloc(lattice->num_rows + 1, sizeof(coeff_t));
+    lattice->swap = (mpz_t*)calloc(lattice->num_rows + 1, sizeof(mpz_t));
     lattice->swap_long = (long*)calloc(lattice->num_rows + 1, sizeof(long));
-    for (i = 0; i <= lattice->num_rows; i++) {
-        mpz_init(lattice->swap[i].c);
+    for (i = 0; i < lattice->num_rows; i++) {
+        mpz_init(lattice->swap[i]);
     }
 
 }
@@ -316,16 +273,16 @@ void init_diagonal_part(lgs_t *LGS, lattice_t *lattice) {
 
     // Append the other (diagonal) parts of lattice
     for (j = lattice->lgs_rows; j < lattice->num_rows; j++) {
-        mpz_mul_si(lattice->basis[j - lattice->lgs_rows][j + 1].c, lattice->max_norm, lattice->denom);
-        mpz_mul_si(lattice->basis[lattice->num_cols - 1][j + 1].c, lattice->max_norm, lattice->nom);
+        mpz_mul_si(lattice->basis[j - lattice->lgs_rows][j], lattice->max_norm, lattice->denom);
+        mpz_mul_si(lattice->basis[lattice->num_cols - 1][j], lattice->max_norm, lattice->nom);
     }
-    mpz_set(lattice->basis[lattice->lgs_cols + lattice->free_RHS][lattice->num_rows].c, lattice->max_norm);
+    mpz_set(lattice->basis[lattice->lgs_cols + lattice->free_RHS][lattice->num_rows - 1], lattice->max_norm);
 
     if (lattice->free_RHS) {
-        mpz_set_si(lattice->basis[lattice->lgs_cols][lattice->num_rows - 1].c, 1);
-        mpz_set_si(lattice->basis[lattice->lgs_cols + 1][lattice->num_rows - 1].c, 0);
+        mpz_set_si(lattice->basis[lattice->lgs_cols][lattice->num_rows - 2], 1);
+        mpz_set_si(lattice->basis[lattice->lgs_cols + 1][lattice->num_rows - 2], 0);
     }
-    mpz_set(lattice->basis[lattice->lgs_cols + lattice->free_RHS][lattice->num_rows].c, lattice->max_norm);
+    mpz_set(lattice->basis[lattice->lgs_cols + lattice->free_RHS][lattice->num_rows - 1], lattice->max_norm);
 
     // Multiply the diagonal entries and
     // the last columns to ensure the upper bounds on the variables
@@ -388,9 +345,9 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
     // Thereby, multiply the entries by a large (enough) factor.
     for (j = 0; j < lgs_rows; j++) {
         for (i = 0; i < lgs_cols; i++) {
-            mpz_mul(lattice->basis[i][j+1].c, LGS->matrix[j][i], lattice->matrix_factor);
+            mpz_mul(lattice->basis[i][j], LGS->matrix[j][i], lattice->matrix_factor);
         }
-        mpz_mul(lattice->basis[lgs_cols][j+1].c, LGS->rhs[j], lattice->matrix_factor);
+        mpz_mul(lattice->basis[lgs_cols][j], LGS->rhs[j], lattice->matrix_factor);
     }
 
     handle_upperbounds(LGS, lattice);
@@ -400,12 +357,6 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
     lattice->denom = 2;
 
     init_diagonal_part(LGS, lattice);
-
-    // Init sparse structure
-    for (i = 0; i < lattice->num_cols; i++) {
-        coeffinit(lattice->basis[i], lattice->num_rows);
-    }
-    coeffinit(lattice->swap, lattice->num_rows);
 
     decomp_alloc(lattice);
 }
@@ -473,7 +424,7 @@ double orthogonality_defect(lattice_t *lattice, DOUBLE **R, int s, int z) {
     int i;
 
     for (i = 0; i < s; i++)
-        defect += log(scalarproductlfp(lattice->basis[i], lattice->basis[i])) - log(R[i][i]);
+        defect += log(scalarproductlfp(lattice->basis[i], lattice->basis[i], lattice->num_rows)) - log(R[i][i]);
 
     defect *= 0.5;
     return defect;
@@ -503,7 +454,7 @@ void print_lattice_stat(lattice_t *lattice, DOUBLE **R) {
 }
 
 void shufflelattice(lattice_t *lattice) {
-    coeff_t *tmp;
+    mpz_t *swap;
     int i, j, r;
     unsigned int s;
 
@@ -518,9 +469,9 @@ void shufflelattice(lattice_t *lattice) {
     for (j = 0; j < 10000; j++) {
         for (i = lattice->num_cols - 1; i > 0; i--) {
             r = rand() % i;
-            tmp = lattice->basis[r];
+            swap = lattice->basis[r];
             lattice->basis[r] = lattice->basis[i];
-            lattice->basis[i] = tmp;
+            lattice->basis[i] = swap;
         }
     }
     return;
@@ -531,7 +482,7 @@ void copy_lattice_to_long(lattice_t *lattice) {
 
     for (i = 0; i < lattice->num_cols; ++i) {
         for (j = 0; j < lattice->num_rows; ++j) {
-            lattice->basis_long[i][j] = mpz_get_si(lattice->basis[i][j+1].c);
+            lattice->basis_long[i][j] = mpz_get_si(lattice->basis[i][j]);
         }
     }
 }
@@ -541,9 +492,8 @@ void copy_lattice_to_mpz(lattice_t *lattice) {
 
     for (i = 0; i < lattice->num_cols; ++i) {
         for (j = 0; j < lattice->num_rows; ++j) {
-            mpz_set_si(lattice->basis[i][j+1].c, lattice->basis_long[i][j]);
+            mpz_set_si(lattice->basis[i][j], lattice->basis_long[i][j]);
         }
-        coeffinit(lattice->basis[i], lattice->num_rows);
     }
 }
 

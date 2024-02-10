@@ -48,7 +48,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             int bit_size,
             int (*solutiontest)(lattice_t *lattice, int k)) {
 
-    coeff_t **b = lattice->basis;
+    mpz_t **b = lattice->basis;
     int i, j, k;
     DOUBLE norm;
 
@@ -63,7 +63,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     int pot_idx;
     int insert_pos, lowest_pos, k_max;
     int deep_size;
-    coeff_t *swapvl;
+    mpz_t *swapvl;
     int redo_tricol = 0;
     int max_tricols = 0;
     int stop_tricol = 20;
@@ -153,7 +153,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
         count_tricols = 0;
     again:
-        if (count_tricols > 0) {
+        if (FALSE && count_tricols > 0) {
             fprintf(stderr, "\nBefore householder\n");
             check_precision(b[k], R[k], z, k);
         }
@@ -165,7 +165,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         // if (fabs(R[k][k]) < 1.0e-12) {
         //     goto swap_zero_vector;
         // }
-        if (0 && k > 0) {
+        if (FALSE && k > 0) {
             fprintf(stderr, "\nBefore: R[%d]: ", k);
             for (j = 0; j <= k; j++) {
                 fprintf(stderr, " %0.20lf", R[k][j]);
@@ -174,14 +174,14 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             fprintf(stderr, "mu: %0.20lf\n", R[k][k-1] / R[k-1][k-1]);
         }
 
-        if (count_tricols > 0) {
+        if (FALSE && count_tricols > 0) {
             fprintf(stderr, "After householder\n");
             check_precision(b[k], R[k], z, k);
         }
 
         redo_tricol = 0;
         /* Size reduction of $b_k$ */
-        fprintf(stderr, "k=%d\n", k);
+        if (TRUE) fprintf(stderr, "k=%d\n", k);
         for (j = k - 1; j >= low; j--) {
             /**
              * Subtract suitable multiple of $b_j$ from $b_k$.
@@ -340,7 +340,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             }
             b[insert_pos] = swapvl;
 
-            fprintf(stderr, "Swap / rotate %d and %d\n", insert_pos, k);
+            // fprintf(stderr, "Swap / rotate %d and %d\n", insert_pos, k);
             k = insert_pos;
         } else {
             k++;
@@ -840,14 +840,14 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
     R[k][k] = -mu;    // Higham
 }
 
-int householder_column(coeff_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int s, int z, int bit_size) {
+int householder_column(mpz_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int s, int z, int bit_size) {
     int l, j;
     DOUBLE min_val = 0.0;
     DOUBLE min_idx = -1;
 
     for (l = k; l < s; l++) {
         for (j = 0; j < z; ++j) {
-            R[k][j] = (DOUBLE)mpz_get_d(b[l][j+1].c);
+            R[k][j] = (DOUBLE)mpz_get_d(b[l][j]);
         }
 
         householder_column_inner_hiprec(R, H, beta, k, l, z, bit_size);
@@ -880,9 +880,9 @@ int householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int 
     return min_idx;
 }
 
-void size_reduction(coeff_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, int j, int z) {
+void size_reduction(mpz_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, int j, int z) {
     int i, ii, iii;
-    coeff_t *bb;
+    mpz_t *bb;
 
 #if 0
     switch (mpz_get_si(musvl)) {
@@ -957,9 +957,8 @@ void size_reduction(coeff_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, in
     }
 #else
     for (i = 0; i < z; ++i) {
-        mpz_submul(b[k][i + 1].c, b[j][i + 1].c, musvl);
+        mpz_submul(b[k][i], b[j][i], musvl);
     }
-    coeffinit(b[k], z);
 
     #if BLAS
         cblas_daxpy(j + 1, -mus, R[j], 1, R[k], 1);
@@ -983,14 +982,14 @@ void size_reduction_long(long **b, DOUBLE  **R, long musl, double mus, int k, in
     #endif
 }
 
-void check_precision(coeff_t *b, DOUBLE *R, int z, int k) {
+void check_precision(mpz_t *b, DOUBLE *R, int z, int k) {
     int j;
     mpz_t b_norm;
     DOUBLE r_norm;
 
     mpz_init(b_norm);
-    for (j = 0, r_norm = 0.0; j < z; ++j) {
-        mpz_addmul(b_norm, b[j+1].c, b[j+1].c);
+    for (j = 0; j < z; ++j) {
+        mpz_addmul(b_norm, b[j], b[j]);
     }
     for (j = 0, r_norm = 0.0; j <= k; ++j) {
         r_norm += R[j] * R[j];

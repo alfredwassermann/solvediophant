@@ -50,7 +50,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     int i, j;
     int block_size;
     DOUBLE lD, lDnew;
-    coeff_t *swap_vec;
+    mpz_t *swap_vec;
 
     /**
      * Initialize some globals
@@ -159,13 +159,13 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
      */
     mpz_set(lastlines_factor, lattice->LLL_params.scalelastlinefactor);
     for (i = 0; i < lattice->num_cols; i++) {
-        mpz_mul(lattice->basis[i][lattice->num_rows].c,
-                lattice->basis[i][lattice->num_rows].c, lastlines_factor);
+        mpz_mul(lattice->basis[i][lattice->num_rows - 1],
+                lattice->basis[i][lattice->num_rows - 1], lastlines_factor);
     }
     if (lattice->free_RHS) {
         for (i = 0; i < lattice->num_cols; i++) {
-            mpz_mul(lattice->basis[i][lattice->num_rows - 1].c,
-                    lattice->basis[i][lattice->num_rows - 1].c, lastlines_factor);
+            mpz_mul(lattice->basis[i][lattice->num_rows - 2],
+                    lattice->basis[i][lattice->num_rows - 2], lastlines_factor);
         }
     }
 
@@ -234,12 +234,14 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 
     /* Undo scaling of last rows */
     for (i = 0; i < lattice->num_cols; i++) {
-        mpz_divexact(lattice->basis[i][lattice->num_rows].c, lattice->basis[i][lattice->num_rows].c, lastlines_factor);
+        mpz_divexact(lattice->basis[i][lattice->num_rows - 1],
+            lattice->basis[i][lattice->num_rows - 1],
+            lastlines_factor);
     }
     if (lattice->free_RHS) {
         for (i = 0; i < lattice->num_cols; i++) {
-            mpz_divexact(lattice->basis[i][lattice->num_rows-1].c,
-                lattice->basis[i][lattice->num_rows-1].c,
+            mpz_divexact(lattice->basis[i][lattice->num_rows - 2],
+                lattice->basis[i][lattice->num_rows - 2],
                 lastlines_factor);
         }
     }
@@ -267,8 +269,8 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
      * free multiprecision memory
      */
     for (j = 0; j < lattice->num_cols/* + ADDITIONAL_COLS*/; j++) {
-        for (i = 0; i <= lattice->num_rows; i++) {
-            mpz_clear(lattice->basis[j][i].c);
+        for (i = 0; i < lattice->num_rows; i++) {
+            mpz_clear(lattice->basis[j][i]);
         }
         free(lattice->basis[j]);
         free(lattice->basis_long[j]);
@@ -276,8 +278,8 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     free(lattice->basis);
     free(lattice->basis_long);
 
-    for (i = 0; i <= lattice->num_rows; i++) {
-        mpz_clear(lattice->swap[i].c);
+    for (i = 0; i < lattice->num_rows; i++) {
+        mpz_clear(lattice->swap[i]);
     }
     free(lattice->swap);
     mpz_clear(lattice->matrix_factor);
@@ -305,14 +307,22 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
  */
 int cutlattice(lattice_t *lattice) {
     int j, i, flag;
+    int all_zero;
     int m;
 
     /**
-     * delete unnecessary columns
+     * Delete unnecessary columns
      */
-    j=0;
+    j = 0;
     do {
-        if (lattice->basis[j][0].p > lattice->lgs_rows) {
+        all_zero = 1;
+        for (i = 0; i < lattice->lgs_rows; ++i) {
+            if (mpz_sgn(lattice->basis[j][i]) != 0) {
+                all_zero = 0;
+                break;
+            }
+        }
+        if (all_zero) {
             j++;
         } else {
             for (i = j + 1; i < lattice->num_cols; i++) {
@@ -333,7 +343,7 @@ int cutlattice(lattice_t *lattice) {
         }
 
     if (flag == 0) {
-        fprintf(stderr, "Nonhomogenous solution not possible.\n"); fflush(stderr);
+        fprintf(stderr, "Non-homogenous solution not possible.\n"); fflush(stderr);
         exit(EXIT_NOT_SOLVABLE);
 
         return 0;  /* Just for the compiler */
@@ -366,10 +376,6 @@ int cutlattice(lattice_t *lattice) {
     m = (lattice->num_rows > lattice->num_cols) ? lattice->num_rows : lattice->num_cols;
     for (i = 1; i < m; i++) {
         lattice->decomp.bd[i] = (DOUBLE*)(lattice->decomp.bd[0] + i * lattice->num_rows);
-    }
-
-    for (j = 0; j < lattice->num_cols; j++) {
-        coeffinit(lattice->basis[j],lattice->num_rows);
     }
 
     return 1;
@@ -485,10 +491,8 @@ int solutiontest_long(lattice_t *lattice, int position) {
     #endif
 
     for (j = 0; j < lattice->num_rows; ++j) {
-        mpz_set_si(lattice->basis[position][j+1].c, lattice->basis_long[position][j]);
+        mpz_set_si(lattice->basis[position][j], lattice->basis_long[position][j]);
     }
-    coeffinit(lattice->basis[position], lattice->num_rows);
-
     up = lattice->num_rows - 1 - lattice->free_RHS;
 
     /* test the last two rows */
@@ -595,7 +599,7 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
     DOUBLE **H = lattice->decomp.H;
     int r, i, j, runs;
     int bit_size;
-    coeff_t *swapvl;
+    mpz_t *swapvl;
     long *swap;
     DOUBLE lD;
 
@@ -664,7 +668,7 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
 
     DOUBLE lD;
     int start = 0, up, size, bit_size;
-    coeff_t **basis_org;
+    mpz_t **basis_org;
 
     bit_size = get_bit_size(lattice);
 
@@ -735,7 +739,7 @@ void print_NTL_lattice(lattice_t *lattice) {
     for (i = 0; i < lattice->num_cols; i++) {
         printf("[");
         for (j = 0; j < lattice->num_rows; j++) {
-            mpz_out_str(NULL, 10, lattice->basis[i][j+1].c);
+            mpz_out_str(NULL, 10, lattice->basis[i][j]);
             printf(" ");
         }
         printf("]");

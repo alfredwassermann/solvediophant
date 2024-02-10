@@ -64,7 +64,7 @@ typedef struct {
 
     DOUBLE Fd, Fq, Fqeps;
     DOUBLE tmp;
-    coeff_t *swap_vec;
+    mpz_t *swap_vec;
 
     DOUBLE stepWidth; // = 0.0;
     DOUBLE old_coeff;
@@ -96,9 +96,9 @@ typedef struct {
     int free_RHS;
     int cut_after;
 
-    coeff_t **basis;
+    mpz_t **basis;
     long **basis_long;
-    coeff_t *swap;
+    mpz_t *swap;
     long *swap_long;
 
     mpz_t matrix_factor;
