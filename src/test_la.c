@@ -4,11 +4,46 @@
 #include "const.h"
 #include "arith.h"
 
+//
+// Naive implementations for comparison
+//
+DOUBLE sumNaive(DOUBLE* p, int n) {
+    DOUBLE s;
+    int i;
+
+    for (i = 0, s = 0.0; i < n; i++) {
+        s += p[i];
+    }
+    return s;
+}
+
+DOUBLE dotNaive(DOUBLE* x, DOUBLE* y, int n) {
+    DOUBLE s;
+    int i;
+    if (n <= 0) return 0.0;
+
+    for (i = 0, s = 0.0; i < n; i++) {
+        s += x[i] * y[i];
+    }
+    return s;
+}
+
+DOUBLE dotNaiveQP(DOUBLE* x, DOUBLE* y, int n) {
+    _Float128 s;
+    int i;
+    if (n <= 0) return 0.0;
+
+    for (i = 0, s = 0.0; i < n; i++) {
+        s += x[i] * y[i];
+    }
+    return (DOUBLE)s;
+}
+
 int main(int argc, char *argv[]) {
 
     DOUBLE x = 0.00000000001;
     DOUBLE y = 100000.0;
-    DOUBLE z, sgn;
+    DOUBLE z;
     hiprec a;
     int i;
 
@@ -66,6 +101,7 @@ int main(int argc, char *argv[]) {
         printf("--------- Sum2s\n");
         const int n = 10000;
         DOUBLE p[n];
+        int sg;
 
         for (i = 0, sgn = 1.0; i < n; i++) {
             // p[i] = 2.0 / (DOUBLE)(i + 1);

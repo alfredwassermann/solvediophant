@@ -14,13 +14,9 @@ hiprec twoSum(DOUBLE a, DOUBLE b) {
     hiprec ret;
     DOUBLE z;
 
-    ret.x = a + b;
-
-    z = ret.x - a;
-
-    ret.y = (a - (ret.x - z)) + (b - z);
-    // FastTwoSum for a > b
-    // ret.y = (a - ret.x) + b;
+    ret.hi = a + b;
+    z = ret.hi - a;
+    ret.lo = (a - (ret.hi - z)) + (b - z);
 
     return ret;
 }
@@ -39,8 +35,8 @@ void fastTwoSum2(DOUBLE a, DOUBLE b, DOUBLE *x, DOUBLE *y) {
     (*y) = (a - (*x)) + b;
 }
 
-/** In-place summation */
 void twoSum2i(DOUBLE *a, DOUBLE *b) {
+    /** In-place summation */
     DOUBLE z, x;
 
     x = (*a) + (*b);
@@ -59,17 +55,17 @@ hiprec split(DOUBLE a) {
     DOUBLE c;
 
     c = factor * a;
-    ret.x = (c - (c - a));
-    ret.y = (a - ret.x);
+    ret.hi = (c - (c - a));
+    ret.lo = (a - ret.hi);
     return ret;
 }
 
 hiprec twoProd(DOUBLE a, DOUBLE b) {
     hiprec ret, a_e, b_e;
-    ret.x = a * b;
+    ret.hi = a * b;
     a_e = split(a);
     b_e = split(b);
-    ret.y = a_e.y * b_e.y - (((ret.x - a_e.x * b_e.x) - a_e.y * b_e.x) - a_e.x * b_e.y);
+    ret.lo = a_e.lo * b_e.lo - (((ret.hi - a_e.hi * b_e.hi) - a_e.lo * b_e.hi) - a_e.hi * b_e.lo);
     return ret;
 }
 
@@ -78,14 +74,14 @@ void twoProd2(DOUBLE a, DOUBLE b, DOUBLE *x, DOUBLE *y) {
     (*x) = a * b;
     a_e = split(a);
     b_e = split(b);
-    (*y) = a_e.y * b_e.y - ((((*x) - a_e.x * b_e.x) - a_e.y * b_e.x) - a_e.x * b_e.y);
+    (*y) = a_e.lo * b_e.lo - ((((*x) - a_e.hi * b_e.hi) - a_e.lo * b_e.hi) - a_e.hi * b_e.lo);
 }
 
 hiprec twoSquare(DOUBLE a) {
     hiprec ret, a_e;
-    ret.x = a * a;
+    ret.hi = a * a;
     a_e = split(a);
-    ret.y = a_e.y * a_e.y - ((ret.x - a_e.x * a_e.x) - 2 * a_e.y * a_e.x);
+    ret.lo = a_e.lo * a_e.lo - ((ret.hi - a_e.hi * a_e.hi) - 2 * a_e.lo * a_e.hi);
     return ret;
 }
 
@@ -93,7 +89,7 @@ void twoSquare2(DOUBLE a, DOUBLE *x, DOUBLE *y) {
     hiprec a_e;
     (*x) = a * a;
     a_e = split(a);
-    (*y) = a_e.y * a_e.y - (((*x) - a_e.x * a_e.x) - 2 * a_e.y * a_e.x);
+    (*y) = a_e.lo * a_e.lo - (((*x) - a_e.hi * a_e.hi) - 2 * a_e.lo * a_e.hi);
 }
 
 DOUBLE hiprec_sqrt(DOUBLE T, DOUBLE t) {
@@ -104,11 +100,9 @@ DOUBLE hiprec_sqrt(DOUBLE T, DOUBLE t) {
 
     twoSquare2(P, &H, &h);
     r = (T - H) - h;
-    // printf("%0.20lf %0.20f %0.20lf %0.20lf\n", H, h, r, t);
     r = t + r;
     p = r / (2 * P);
 
-    // printf("%0.20lf %0.20f %0.20lf\n", P, p, r);
     return P + p;
 }
 
@@ -119,15 +113,15 @@ DOUBLE hiprec_sum2(DOUBLE* p, int n) {
 
     if (n <= 0) return 0.0;
 
-    s.x = p[0];
+    s.hi = p[0];
     sigma = 0.0;
 
     for (i = 1; i < n; i++) {
-        s = twoSum(s.x, p[i]);
-        sigma += s.y;
+        s = twoSum(s.hi, p[i]);
+        sigma += s.lo;
     }
 
-    return s.x + sigma;
+    return s.hi + sigma;
 }
 
 DOUBLE hiprec_sumK(DOUBLE* p, int n, int K) {
@@ -178,15 +172,15 @@ DOUBLE hiprec_norm_l1(DOUBLE* p, int n) {
 
     if (n <= 0) return 0.0;
 
-    s.x = abs(p[0]);
+    s.hi = abs(p[0]);
     sigma = 0.0;
 
     for (i = 1; i < n; i++) {
-        s = twoSum(s.x, abs(p[i]));
-        sigma += s.y;
+        s = twoSum(s.hi, abs(p[i]));
+        sigma += s.lo;
     }
 
-    return s.x + sigma;
+    return s.hi + sigma;
 }
 
 DOUBLE hiprec_normK_l1(DOUBLE* p, int n, int K) {
@@ -245,17 +239,17 @@ DOUBLE hiprec_dot2(DOUBLE* x, DOUBLE* y, int n) {
 }
 
 DOUBLE hiprec_dotK(DOUBLE* x, DOUBLE* y, int n, int K) {
-    DOUBLE p, q, s, h;
+    DOUBLE P, H;
     DOUBLE r[2 * n];
     int i;
     if (n <= 0) return 0.0;
 
-    twoProd2(x[0], y[0], &p, &(r[0]));
+    twoProd2(x[0], y[0], &P, &(r[0]));
     for (i = 1; i < n; i++) {
-        twoProd2(x[i], y[i], &h, &(r[i]));
-        twoSum2(p, h, &p, &(r[n + i - 1]));
+        twoProd2(x[i], y[i], &H, &(r[i]));
+        twoSum2(P, H, &P, &(r[n + i - 1]));
     }
-    r[2 * n - 1] = p;
+    r[2 * n - 1] = P;
     return hiprec_sumK(r, 2 * n, K);
 }
 
@@ -312,15 +306,13 @@ DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
 }
 
 DOUBLE hiprec_normK_l2(DOUBLE* x, int n, int K) {
-    DOUBLE S, s, P, p, H, h;
-    DOUBLE c, d;
+    DOUBLE S, P;
     DOUBLE r[2 * n];
     int i;
 
     if (n <= 0) return 0.0;
 
     S = 0.0;
-    s = 0.0;
     for (i = 0; i < n; i++) {
         twoSquare2(x[i], &P, &(r[i]));
         twoSum2(S, P, &S, &(r[n + i - 1]));
@@ -330,37 +322,3 @@ DOUBLE hiprec_normK_l2(DOUBLE* x, int n, int K) {
     return hiprec_sqrt(hiprec_sumK(r, 2 * n, K), 0.0);
 }
 
-//
-// Naive implementations for comparison
-//
-DOUBLE sumNaive(DOUBLE* p, int n) {
-    DOUBLE s;
-    int i;
-
-    for (i = 0, s = 0.0; i < n; i++) {
-        s += p[i];
-    }
-    return s;
-}
-
-DOUBLE dotNaive(DOUBLE* x, DOUBLE* y, int n) {
-    DOUBLE s;
-    int i;
-    if (n <= 0) return 0.0;
-
-    for (i = 0, s = 0.0; i < n; i++) {
-        s += x[i] * y[i];
-    }
-    return s;
-}
-
-DOUBLE dotNaiveQP(DOUBLE* x, DOUBLE* y, int n) {
-    _Float128 s;
-    int i;
-    if (n <= 0) return 0.0;
-
-    for (i = 0, s = 0.0; i < n; i++) {
-        s += x[i] * y[i];
-    }
-    return (DOUBLE)s;
-}

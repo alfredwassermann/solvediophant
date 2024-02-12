@@ -2,8 +2,8 @@
 #define _ARITH_H
 
 typedef struct {
-    DOUBLE x;
-    DOUBLE y;
+    DOUBLE hi;
+    DOUBLE lo;
 } hiprec;
 
 
