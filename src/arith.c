@@ -6,8 +6,7 @@
 #include "arith.h"
 
 /*
-* Ogita, Rump, Oishi:
-* Accurate sum and dot product (2005)
+* Ogita, Rump, Oishi: Accurate sum and dot product (2005)
 */
 
 hiprec twoSum(DOUBLE a, DOUBLE b) {

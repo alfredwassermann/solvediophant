@@ -372,11 +372,7 @@ void dual_insert_vector(lattice_t *lattice, long *u, int start, int end, int z, 
     for (i = start; i <= end; i++) {
         if (u[i] != 0) {
             for (j = 0; j < z; j++) {
-                if (u[i] > 0) {
-                    mpz_addmul_ui(lattice->swap[j], b[i][j], u[i]);
-                } else {
-                    mpz_submul_ui(lattice->swap[j], b[i][j], -u[i]);
-                }
+                mpz_addmul_si(lattice->swap[j], b[i][j], u[i]);
             }
         }
     }

@@ -1,0 +1,11 @@
+- Refactor bkz: calls of LLLH (reduction_type carries deepinsert size)
+- Weak size reduction: eta and theta as parameters
+- Pack LLLH, LLLH_long into one function
+- Replace more dot products by BLAS or hiprec_dot
+- Default value of -c: power of 2, dependent of size of entries and dimensions
+- Experiment with single precision, "hiprec" for single precision
+- Experiment with sdbkz
+- Reestablish fast and good "pruned enumeration"
+- lds in pruned enumeration
+- Compute kernel with algorithm in Cohen
+
