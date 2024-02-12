@@ -55,7 +55,6 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
     DOUBLE mus;
     mpz_t musvl;
-    mpz_t hv;
 
     DOUBLE r_new, r_act;
     DOUBLE pot, pot_max;
@@ -108,8 +107,6 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     #endif
 
     mpz_init(musvl);
-    mpz_init(hv);
-    //mpz_init(sum_mu);
 
     /* Test for trivial cases. */
     if ((z <= 1) || (up <= 1)) {
@@ -345,7 +342,6 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             k++;
         }
     }
-    mpz_clear(hv);
     mpz_clear(musvl);
 
     if (max_tricols > 1) {
