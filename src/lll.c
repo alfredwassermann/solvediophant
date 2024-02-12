@@ -515,10 +515,10 @@ int householder_column(mpz_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, i
 
         householder_column_inner_hiprec(R, H, beta, k, l, z, bit_size);
 
-        if (l == k || R[k][k] * R[k][k] < min_val) {
-            min_val = R[k][k] * R[k][k];
-            min_idx = l;
-        }
+        // if (l == k || R[k][k] * R[k][k] < min_val) {
+        //     min_val = R[k][k] * R[k][k];
+        //     min_idx = l;
+        // }
     }
     return min_idx;
 }
@@ -535,10 +535,10 @@ int householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int 
 
         householder_column_inner_hiprec(R, H, beta, k, l, z, bit_size);
 
-        if (l == k || R[k][k] * R[k][k] < min_val) {
-            min_val = R[k][k] * R[k][k];
-            min_idx = l;
-        }
+        // if (l == k || R[k][k] * R[k][k] < min_val) {
+        //     min_val = R[k][k] * R[k][k];
+        //     min_idx = l;
+        // }
     }
     return min_idx;
 }
