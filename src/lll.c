@@ -733,10 +733,8 @@ void householder_column_inner(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int l
 }
 
 void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int l, int z, int bit_size) {
-    int i, j;
-    DOUBLE w, w_beta;
-    DOUBLE sigma, mu, sq;
-    int K = 2;
+    int i;
+    DOUBLE w, w_beta, mu;
     DOUBLE eps = 1.0e-15; // 0.0000000001;
 
     // Apply Householder vectors H[0],..., H[k-1]
@@ -746,13 +744,12 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
         for (i = 0; i < k; ++i) {
             // w = < R[k], H[i] >
             w = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
-            // w = hiprec_dotK(&(R[k][i]), &(H[i][i]), z - i, K);
             w_beta = w * beta[i];
 
             #if BLAS
                 cblas_daxpy(z - i, -w_beta, &(H[i][i]), 1, &(R[k][i]), 1);
             #else
-                for (j = i; j < z; ++j) {
+                for (int j = i; j < z; ++j) {
                     R[k][j] -= w_beta * H[i][j];
                 }
             #endif
@@ -761,8 +758,8 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
         for (i = 0; i < k; ++i) {
             R[i][z - 1] = beta[i] * hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
         }
-        for (j = 0; j < z; ++j) {
-            R[k][j] -= hiprec_dot2_row(&(R[j][z - 1]), z, &(H[j][j]), z, k - j);
+        for (i = 0; i < z; ++i) {
+            R[k][i] -= hiprec_dot2_row(&(R[i][z - 1]), z, &(H[i][i]), z, k - i);
         }
     #endif
 
@@ -773,14 +770,15 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
     #if BLAS
         cblas_dcopy(z - k - 1, &(R[k][k + 1]), 1, &(H[k][k + 1]), 1);
     #else
-        for (j = k + 1; j < z; ++j) {
-            H[k][j] = R[k][j];
+        for (i = k + 1; i < z; ++i) {
+            H[k][i] = R[k][i];
         }
     #endif
 
     // Golub, van Loan approach:
     // It ensures that R[k][k] becomes >= 0
     // Higham, p.356: this might cause stability problems
+    // DOUBLE sigma, sq;
     // sigma = hiprec_normsq_l2(&(R[k][k + 1]), z - k - 1);
     // if (sigma == 0.0) {
     //     beta[k] = 0.0;
@@ -801,7 +799,6 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
 
     // More stable suggestion from Higham:
     mu = hiprec_norm_l2(&(R[k][k]), z - k);
-    // mu = hiprec_normK_l2(&(R[k][k]), z - k, K);
     if (R[k][k] < -eps) {
         mu = -mu;
     }
@@ -815,20 +812,20 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
     // fprintf(stderr, "\n");
 
     #if 0
+    // Check
     if (k >= 0) {
         // Rotate vector R[k] in order to check if
         // H[k] is good enough
         w = hiprec_dot2(&(R[k][k]), &(H[k][k]), z - k);
-        // w = hiprec_dotK(&(R[k][k]), &(H[k][k]), z - k, K);
         w_beta = -w * beta[i];
 
-        for (j = k; j < z; ++j) {
-            R[k][j] += w_beta * H[k][j];
+        for (i = k; i < z; ++i) {
+            R[k][i] += w_beta * H[k][i];
         }
 
         fprintf(stderr, "k: %d, -mu: %0.20lf\n", k, -mu);
-        for (j = k; j < z; ++j) {
-            fprintf(stderr, "%0.20lf ", R[k][j]);
+        for (i = k; i < z; ++i) {
+            fprintf(stderr, "%0.20lf ", R[k][i]);
         }
         fprintf(stderr, "\n");
         // exit(1);
@@ -880,81 +877,8 @@ int householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int 
 }
 
 void size_reduction(mpz_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, int j, int z) {
-    int i, ii, iii;
-    mpz_t *bb;
+    int i;
 
-#if 0
-    switch (mpz_get_si(musvl)) {
-    case 1:
-        /* $\lceil\mu_{k,j}\rfloor = 1$ */
-        i = b[j][0].p;
-        while (i != 0) {
-                bb = &(b[k][i]);
-                mpz_sub(bb->c, bb->c, b[j][i].c);
-                iii = bb->p;
-                if ((b[k][i-1].p != i) && (mpz_sgn(bb->c) != 0))
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == iii); ii--)
-                        b[k][ii].p = i;
-                else if (mpz_sgn(bb->c) == 0) {
-                    for (ii = i - 1;  (ii >= 0) && (b[k][ii].p == i); ii--)
-                        b[k][ii].p = iii;
-                }
-                i = b[j][i].p;
-        }
-        #if BLAS
-            cblas_daxpy(j + 1, -1.0, R[j], 1, R[k], 1);
-        #else
-            for (i = 0; i <= j; i++) R[k][i] -= R[j][i];
-        #endif
-        break;
-
-    case -1:
-        /* $\lceil\mu_{k,j}\rfloor = -1$ */
-        i = b[j][0].p;
-        while (i != 0) {
-                bb = &(b[k][i]);
-                mpz_add(bb->c, bb->c, b[j][i].c);
-                iii = bb->p;
-                if ((b[k][i-1].p != i)&&(mpz_sgn(bb->c) != 0))
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == iii); ii--)
-                        b[k][ii].p = i;
-                else if (mpz_sgn(bb->c) == 0) {
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--)
-                        b[k][ii].p = iii;
-                }
-                i = b[j][i].p;
-        }
-
-        #if BLAS
-            cblas_daxpy(j + 1, 1.0, R[j], 1, R[k], 1);
-        #else
-            for (i = 0; i <= j; i++) R[k][i] += R[j][i];
-        #endif
-        break;
-
-    default:
-        /* $\lceil\mu_{k,j}\rfloor \neq \pm 1$ */
-        i = b[j][0].p;
-        while (i != 0) {
-                bb = &(b[k][i]);
-                mpz_submul(bb->c, b[j][i].c, musvl);
-                iii = bb->p;
-                if ((b[k][i-1].p != i) && (mpz_sgn(bb->c) != 0))
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p ==  iii); ii--)
-                        b[k][ii].p = i;
-                else if (mpz_sgn(bb->c) == 0) {
-                    for (ii = i - 1; (ii >= 0) && (b[k][ii].p == i); ii--)
-                        b[k][ii].p = iii;
-                }
-                i = b[j][i].p;
-        }
-        #if BLAS
-            cblas_daxpy(j + 1, -mus, R[j], 1, R[k], 1);
-        #else
-            for (i = 0; i <= j; i++) R[k][i] -= R[j][i] * mus;
-        #endif
-    }
-#else
     for (i = 0; i < z; ++i) {
         mpz_submul(b[k][i], b[j][i], musvl);
     }
@@ -964,7 +888,6 @@ void size_reduction(mpz_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, int 
     #else
         for (i = 0; i <= j; i++) R[k][i] -= R[j][i] * mus;
     #endif
-#endif
 }
 
 void size_reduction_long(long **b, DOUBLE  **R, long musl, double mus, int k, int j, int z) {
