@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <math.h>
 #include "const.h"
-#include "linalg.h"
+#include "arith.h"
 
 int main(int argc, char *argv[]) {
 
     DOUBLE x = 0.00000000001;
     DOUBLE y = 100000.0;
     DOUBLE z, sgn;
-    doubleExact a;
+    hiprec a;
     int i;
 
     #if 0

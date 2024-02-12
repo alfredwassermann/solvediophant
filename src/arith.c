@@ -3,15 +3,15 @@
 #include <math.h>
 
 #include "const.h"
-#include "linalg.h"
+#include "arith.h"
 
 /*
 * Ogita, Rump, Oishi:
 * Accurate sum and dot product (2005)
 */
 
-doubleExact twoSum(DOUBLE a, DOUBLE b) {
-    doubleExact ret;
+hiprec twoSum(DOUBLE a, DOUBLE b) {
+    hiprec ret;
     DOUBLE z;
 
     ret.x = a + b;
@@ -53,8 +53,8 @@ void twoSum2i(DOUBLE *a, DOUBLE *b) {
     (*a) = x;
 }
 
-doubleExact split(DOUBLE a) {
-    doubleExact ret;
+hiprec split(DOUBLE a) {
+    hiprec ret;
     const DOUBLE factor = 134217729;
     DOUBLE c;
 
@@ -64,8 +64,8 @@ doubleExact split(DOUBLE a) {
     return ret;
 }
 
-doubleExact twoProd(DOUBLE a, DOUBLE b) {
-    doubleExact ret, a_e, b_e;
+hiprec twoProd(DOUBLE a, DOUBLE b) {
+    hiprec ret, a_e, b_e;
     ret.x = a * b;
     a_e = split(a);
     b_e = split(b);
@@ -74,15 +74,15 @@ doubleExact twoProd(DOUBLE a, DOUBLE b) {
 }
 
 void twoProd2(DOUBLE a, DOUBLE b, DOUBLE *x, DOUBLE *y) {
-    doubleExact a_e, b_e;
+    hiprec a_e, b_e;
     (*x) = a * b;
     a_e = split(a);
     b_e = split(b);
     (*y) = a_e.y * b_e.y - ((((*x) - a_e.x * b_e.x) - a_e.y * b_e.x) - a_e.x * b_e.y);
 }
 
-doubleExact twoSquare(DOUBLE a) {
-    doubleExact ret, a_e;
+hiprec twoSquare(DOUBLE a) {
+    hiprec ret, a_e;
     ret.x = a * a;
     a_e = split(a);
     ret.y = a_e.y * a_e.y - ((ret.x - a_e.x * a_e.x) - 2 * a_e.y * a_e.x);
@@ -90,7 +90,7 @@ doubleExact twoSquare(DOUBLE a) {
 }
 
 void twoSquare2(DOUBLE a, DOUBLE *x, DOUBLE *y) {
-    doubleExact a_e;
+    hiprec a_e;
     (*x) = a * a;
     a_e = split(a);
     (*y) = a_e.y * a_e.y - (((*x) - a_e.x * a_e.x) - 2 * a_e.y * a_e.x);
@@ -114,7 +114,7 @@ DOUBLE hiprec_sqrt(DOUBLE T, DOUBLE t) {
 
 DOUBLE hiprec_sum2(DOUBLE* p, int n) {
     DOUBLE sigma;
-    doubleExact s;
+    hiprec s;
     int i;
 
     if (n <= 0) return 0.0;
@@ -173,7 +173,7 @@ DOUBLE hiprec_sumK(DOUBLE* p, int n, int K) {
 
 DOUBLE hiprec_norm_l1(DOUBLE* p, int n) {
     DOUBLE sigma;
-    doubleExact s;
+    hiprec s;
     int i;
 
     if (n <= 0) return 0.0;

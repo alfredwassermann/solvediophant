@@ -73,8 +73,8 @@ GMPINC=
 GSA_OUT=FALSE
 ###################################
 
-OBJFILES=$(SRC)/bkz.o   $(SRC)/dio2.o   $(SRC)/dualbkz.o   $(SRC)/enum.o   $(SRC)/lattice.o   $(SRC)/lgs.o   $(SRC)/lll.o   $(SRC)/sd2.o $(SRC)/linalg.o
-PDFFILES=$(PDF)/bkz.pdf $(PDF)/dio2.pdf $(PDF)/dualbkz.pdf $(PDF)/enum.pdf $(PDF)/lattice.pdf $(PDF)/lgs.pdf $(PDF)/lll.pdf $(PDF)/sd2.pdf
+OBJFILES=$(SRC)/bkz.o   $(SRC)/dio2.o   $(SRC)/dualbkz.o   $(SRC)/enum.o   $(SRC)/lattice.o   $(SRC)/lgs.o   $(SRC)/lll.o   $(SRC)/sd2.o $(SRC)/arith.o
+PDFFILES=$(PDF)/bkz.pdf $(PDF)/dio2.pdf $(PDF)/dualbkz.pdf $(PDF)/enum.pdf $(PDF)/lattice.pdf $(PDF)/lgs.pdf $(PDF)/lll.pdf $(PDF)/sd2.pdf $(PDF)/arith.pdf
 
 all: $(BIN)/sd2 tags $(PDFFILES) $(BIN)/test_la
 
@@ -93,8 +93,8 @@ $(BIN)/sd2: $(OBJFILES)
 	-static $(BLASLIB) \
 	-lgmp $(GMPLIB) $(GMPINC) -lm -lc
 
-$(BIN)/test_la: $(SRC)/test_la.o $(SRC)/linalg.o
-	$(CC) $(CFLAGS) -o $(BIN)/test_la $(SRC)/test_la.o $(SRC)/linalg.o -lm -lc
+$(BIN)/test_la: $(SRC)/test_la.o $(SRC)/arith.o
+	$(CC) $(CFLAGS) -o $(BIN)/test_la $(SRC)/test_la.o $(SRC)/arith.o -lm -lc
 
 tags: $(SRC) Makefile
 	ctags $</*.c $</*.h

@@ -4,8 +4,7 @@
 #include "const.h"
 #include "lattice.h"
 #include "lll.h"
-#include "linalg.h"
-
+#include "arith.h"
 
 #if defined(USE_BLAS)
     #define BLAS 1

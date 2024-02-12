@@ -1,21 +1,21 @@
-#ifndef _LINALG_H
-#define _LINALG_H
+#ifndef _ARITH_H
+#define _ARITH_H
 
-typedef struct dblexact {
+typedef struct {
     DOUBLE x;
     DOUBLE y;
-} doubleExact;
+} hiprec;
 
 
-extern doubleExact twoSum(DOUBLE a, DOUBLE b);
+extern hiprec twoSum(DOUBLE a, DOUBLE b);
 extern void twoSum2(DOUBLE a, DOUBLE b, DOUBLE *x, DOUBLE *y);
 extern void fastTwoSum2(DOUBLE a, DOUBLE b, DOUBLE *x, DOUBLE *y);
 extern void twoSum2i(DOUBLE *a, DOUBLE *b);
 
-extern doubleExact split(DOUBLE a);
-extern doubleExact twoProd(DOUBLE a, DOUBLE b);
+extern hiprec split(DOUBLE a);
+extern hiprec twoProd(DOUBLE a, DOUBLE b);
 extern void twoProd2(DOUBLE a, DOUBLE b, DOUBLE *x, DOUBLE *y);
-extern doubleExact twoSquare(DOUBLE a);
+extern hiprec twoSquare(DOUBLE a);
 extern void twoSquare2(DOUBLE a, DOUBLE *x, DOUBLE *y);
 
 extern DOUBLE hiprec_sqrt(DOUBLE T, DOUBLE t);
