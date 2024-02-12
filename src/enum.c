@@ -549,14 +549,14 @@ void init_dualbounds(lattice_t *lattice, DOUBLE ***fipo) {
     int cols = lattice->num_cols;
     int rows = lattice->num_rows;
 
-    (*fipo) = (DOUBLE**)calloc((size_t)(cols + 1), sizeof(DOUBLE*));
+    (*fipo) = (DOUBLE**)calloc((int)(cols + 1), sizeof(DOUBLE*));
     for (i = 0; i <= cols; i++) {
-        (*fipo)[i] = (DOUBLE*)calloc((size_t)(cols + 1), sizeof(DOUBLE));
+        (*fipo)[i] = (DOUBLE*)calloc((int)(cols + 1), sizeof(DOUBLE));
     }
 
-    muinv = (DOUBLE**)calloc((size_t)cols, sizeof(DOUBLE*));
+    muinv = (DOUBLE**)calloc((int)cols, sizeof(DOUBLE*));
     for(i = 0; i < cols; ++i) {
-        muinv[i] = (DOUBLE*)calloc((size_t)rows, sizeof(DOUBLE));
+        muinv[i] = (DOUBLE*)calloc((int)rows, sizeof(DOUBLE));
     }
 
     /* determine inverse of mu */
@@ -768,7 +768,7 @@ DOUBLE explicit_enumeration(lattice_t *lattice) {
 
     /* more initialization */
     level = lattice->decomp.first_nonzero[lattice->num_rows - 1];
-    if (level < 0) level = 0;
+    level = (level >= 0) ? level : 0;
 
     level = lattice->decomp.first_nonzero[lattice->num_rows - 1];//columns - 1;
     level_max = level;
@@ -967,14 +967,10 @@ void givens(lattice_t *lattice, int columns, int rows, DOUBLE **mu,
         bd[i][i] = 1.0;
     }
 
-    for (j = 1; j < rows; j++) {    /* The Givens rotation */
+    for (j = 1; j < rows; j++) {    /* Givens rotation */
         mm = (j < columns) ? j : columns;
         for (i = 0; i < mm; i++) {
-            if (mu[i][j] == 0.0) {
-                /* Nothing has to be done */
-                gc = 1.0;
-                gs = 0.0;
-            } else {
+            if (mu[i][j] != 0.0) {
                 /* Stable computation of the
                    rotation coefficients.
                 */

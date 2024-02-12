@@ -171,11 +171,11 @@ DOUBLE hiprec_norm_l1(DOUBLE* p, int n) {
 
     if (n <= 0) return 0.0;
 
-    s.hi = abs(p[0]);
+    s.hi = fabs(p[0]);
     sigma = 0.0;
 
     for (i = 1; i < n; i++) {
-        s = twoSum(s.hi, abs(p[i]));
+        s = twoSum(s.hi, fabs(p[i]));
         sigma += s.lo;
     }
 
@@ -187,7 +187,7 @@ DOUBLE hiprec_normK_l1(DOUBLE* p, int n, int K) {
     DOUBLE q[K - 1];
     int i, j, k;
 
-    if (n <= 0) return 0.0;
+    if (n <= 0 || K < 2) return 0.0;
 
     K = (n < K) ? n : K;
 
@@ -196,7 +196,7 @@ DOUBLE hiprec_normK_l1(DOUBLE* p, int n, int K) {
     }
 
     for (i = 0; i < K - 1; i++) {
-        s = abs(p[i]);
+        s = fabs(p[i]);
         for (k = 0; k < i - 1; k++) {
             twoSum2i(&q[k], &s);
         }
@@ -205,7 +205,7 @@ DOUBLE hiprec_normK_l1(DOUBLE* p, int n, int K) {
     s = q[K - 1];
 
     for (i = K - 1; i < n; i++) {
-        alpha = abs(p[i]);
+        alpha = fabs(p[i]);
         for (k = 0; k < K - 1; k++) {
             twoSum2i(&q[k], &alpha);
         }

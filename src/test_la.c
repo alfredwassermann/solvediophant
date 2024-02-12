@@ -52,11 +52,11 @@ int main(int argc, char *argv[]) {
         z = x + y;
         printf("%0.20lf\n", z);
         a = twoSum(x, y);
-        printf("%0.20lf %0.20lf\n", a.x, a.y);
+        printf("%0.20lf %0.20lf\n", a.hi, a.lo);
 
         printf("--------- Split\n");
         a = split(z);
-        printf("%0.20lf %0.20lf\n", a.x, a.y);
+        printf("%0.20lf %0.20lf\n", a.hi, a.lo);
     #endif
 
     #if 1
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
         x = 11111111.111111111;
         y = 7.777777777;
         a = twoProd(x, y);
-        printf("twoProd : %0.20lf %0.20lf\n", a.x, a.y);
+        printf("twoProd : %0.20lf %0.20lf\n", a.hi, a.lo);
         DOUBLE x1, y1;
         twoProd2(x, y, &x1, &y1);
         printf("twoProd2: %0.20lf %0.20lf\n", x1, y1);
@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
         x = 10000000000000.0;
         printf("Naive:      %0.20lf\n", x * x);
         a = twoSquare(x);
-        printf("twoSquare : %0.20lf %0.20lf\n", a.x, a.y);
+        printf("twoSquare : %0.20lf %0.20lf\n", a.hi, a.lo);
         twoSquare2(x, &x1, &y1);
         printf("twoSquare2: %0.20lf %0.20lf\n", x1, y1);
         twoProd2(x, x, &x1, &y1);

@@ -459,7 +459,8 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                 #if BLAS
                     y[t] = cblas_ddot(t_max - t, &(u_loc[t+1]), 1, &(R[t+1][t]), lattice->num_rows);
                 #else
-                    for (j = t + 1, y[t] = 0.0; j <= t_max; j++) {
+                    y[t] = 0.0;
+                    for (int j = t + 1; j <= t_max; j++) {
                         y[t] += u_loc[j] * R[j][t];
                     }
                 #endif
@@ -625,7 +626,8 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                         #if BLAS
                             y[t] = cblas_ddot(t_max - t, &(u_loc[t+1]), 1, &(R[t+1][t]), lattice->num_rows);
                         #else
-                            for (j = t + 1, y[t] = 0.0; j <= t_max; j++) {
+                            y[t] = 0.0;
+                            for (int j = t + 1; j <= t_max; j++) {
                                 y[t] += u_loc[j] * R[j][t];
                             }
                         #endif
