@@ -197,7 +197,6 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
 
             /* successful enumeration */
             dual_insert_vector(lattice, u, start_block, end_block, z, hv);
-            //i = householder_column(lattice->basis, R, H, h_beta, end_block, end_block + 1, z, bit_size);
             lllH(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, WORDLEN_MPZ, solutiontest);
             i = end_block;
 

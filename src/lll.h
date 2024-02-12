@@ -12,8 +12,8 @@ extern int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             int word_len,
             int (*solutiontest)(lattice_t *lattice, int k));
 
-extern int householder_column(mpz_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int s, int z, int bit_size);
-extern int householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int s, int z, int bit_size);
+extern DOUBLE householder_column(mpz_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int z, int bit_size);
+extern DOUBLE householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int z, int bit_size);
 
 extern void size_reduction(mpz_t **b, DOUBLE **R, mpz_t musvl, DOUBLE mus, int k, int j, int z);
 extern void size_reduction_long(long **b, DOUBLE **R, long musl, DOUBLE mus, int k, int j, int z);
