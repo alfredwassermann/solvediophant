@@ -45,24 +45,26 @@
 int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             int start, int low, int up, int z,
             DOUBLE delta, int reduction_type,
-            int bit_size,
+            int bit_size, int word_len,
             int (*solutiontest)(lattice_t *lattice, int k)) {
 
     mpz_t **b = lattice->basis;
+    long **bl = lattice->basis_long;
+
     int i, j, k;
     DOUBLE norm;
-
     DOUBLE theta, eta;
 
     DOUBLE mus;
     mpz_t musvl;
+    mpz_t *swapvl;
+    long *swap;
 
     DOUBLE r_new, r_act;
     DOUBLE pot, pot_max;
     int pot_idx;
     int insert_pos, lowest_pos, k_max;
     int deep_size;
-    mpz_t *swapvl;
     int redo_tricol = 0;
     int max_tricols = 0;
     int stop_tricol = 10;
@@ -72,7 +74,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     #if VERBOSE > 1
         int counter = 0;
     #endif
-    // fprintf(stderr, "-------------------------- Do LLLH -------------------------------------------------------------\n");
+    fprintf(stderr, "-------------------------- Do LLLH %d -------------------------------------------------------------\n", word_len);
 
     lattice->work_on_long = FALSE;
 
@@ -107,7 +109,9 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         fprintf(stderr, ", max bits: %d\n", bit_size);
     #endif
 
-    mpz_init(musvl);
+    if (word_len == WORDLEN_MPZ) {
+        mpz_init(musvl);
+    }
 
     /* Test for trivial cases. */
     if ((z <= 1) || (up <= 1)) {
@@ -152,12 +156,18 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     again:
         if (FALSE && count_tricols > 0) {
             fprintf(stderr, "\nBefore householder\n");
-            check_precision(b[k], R[k], z, k);
+            if (word_len == WORDLEN_MPZ) {
+                check_precision(b[k], R[k], z, k);
+            }
         }
 
         // Apply Householder vectors to column k of R  and
         // determine the Householder vector for column k
-        i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
+        if (word_len == WORDLEN_MPZ) {
+            i = householder_column(b, R, H, beta, k, k + 1, z, bit_size);
+        } else {
+            i = householder_column_long(bl, R, H, beta, k, k + 1, z, bit_size);
+        }
 
         // if (fabs(R[k][k]) < 1.0e-12) {
         //     goto swap_zero_vector;
@@ -173,10 +183,13 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
         if (FALSE && count_tricols > 0) {
             fprintf(stderr, "After householder\n");
-            check_precision(b[k], R[k], z, k);
+            if (word_len == WORDLEN_MPZ) {
+                check_precision(b[k], R[k], z, k);
+            }
         }
 
         if (FALSE) fprintf(stderr, "k=%d\n", k);
+        
         redo_tricol = 0;
         /* Size reduction of $b_k$ */
         for (j = k - 1; j >= low; j--) {
@@ -186,15 +199,18 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
              * Size reduction according to Schnorr.
              * Lazy size reduction, see Stehle, "Floating-point LLL: theoretical and practical aspects"
              */
-            // if (fabs(R[k][j]) > eta * fabs(R[j][j]) + theta1 * fabs(R[k][k])) {
             if (fabs(R[k][j]) > eta * fabs(R[j][j]) + theta * fabs(R[k][k])) {
                 mus = ROUND(R[k][j] / R[j][j]);
-                mpz_set_d(musvl, mus);
                 redo_tricol = 1;
                 // fprintf(stderr, "%0.2lf ", R[k][j] / R[j][j]);
 
                 /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
-                size_reduction(b, R, musvl, mus, k, j, z);
+                if (word_len == WORDLEN_MPZ) {
+                    mpz_set_d(musvl, mus);
+                    size_reduction(b, R, musvl, mus, k, j, z);
+                } else {
+                    size_reduction_long(bl, R, (long)mus, mus, k, j, z);
+                }
                 (*solutiontest)(lattice, k);
             }
         }
@@ -203,8 +219,10 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         if (FALSE && redo_tricol > 0) {
             fprintf(stderr, "\n");
             fprintf(stderr, "redo=%d, tricol=%d \n", redo_tricol, count_tricols+1);
-            // check_precision(b[k - 1], R[k - 1], z, k - 1);
-            check_precision(b[k], R[k], z, k);
+            if (word_len == WORDLEN_MPZ) {
+                // check_precision(b[k - 1], R[k - 1], z, k - 1);
+                check_precision(b[k], R[k], z, k);
+            }
         }
 
         if (redo_tricol) {
@@ -232,7 +250,6 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             fprintf(stderr, "mu: %0.20lf\n", R[k][k-1] / R[k-1][k-1]);
         }
 
-
         /*
             Before going to step 4 we test if $b_k$ is linear dependent.
             If we find a linear dependent vector $b_k$,
@@ -247,6 +264,8 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         //     }
         //     norm = SQRT(norm);
         // #endif
+        // TODO
+        // It is enough to check R[k][k]
         norm = hiprec_norm_l2(R[k], k + 1);
 
         if (norm != norm || norm < 0.5) {  // nan or < 0.5
@@ -254,13 +273,22 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             // print_lattice(lattice);
             // fprintf(stderr, "lllH: Zero vector at %d\n", k);
             // fflush(stderr);
-
-            swapvl = b[k];
-            //for (i = k + 1; i < up; i++) {
-            for (i = k + 1; i < lattice->num_cols; i++) {
-                b[i-1] = b[i];
+            // TODO
+            // Check where the 0-vector is positioned to
+            // lattice->num_cols - 1 or lattice->num_cols
+            if (word_len == WORDLEN_MPZ) {
+                swapvl = b[k];
+                for (i = k + 1; i < lattice->num_cols; i++) {
+                    b[i-1] = b[i];
+                }
+                b[lattice->num_cols - 1] = swapvl;
+            } else {
+                swap = bl[k];
+                for (i = k + 1; i < lattice->num_cols; i++) {
+                    bl[i-1] = bl[i];
+                }
+                bl[lattice->num_cols - 1] = swap;
             }
-            b[lattice->num_cols] = swapvl;
 
             up--;
             lattice->num_cols--;
@@ -291,7 +319,6 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                     pot_idx = i;
                 }
             }
-
             insert_pos = pot_idx;
         } else {
             if (reduction_type == CLASSIC_LLL) {
@@ -331,11 +358,19 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
 
         if (insert_pos < k) {
-            swapvl = b[k];
-            for (j = k; j > insert_pos; --j) {
-                b[j] = b[j - 1];
+            if (word_len == WORDLEN_MPZ) {
+                swapvl = b[k];
+                for (j = k; j > insert_pos; --j) {
+                    b[j] = b[j - 1];
+                }
+                b[insert_pos] = swapvl;
+            } else {
+                swap = bl[k];
+                for (j = k; j > insert_pos; --j) {
+                    bl[j] = bl[j - 1];
+                }
+                bl[insert_pos] = swap;
             }
-            b[insert_pos] = swapvl;
 
             // fprintf(stderr, "Swap / rotate %d and %d\n", insert_pos, k);
             k = insert_pos;
@@ -343,281 +378,15 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             k++;
         }
     }
-    mpz_clear(musvl);
-
-    if (max_tricols > 1) {
-        fprintf(stderr, "Max tricol iterations: %d\n", max_tricols);
-    }
-    return lowest_pos;
-
-}
-
-/**
- * @brief LLL reduction algorithm of a basis consisting of
- * basis vectors of type *long.
- * It is possible to choose
- * between the reduction types POT_LLL, CLASSIC_LLL or deep insert.
- *
- * @param {lattice_t} lattice
- * @param {DOUBLE**} R Matrix R of the QR decomposition of the matrix consisting of the
- *        lattice vectors from position [start...up[ (both inclusive)
- * @param {DOUBLE*} beta
- * @param {DOUBLE**} H Matrix containing Householder columns
- * @param {int} start Position of the basis vector in the array of lattice vectors
- *              at which the reduction will start. If less than "low", "low" will be taken.
- * @param {int} low Position of the first basis vector in the array of lattice vectors.
- *              LLL will not go below this number.
- * @param {int} up First position of basis vector in the array of lattice vectors
- *              which will not be visited.
- * @param {int} z Number of "rows", i.e. length of the basis vectors.
- * @param {DOUBLE} delta Reduction quality (0.5 <= delta <= 1)
- * @param {int} reduction_type reduction type: CLASSIC_LLL, POT_LLL, else: deep insert
- * @param {int} bit_size
- * @param {function*} solutiontest
- * @return int The lowest position of lattice vectors which the algorithm has visited.
- */
-int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
-            int start, int low, int up, int z,
-            DOUBLE delta, int reduction_type,
-            int bit_size,
-            int (*solutiontest)(lattice_t *lattice, int k)) {
-
-    long **b = lattice->basis_long;
-    int i, j, k, min_idx;
-    int cnt_tricol, max_tricol = 0;
-    DOUBLE norm;
-    int mu_all_zero;
-
-    DOUBLE theta, eta;
-
-    DOUBLE mus;
-    long musl;
-
-    DOUBLE r_new, r_act;
-    DOUBLE pot, pot_max;
-    int pot_idx;
-    int insert_pos, lowest_pos;
-    int deep_size;
-    long *swap;
-    int redo_tricol = 0;
-    int max_tricols = 0;
-    int count_tricols = 0;
-    int stop_tricol = 100;
-
-    // fprintf(stderr, "delta=%lf\n", delta);
-    #if VERBOSE > 1
-        int counter = 0;
-    #endif
-
-    // fprintf(stderr, "-------------------------- Do LLLH_long -------------------------------------------------------------\n");
-
-    lattice->work_on_long = TRUE;
-
-    /*
-        Set constants for handling of rounding errors,
-        depending on the bit sizes of the lattice vectors.
-    */
-    eta = ETACONST;
-    if (bit_size > 100) {
-        eta = 0.52;
-        theta = 0.50;
-    } else if (bit_size > 55) {
-        eta = 0.51;
-        theta = 0.1;
-    } else if (bit_size > 30) {
-        eta = 0.505;
-        theta = 0.08;
-    } else {
-        theta = 0.0;
-    }
-
-    #if VERBOSE > 1
-        fprintf(stderr, "LLLH_long: ");
-        if (reduction_type == POT_LLL) {
-            fprintf(stderr, "use PotLLL");
-        } else if (reduction_type == CLASSIC_LLL) {
-            fprintf(stderr, "use classic LLL");
-        } else {
-            fprintf(stderr, "use deepinsert %d", reduction_type);
-        }
-        fprintf(stderr, ", delta=%0.3lf", delta);
-        fprintf(stderr, ", eta=%0.3lf", eta);
-        fprintf(stderr, ", max bits: %d\n", Pobit_size);
-    #endif
-
-    /* Test for trivial cases. */
-    if ((z <= 1) || (up <= 1)) {
-        fprintf(stderr, "Wrong dimensions in LLLH_long\n");
-        fflush(stderr);
-        return(0);
-    }
-
-    k = (start >= low) ? start : low;
-    lowest_pos = k;
-
-    /* The main loop */
-    while (k < up) {
-
-        if (k < lowest_pos) {
-            lowest_pos = k;
-        }
-        #if VERBOSE > 1
-            if (counter > 0 && (counter % 10000) == 0) {
-                fprintf(stderr, "LLL: %d k:%d\n", counter, k);
-                fflush(stderr);
-            }
-            counter++;
-        #endif
-        handle_signals(lattice, R);
-
-        count_tricols = 0;
-    again:
-        // Apply Householder vectors to column k of R  and
-        // determine the Householder vector for column k
-        min_idx = householder_column_long(b, R, H, beta, k, k + 1, z, bit_size);
-        // if (fabs(R[k][k]) < 1.0e-12) {
-        //     goto swap_zero_vector_long;
-        // }
-
-        redo_tricol = 0;
-        /* size reduction of $b_k$ */
-        for (j = k - 1; j >= low; j--) {
-            /* Subtract suitable multiple of $b_j$ from $b_k$. */
-            if (fabs(R[k][j]) > eta * fabs(R[j][j]) + theta * fabs(R[k][k])) {
-                mus = ROUND(R[k][j] / R[j][j]);
-                musl = (long)mus;
-                redo_tricol = 1;
-
-                /* set $b_k = b_k - \lceil\mu_k,j\rfloor b_j$ */
-                size_reduction_long(b, R, musl, mus, k, j, z);
-                (*solutiontest)(lattice, k);
-            }
-        }
-
-        if (redo_tricol) {
-            count_tricols++;
-            max_tricols = (count_tricols > max_tricols) ? count_tricols : max_tricols;
-            if (count_tricols > stop_tricol) {
-                fprintf(stderr, "LLLH_long: too much tricol iterations (%d), k=%d, bit size: %d\n", stop_tricol, k, bit_size);
-                exit(EXIT_ERR_NUMERIC);
-            }
-            goto again;
-        }
-
-        /*
-            Before going to step 4 we test if $b_k$ is linear dependent.
-            If we find a linear dependent vector $b_k$,
-            we shift b_k to the last column of the
-            matrix and restart lllH with s = s-1.
-        */
-        #if BLAS
-            norm = cblas_dnrm2(k + 1, R[k], 1);
-        #else
-            for (j = 0, norm = 0.0; j <= k; ++j) {
-                norm += R[k][j] * R[k][j];
-            }
-            norm = SQRT(norm);
-        #endif
-
-        // Zero vector detected.
-        // Swap it to the end of the whole lattice
-        if (norm != norm || norm < 0.5) {  // NaN or < 0.5
-    swap_zero_vector_long:
-            // print_lattice(lattice);
-            // fprintf(stderr, "lllH_long: Zero vector at %d\n", k);
-            // fflush(stderr);
-
-            swap = b[k];
-            //for (i = k + 1; i < up; i++) {
-            for (i = k + 1; i < lattice->num_cols; i++) {
-                b[i - 1] = b[i];
-            }
-
-            b[lattice->num_cols - 1] = swap;
-
-            up--;
-            lattice->num_cols--;
-
-            k = 0;                  // Go back to first position!!!
-            continue;
-        }
-
-        // If delta == 0, only size reduction is done
-        if (delta == 0.0) {
-            k++;
-            continue;
-        }
-
-        /* fourth step: swap columns */
-        if (reduction_type != POT_LLL) {
-            if (reduction_type == CLASSIC_LLL) {
-                // Standard LLL
-                i = (k > low) ? k - 1 : low;
-                r_new = R[k][k] * R[k][k] + R[k][i] * R[k][i];
-                deep_size = 2;
-            } else {
-                // Deep insert
-                i = low;
-                #if BLAS
-                    r_new = cblas_ddot(k + 1, R[k], 1, R[k], 1);
-                #else
-                    for (j = 0, r_new = 0.0; j <= k; ++j) {
-                        r_new += R[k][j] * R[k][j];
-                    }
-                #endif
-                deep_size = reduction_type;
-            }
-
-            insert_pos = k;
-            while (i < k) {
-                r_act = delta * R[i][i] * R[i][i];
-                //if (delta * R[i][i]*R[i][i] > rhs) {
-                 if (0.8 * r_act > r_new ||
-                     ((i < deep_size || k - i < deep_size) &&
-                      r_act > r_new)) {
-                    insert_pos = i;
-                    break;
-                 }
-                 r_new -= R[k][i]*R[k][i];
-                 i++;
-            }
-        } else {
-            // Pot-LLL
-            pot = pot_max = 0.0;
-            pot_idx = k;
-            for (i = k - 1; i >= low; --i) {
-                for (j = k, r_new = 0.0; j >= i; --j) {
-                    r_new += R[k][j] * R[k][j];
-                }
-                pot += log(r_new) - log(R[i][i] * R[i][i]);
-
-                if (pot < log(delta)/* && pot < pot_max*/) {
-                    pot_max = pot;
-                    pot_idx = i;
-                }
-            }
-
-            insert_pos = pot_idx;
-        }
-
-        if (insert_pos < k) {
-            swap = b[k];
-            for (j = k; j > insert_pos; --j) {
-                b[j] = b[j - 1];
-            }
-            b[insert_pos] = swap;
-
-            //fprintf(stderr, "INSERT %d at %d\n", k, insert_pos);
-            k = insert_pos;
-        } else {
-            k++;
-        }
+    if (word_len == WORDLEN_MPZ) {
+        mpz_clear(musvl);
     }
 
     if (max_tricols > 1) {
         fprintf(stderr, "Max tricol iterations: %d\n", max_tricols);
     }
     return lowest_pos;
+
 }
 
 void householder_column_inner(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int l, int z, int bit_size) {

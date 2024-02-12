@@ -60,7 +60,7 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
 
     while (1) {
         fprintf(stderr, "Start tour #no %d\n", cnt);
-        lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
+        lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, WORDLEN_MPZ, solutiontest);
 
         fprintf(stderr, "Primal\n");
         //for (start_block = 0; start_block + beta - 1 <= last; ++start_block) {
@@ -80,9 +80,9 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
                         start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
                 fflush(stderr);
                 insert_vector(lattice, u, start_block, end_block, z, hv);
-                lllH(lattice, R, h_beta, H, h, 0, h_end, z, delta, CLASSIC_LLL, bit_size, solutiontest);
+                lllH(lattice, R, h_beta, H, h, 0, h_end, z, delta, CLASSIC_LLL, bit_size, WORDLEN_MPZ, solutiontest);
             } else {
-                lllH(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
+                lllH(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, WORDLEN_MPZ, solutiontest);
             }
         }
 
@@ -102,9 +102,9 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
                         start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
                 fflush(stderr);
                 dual_insert_vector(lattice, u, start_block, end_block, z, hv);
-                lllH(lattice, R, h_beta, H, h, 0, h_end, z, delta, CLASSIC_LLL, bit_size, solutiontest);
+                lllH(lattice, R, h_beta, H, h, 0, h_end, z, delta, CLASSIC_LLL, bit_size, WORDLEN_MPZ, solutiontest);
             } else {
-                lllH(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
+                lllH(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, WORDLEN_MPZ, solutiontest);
             }
         }
 
@@ -112,7 +112,7 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
         if (cnt > 3) break;
     } /* end of |while| */
 
-    lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
+    lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, WORDLEN_MPZ, solutiontest);
 
     lD = log_potential(R, s, z);
 
@@ -170,7 +170,7 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
     allocate_bkz_enum(&bkz_enum, s);
 
     //decomp_alloc(&R, &h_beta, &N, &H, s, z);
-    lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
+    lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, WORDLEN_MPZ, solutiontest);
 
     cnt = -1;
     end_block = last + 1;
@@ -198,7 +198,7 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
             /* successful enumeration */
             dual_insert_vector(lattice, u, start_block, end_block, z, hv);
             //i = householder_column(lattice->basis, R, H, h_beta, end_block, end_block + 1, z, bit_size);
-            lllH(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
+            lllH(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, WORDLEN_MPZ, solutiontest);
             i = end_block;
 
             new_cj2 = 1.0 / (R[i][i] * R[i][i]);
@@ -207,7 +207,7 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
                 fflush(stderr);
                 exit(EXIT_ERR_INPUT);
             }
-            lllH(lattice, R, h_beta, H, h, 0, h_end, z, delta, CLASSIC_LLL, bit_size, solutiontest);
+            lllH(lattice, R, h_beta, H, h, 0, h_end, z, delta, CLASSIC_LLL, bit_size, WORDLEN_MPZ, solutiontest);
             //cnt = -1;
             cnt++;
         } else {
@@ -215,7 +215,7 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
         }
     } /* end of |while| */
 
-    lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
+    lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, WORDLEN_MPZ, solutiontest);
 
     lD = log_potential(R, s, z);
 

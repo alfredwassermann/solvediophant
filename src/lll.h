@@ -9,6 +9,7 @@ extern int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             int start, int low, int up, int z,
             DOUBLE delta, int reduction_type,
             int bit_size,
+            int word_len,
             int (*solutiontest)(lattice_t *lattice, int k));
 
 extern int lllH_long(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,

@@ -4,6 +4,9 @@
 #define TRUE 1
 #define FALSE 0
 
+#define WORDLEN_LONG 1
+#define WORDLEN_MPZ 2
+
 #define DEEPINSERT 1
 #define DEEPINSERT_CONST 60
 

@@ -587,7 +587,7 @@ void lll(lattice_t *lattice, int s, int z, DOUBLE quality, int reduction_type) {
 
     bit_size = get_bit_size(lattice);
     // Ignore return value of lllH
-    lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest);
+    lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, WORDLEN_MPZ, solutiontest);
 
     return;
 }
@@ -607,9 +607,10 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
 
     if (bit_size < 32) {
         copy_lattice_to_long(lattice);
-        r = lllH_long(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest_long);
+        // r = lllH_long(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest_long);
+        r = lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, WORDLEN_LONG, solutiontest);
     } else {
-        r = lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest);
+        r = lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, WORDLEN_MPZ, solutiontest);
     }
     lD = log_potential(R, s, z);
     fprintf(stderr, "   log(D)= %f\n", lD);
@@ -643,9 +644,9 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
             }
         }
         if (bit_size < 32) {
-            r = lllH_long(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest_long);
+            r = lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, WORDLEN_LONG, solutiontest_long);
         } else {
-            r = lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, solutiontest);
+            r = lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, WORDLEN_MPZ, solutiontest);
         }
         lD = log_potential(R, s, z);
         fprintf(stderr, "%d: log(D)= %f\n", runs, lD);
@@ -672,7 +673,7 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
 
     bit_size = get_bit_size(lattice);
 
-    //r = lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size);
+    //r = lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, WORDLEN_MPZ);
     #if TRUE
         while (start < s) {
             fprintf(stderr, "Block reduce %d\n", start);
@@ -682,7 +683,7 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
             basis_org = lattice->basis;
             lattice->basis = &(lattice->basis[start]);
             size = (start + block_size > up) ? up - start : block_size;
-            lllH(lattice, R, beta, H, 0, 0, size, z, quality, reduction_type, bit_size, solutiontest);
+            lllH(lattice, R, beta, H, 0, 0, size, z, quality, reduction_type, bit_size, WORDLEN_MPZ, solutiontest);
             lattice->basis = basis_org;
             start += block_size;
         }
@@ -692,7 +693,7 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
             up = start + block_size;
             up = (up > s) ? s : up;
 
-            lllH(lattice, R, beta, H, start, start, up, z, quality, reduction_type, bit_size);
+            lllH(lattice, R, beta, H, start, start, up, z, quality, reduction_type, bit_size, WORDLEN_MPZ);
             start += block_size;
         }
     #endif

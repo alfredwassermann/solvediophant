@@ -95,9 +95,9 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
 
     if (bit_size < bit_size_threshold) {
         copy_lattice_to_long(lattice);
-        lllH_long(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest_long);
+        lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, WORDLEN_LONG, solutiontest);
     } else {
-        lllH     (lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
+        lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, WORDLEN_MPZ, solutiontest);
     }
 
     allocate_bkz_enum(&bkz_enum, s);
@@ -119,9 +119,9 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
         }
         if (start_block == 0) {
             if (bit_size < bit_size_threshold) {
-                lllH_long(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest_long);
+                lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, WORDLEN_LONG, solutiontest_long);
             } else {
-                lllH     (lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, solutiontest);
+                lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, WORDLEN_MPZ, solutiontest);
             }
         }
 
@@ -167,9 +167,9 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
             #define WIDTH lattice->num_cols
             // #define WIDTH h + 1
             if (bit_size < bit_size_threshold) {
-                lllH_long(lattice, R, h_beta, H, start_block - 1, 0, WIDTH, z, delta, 30, bit_size, solutiontest_long);
+                lllH(lattice, R, h_beta, H, start_block - 1, 0, WIDTH, z, delta, 30, bit_size, WORDLEN_LONG, solutiontest_long);
             } else {
-                lllH     (lattice, R, h_beta, H, start_block - 1, 0, WIDTH, z, delta, 30, bit_size, solutiontest);
+                lllH(lattice, R, h_beta, H, start_block - 1, 0, WIDTH, z, delta, 30, bit_size, WORDLEN_MPZ, solutiontest);
             }
 
             if (enum_type == ENUM_LDS_FULL2) {
@@ -191,9 +191,9 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
 
             if (h > 0) {
                 if (bit_size < bit_size_threshold) {
-                    lllH_long(lattice, R, h_beta, H, h - 1, h - 1, h + 1, z, 0.0, CLASSIC_LLL, bit_size, solutiontest_long);
+                    lllH(lattice, R, h_beta, H, h - 1, h - 1, h + 1, z, 0.0, CLASSIC_LLL, bit_size, WORDLEN_LONG, solutiontest_long);
                 } else {
-                    lllH     (lattice, R, h_beta, H, h - 1, h - 1, h + 1, z, 0.0, CLASSIC_LLL, bit_size, solutiontest);
+                    lllH(lattice, R, h_beta, H, h - 1, h - 1, h + 1, z, 0.0, CLASSIC_LLL, bit_size, WORDLEN_MPZ, solutiontest);
                 }
             }
             cnt++;
