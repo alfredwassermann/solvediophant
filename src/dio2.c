@@ -109,7 +109,9 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     mpz_set_ui(lastlines_factor, 1);
     fprintf(stderr, "\n"); fflush(stderr);
     if (!restart) {
-        lll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.lll.delta_low, DEEP_LLL);
+        int org_cols = lattice->num_cols;  // Kernel vectors are swapped to the end.
+        lll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.lll.delta_low, KERNEL_LLL/* DEEP_LLL */);
+        lattice->num_cols = org_cols;
 
         #if FALSE
             printf("After first reduction\n");
@@ -125,7 +127,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             fprintf(stderr, "First reduction not successful\n"); fflush(stderr);
             return 0;
         }
-        #if FALSE
+        #if False
             printf("After cutting\n");
             print_lattice(lattice);
         #endif

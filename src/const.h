@@ -17,6 +17,7 @@
 #define CLASSIC_LLL -1
 #define POT_LLL -2
 #define DEEP_LLL -3
+#define KERNEL_LLL -4
 
 #define VERBOSE 1
 

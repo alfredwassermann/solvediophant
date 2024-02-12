@@ -62,6 +62,8 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
     DOUBLE r_new, r_act;
     DOUBLE pot, pot_max;
+    DOUBLE matrix_factor = 0.0;
+    DOUBLE norm_bound;
     int pot_idx;
     int insert_pos, lowest_pos, k_max;
     int deep_size;
@@ -74,9 +76,13 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     #if VERBOSE > 1
         int counter = 0;
     #endif
-    fprintf(stderr, "-------------------------- Do LLLH %d -------------------------------------------------------------\n", word_len);
+    // fprintf(stderr, "-------------------------- Do LLLH %d -------------------------------------------------------------\n", word_len);
 
-    lattice->work_on_long = FALSE;
+    if (word_len == WORDLEN_MPZ) {
+        lattice->work_on_long = FALSE;
+    } else {
+        lattice->work_on_long = TRUE;
+    }
 
     eta = ETACONST;
     if (bit_size > 100) {
@@ -111,6 +117,12 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
     if (word_len == WORDLEN_MPZ) {
         mpz_init(musvl);
+        matrix_factor = (DOUBLE)mpz_get_d(lattice->matrix_factor);
+    }
+    if (reduction_type == KERNEL_LLL) {
+        norm_bound = 0.5 * matrix_factor;
+    } else {
+        norm_bound = 0.5;
     }
 
     /* Test for trivial cases. */
@@ -264,14 +276,12 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         //     }
         //     norm = SQRT(norm);
         // #endif
-        // TODO
-        // It is enough to check R[k][k]
         norm = hiprec_norm_l2(R[k], k + 1);
 
-        if (norm != norm || norm < 0.5) {  // nan or < 0.5
+        if (norm != norm || norm < norm_bound) {  // nan or < 0.5, or < 0.5 * c to compute kernel.
     swap_zero_vector:
             // print_lattice(lattice);
-            // fprintf(stderr, "lllH: Zero vector at %d\n", k);
+            fprintf(stderr, "lllH: Zero vector at %d\n", k);
             // fflush(stderr);
             // TODO
             // Check where the 0-vector is positioned to
@@ -293,7 +303,8 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             up--;
             lattice->num_cols--;
 
-            k = 0;
+            // k = 0;
+            k = (k > low) ? k - 1 : low;
             continue;
         }
 
@@ -321,7 +332,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             }
             insert_pos = pot_idx;
         } else {
-            if (reduction_type == CLASSIC_LLL) {
+            if (reduction_type == CLASSIC_LLL || reduction_type == KERNEL_LLL) {
                 // Standard LLL
                 i = (k > low) ? k - 1 : low;
                 r_new = R[k][k] * R[k][k] + R[k][i] * R[k][i];
@@ -342,8 +353,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             insert_pos = k;
             while (i < k) {
                 r_act = delta * R[i][i] * R[i][i];
-                //if (delta * R[i][i]*R[i][i] > rhs) {
-                if (0.8 * r_act > r_new ||                      // outside of deep-insert slices
+                if (r_new < 0.8 * r_act  ||                      // outside of deep-insert slices, but big improvement
                     (
                         (i < deep_size || k - i < deep_size) && // inside of deep-insert slices
                         r_new < r_act
