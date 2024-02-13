@@ -9,6 +9,9 @@
 * Ogita, Rump, Oishi: Accurate sum and dot product (2005)
 */
 
+/**
+ * Add two doubles and return the hiprec result.
+ */
 hiprec twoSum(DOUBLE a, DOUBLE b) {
     hiprec ret;
     DOUBLE z;
@@ -20,20 +23,29 @@ hiprec twoSum(DOUBLE a, DOUBLE b) {
     return ret;
 }
 
-void twoSum2(DOUBLE a, DOUBLE b, DOUBLE *x, DOUBLE *y) {
+/**
+ * Add two doubles and return the hiprec result in parameters hi and lo.
+ */
+void twoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo) {
     DOUBLE z;
 
-    (*x) = a + b;
-    z = (*x) - a;
-    (*y) = (a - ((*x) - z)) + (b - z);
+    (*hi) = a + b;
+    z = (*hi) - a;
+    (*lo) = (a - ((*hi) - z)) + (b - z);
 }
 
-void fastTwoSum2(DOUBLE a, DOUBLE b, DOUBLE *x, DOUBLE *y) {
+/**
+ * Add two doubles a and b with |a| > |b| and return the hiprec result in parameters hi and lo.
+ */
+void fastTwoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo) {
     // FastTwoSum for |a| > |b|
-    (*x) = a + b;
-    (*y) = (a - (*x)) + b;
+    (*hi) = a + b;
+    (*lo) = (a - (*hi)) + b;
 }
 
+/**
+ * Add two doubles a and b return hi in a and lo in b.
+ */
 void twoSum2i(DOUBLE *a, DOUBLE *b) {
     /** In-place summation */
     DOUBLE z, x;
@@ -48,6 +60,9 @@ void twoSum2i(DOUBLE *a, DOUBLE *b) {
     (*a) = x;
 }
 
+/**
+ * Split a double, see Dekker, and return hiprec
+ */
 hiprec split(DOUBLE a) {
     hiprec ret;
     const DOUBLE factor = 134217729;
@@ -59,6 +74,9 @@ hiprec split(DOUBLE a) {
     return ret;
 }
 
+/**
+ * Multiply two numbers and return hiprec.
+ */
 hiprec twoProd(DOUBLE a, DOUBLE b) {
     hiprec ret, a_e, b_e;
     ret.hi = a * b;
@@ -68,14 +86,20 @@ hiprec twoProd(DOUBLE a, DOUBLE b) {
     return ret;
 }
 
-void twoProd2(DOUBLE a, DOUBLE b, DOUBLE *x, DOUBLE *y) {
+/**
+ * Multiply two numbers and return hiprec result in parameters hi and lo.
+ */
+void twoProd2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo) {
     hiprec a_e, b_e;
-    (*x) = a * b;
+    (*hi) = a * b;
     a_e = split(a);
     b_e = split(b);
-    (*y) = a_e.lo * b_e.lo - ((((*x) - a_e.hi * b_e.hi) - a_e.lo * b_e.hi) - a_e.hi * b_e.lo);
+    (*lo) = a_e.lo * b_e.lo - ((((*hi) - a_e.hi * b_e.hi) - a_e.lo * b_e.hi) - a_e.hi * b_e.lo);
 }
 
+/**
+ * Multiply a * a and return hiprec result.
+*/
 hiprec twoSquare(DOUBLE a) {
     hiprec ret, a_e;
     ret.hi = a * a;
@@ -84,13 +108,19 @@ hiprec twoSquare(DOUBLE a) {
     return ret;
 }
 
-void twoSquare2(DOUBLE a, DOUBLE *x, DOUBLE *y) {
+/**
+ * Multiply a * a and return hiprec result in parameters hi and lo.
+ */
+void twoSquare2(DOUBLE a, DOUBLE *hi, DOUBLE *lo) {
     hiprec a_e;
-    (*x) = a * a;
+    (*hi) = a * a;
     a_e = split(a);
-    (*y) = a_e.lo * a_e.lo - (((*x) - a_e.hi * a_e.hi) - 2 * a_e.lo * a_e.hi);
+    (*lo) = a_e.lo * a_e.lo - (((*hi) - a_e.hi * a_e.hi) - 2 * a_e.lo * a_e.hi);
 }
 
+/**
+ *  Accurate square root of hiprec number (T, t).
+ */
 DOUBLE hiprec_sqrt(DOUBLE T, DOUBLE t) {
     DOUBLE P, p, H, h;
     DOUBLE r;
@@ -105,6 +135,9 @@ DOUBLE hiprec_sqrt(DOUBLE T, DOUBLE t) {
     return P + p;
 }
 
+/**
+ * Sum entries of array p of length n with double precision.
+ */
 DOUBLE hiprec_sum2(DOUBLE* p, int n) {
     DOUBLE sigma;
     hiprec s;
@@ -123,6 +156,9 @@ DOUBLE hiprec_sum2(DOUBLE* p, int n) {
     return s.hi + sigma;
 }
 
+/**
+ * Sum entries of array p of length n with K-fold precision.
+ */
 DOUBLE hiprec_sumK(DOUBLE* p, int n, int K) {
     DOUBLE s, alpha;
     DOUBLE q[K - 1];
@@ -164,6 +200,9 @@ DOUBLE hiprec_sumK(DOUBLE* p, int n, int K) {
     return s + q[K - 2];
 }
 
+/**
+ * Sum absolute values of entries of array p of length n with double precision.
+ */
 DOUBLE hiprec_norm_l1(DOUBLE* p, int n) {
     DOUBLE sigma;
     hiprec s;
@@ -182,6 +221,9 @@ DOUBLE hiprec_norm_l1(DOUBLE* p, int n) {
     return s.hi + sigma;
 }
 
+/**
+ * Sum absolute values of entries of array p of length n with K-fold precision.
+ */
 DOUBLE hiprec_normK_l1(DOUBLE* p, int n, int K) {
     DOUBLE s, alpha;
     DOUBLE q[K - 1];
@@ -223,6 +265,9 @@ DOUBLE hiprec_normK_l1(DOUBLE* p, int n, int K) {
     return s + q[K - 2];
 }
 
+/**
+ * Dot product of arrays x and y of length n with high precision.
+*/
 DOUBLE hiprec_dot2(DOUBLE* x, DOUBLE* y, int n) {
     DOUBLE p, q, s, h, r;
     int i;
@@ -237,6 +282,9 @@ DOUBLE hiprec_dot2(DOUBLE* x, DOUBLE* y, int n) {
     return p + s;
 }
 
+/**
+ * Dot product of arrays x and y of length n with K-fold precision.
+*/
 DOUBLE hiprec_dotK(DOUBLE* x, DOUBLE* y, int n, int K) {
     DOUBLE P, H;
     DOUBLE r[2 * n];
@@ -252,6 +300,9 @@ DOUBLE hiprec_dotK(DOUBLE* x, DOUBLE* y, int n, int K) {
     return hiprec_sumK(r, 2 * n, K);
 }
 
+/**
+ * Dot product of arrays x and y of length n and step widths dx and dy with double precision.
+ */
 DOUBLE hiprec_dot2_row(DOUBLE* x, int dx, DOUBLE* y, int dy, int n) {
     DOUBLE p, q, s, h, r;
     int i, jx, jy;
@@ -266,6 +317,10 @@ DOUBLE hiprec_dot2_row(DOUBLE* x, int dx, DOUBLE* y, int dy, int n) {
     return p + s;
 }
 
+/**
+ * Square of ||x||_2, i.e. 
+ * dot product of array x with itself of length n with high precision.
+ */
 DOUBLE hiprec_normsq_l2(DOUBLE* x, int n) {
     DOUBLE S, s, P, p, H, h;
     DOUBLE c, d;
@@ -285,6 +340,9 @@ DOUBLE hiprec_normsq_l2(DOUBLE* x, int n) {
     return S + s;
 }
 
+/**
+ * ||x||_2, i.e. square root of dot product of array x with itself of length n with high precision.
+ */
 DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
     DOUBLE S, s, P, p, H, h;
     DOUBLE c, d;
@@ -304,6 +362,9 @@ DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
     return hiprec_sqrt(S, s);
 }
 
+/**
+ * ||x||_2, i.e. square root of dot product of array x with itself of length n with K-fold precision.
+ */
 DOUBLE hiprec_normK_l2(DOUBLE* x, int n, int K) {
     DOUBLE S, P;
     DOUBLE r[2 * n];

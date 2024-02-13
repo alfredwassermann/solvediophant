@@ -8,13 +8,13 @@ typedef struct {
 
 
 extern hiprec twoSum(DOUBLE a, DOUBLE b);
-extern void twoSum2(DOUBLE a, DOUBLE b, DOUBLE *x, DOUBLE *y);
-extern void fastTwoSum2(DOUBLE a, DOUBLE b, DOUBLE *x, DOUBLE *y);
+extern void twoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo);
+extern void fastTwoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo);
 extern void twoSum2i(DOUBLE *a, DOUBLE *b);
 
 extern hiprec split(DOUBLE a);
 extern hiprec twoProd(DOUBLE a, DOUBLE b);
-extern void twoProd2(DOUBLE a, DOUBLE b, DOUBLE *x, DOUBLE *y);
+extern void twoProd2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo);
 extern hiprec twoSquare(DOUBLE a);
 extern void twoSquare2(DOUBLE a, DOUBLE *x, DOUBLE *y);
 

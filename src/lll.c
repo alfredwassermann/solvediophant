@@ -65,7 +65,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     DOUBLE matrix_factor = 1.0;
     DOUBLE norm_bound;
     int pot_idx;
-    int insert_pos, lowest_pos, k_max;
+    int insert_pos, lowest_pos;
     int deep_size;
     int redo_tricol = 0;
     int max_tricols = 0;
@@ -134,7 +134,6 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     }
 
     k = (start >= low) ? start : low;
-    k_max = k;
     lowest_pos = k;
 
     /* The main loop */
@@ -502,7 +501,7 @@ DOUBLE householder_column(mpz_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
 
     for (j = 0; j < z; ++j) {
         R[k][j] = (DOUBLE)mpz_get_d(b[k][j]);
-        max_val = (fabs(R[k][j]) > max_val) ? fabs(R[k][j]) : max_val;
+        // max_val = (fabs(R[k][j]) > max_val) ? fabs(R[k][j]) : max_val;
     }
     householder_column_inner_hiprec(R, H, beta, k, z, bit_size);
     return max_val;
@@ -514,7 +513,7 @@ DOUBLE householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, i
 
     for (j = 0; j < z; ++j) {
         R[k][j] = (DOUBLE)b[k][j];
-        max_val = (fabs(R[k][j]) > max_val) ? fabs(R[k][j]) : max_val;
+        // max_val = (fabs(R[k][j]) > max_val) ? fabs(R[k][j]) : max_val;
     }
     householder_column_inner_hiprec(R, H, beta, k, z, bit_size);
     return max_val;
