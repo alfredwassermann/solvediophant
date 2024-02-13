@@ -91,10 +91,10 @@ void allocateEnum_data(enum_level_t** enum_data, DOUBLE **fipo, int columns, int
  * The nodes are stored in `enum_data`.
  *
  * @param enum_data
- * @param lattice 
- * @param us 
- * @param fipo 
- * @param level 
+ * @param lattice
+ * @param us
+ * @param fipo
+ * @param level
  * @param max_steps
  * @return int
  *      0: after all nodes of the level have been generated
@@ -325,10 +325,10 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
 
 /**
  * @brief Recursive procedure for "limited discrepancy search"
- * 
- * @param enum_data 
+ *
+ * @param enum_data
  * @param lattice
- * @param us 
+ * @param us
  * @param fipo
  * @param level
  * @param lds_k
