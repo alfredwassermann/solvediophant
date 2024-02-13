@@ -162,7 +162,7 @@ int get_bit_size(lattice_t *lattice) {
 /**
  * LLL-subroutines
  */
-DOUBLE scalarproductlfp (mpz_t *v, mpz_t *w, int z) {
+DOUBLE dot_mpz (mpz_t *v, mpz_t *w, int z) {
     int i;
     mpz_t sum;
 
@@ -174,7 +174,7 @@ DOUBLE scalarproductlfp (mpz_t *v, mpz_t *w, int z) {
     return mpz_get_d(sum);
 }
 
-DOUBLE scalarproductfp (DOUBLE *v, DOUBLE *w , int n) {
+DOUBLE dot_double(DOUBLE *v, DOUBLE *w , int n) {
     #if BLAS
         return cblas_ddot(n, v, 1, w, 1);
     #else
@@ -425,7 +425,7 @@ double orthogonality_defect(lattice_t *lattice, DOUBLE **R, int s, int z) {
     int i;
 
     for (i = 0; i < s; i++)
-        defect += log(scalarproductlfp(lattice->basis[i], lattice->basis[i], lattice->num_rows)) - log(R[i][i]);
+        defect += log(dot_mpz(lattice->basis[i], lattice->basis[i], lattice->num_rows)) - log(R[i][i]);
 
     defect *= 0.5;
     return defect;

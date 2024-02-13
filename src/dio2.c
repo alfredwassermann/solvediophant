@@ -71,7 +71,15 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         exit(EXIT_NOT_SOLVABLE);
     }
     fprintf(stderr, "Num variables after preprocess: %d\n", LGS->num_cols);
+
+    /*
+     * Generate lattice from LGS and do scaling.
+     */
     lgs_to_lattice(LGS, lattice);
+    #if 0
+        printf("After scaling\n");
+        print_lattice(lattice);
+    #endif
 
     /**
      * open solution file
@@ -80,175 +88,178 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     if (lattice->LLL_params.silent) fprintf(solution.fp, "SILENT\n");
     fflush(solution.fp);
 
-    #if 0
-    printf("After scaling\n");
-    print_lattice(lattice);
-    #endif
 
     #if 1 // Do reduction
 
         /**
-         * permute lattice columns
+         * Rotate last lattice column to the first position
          */
-        #if 1
+        #if TRUE
         swap_vec = lattice->basis[lattice->num_cols-1];
-        for (i = lattice->num_cols - 1; i > 0; i--)
+        for (i = lattice->num_cols - 1; i > 0; i--) {
             lattice->basis[i] = lattice->basis[i - 1];
+        }
         lattice->basis[0] = swap_vec;
         #endif
-
-    #if 0
-       printf("After permute\n");
-       print_lattice(lattice);
-    #endif
-
-    //shufflelattice(lattice);
-    /**
-     * first reduction
-     */
-    mpz_set_ui(lastlines_factor, 1);
-    fprintf(stderr, "\n"); fflush(stderr);
-    if (!restart) {
-        int org_cols = lattice->num_cols;  // Kernel vectors are swapped to the end.
-        lll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.lll.delta_low, KERNEL_LLL/* DEEP_LLL */);
-        lattice->num_cols = org_cols;
+        //shufflelattice(lattice);
 
         #if FALSE
-            printf("After first reduction\n");
-            print_lattice(lattice);
-            exit(0);
+           printf("After permute\n");
+           print_lattice(lattice);
         #endif
 
-        /**
-         * cut the lattice
+        /*
+         * ------ First reduction -----
          */
-        if (cutlattice(lattice)) {
-            fprintf(stderr, "First reduction successful\n"); fflush(stderr);
+        mpz_set_ui(lastlines_factor, 1);
+        fprintf(stderr, "\n"); fflush(stderr);
+        if (!restart) {
+            int org_cols = lattice->num_cols;  // Kernel vectors are swapped to the end.
+            lll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.lll.delta_low, KERNEL_LLL/* DEEP_LLL */);
+            lattice->num_cols = org_cols;
+
+            #if FALSE
+                printf("After first reduction\n");
+                print_lattice(lattice);
+                mpz_out_str(stderr, 10, lattice->max_norm);
+                fprintf(stderr, "\n");
+                exit(0);
+            #endif
+
+            /*
+             * Cut the lattice
+             */
+            if (cutlattice(lattice)) {
+                fprintf(stderr, "First reduction successful\n"); fflush(stderr);
+            } else {
+                fprintf(stderr, "First reduction not successful\n"); fflush(stderr);
+                return 0;
+            }
+            #if False
+                printf("After cutting\n");
+                print_lattice(lattice);
+            #endif
+            // exit(-1);
+
+            #if 1
+                shufflelattice(lattice);
+                /**
+                 * ------ Second reduction -----
+                 */
+                mpz_set_ui(lastlines_factor, 1);
+                lll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.lll.delta_med, POT_LLL);
+                lll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.lll.delta_high, POT_LLL);
+                fprintf(stderr, "Second reduction successful\n"); fflush(stderr);
+            #endif
+
+
         } else {
-            fprintf(stderr, "First reduction not successful\n"); fflush(stderr);
-            return 0;
+            load_lattice(lattice, restart_filename);
+            //print_lattice(lattice);
         }
-        #if False
-            printf("After cutting\n");
+
+        #if FALSE
+            printf("After second reduction\n");
             print_lattice(lattice);
         #endif
-        // exit(-1);
 
-        #if 1
-            shufflelattice(lattice);
-            /**
-             * second reduction
-             */
-            mpz_set_ui(lastlines_factor, 1);
-            lll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.lll.delta_med, POT_LLL);
-            lll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.lll.delta_high, POT_LLL);
-            fprintf(stderr, "Second reduction successful\n"); fflush(stderr);
-        #endif
+        #if TRUE
+        /**
+         * ------ Third reduction ------
+         */
 
-
-    } else {
-        load_lattice(lattice, restart_filename);
-        //print_lattice(lattice);
-    }
-
-    #if FALSE
-        printf("After second reduction\n");
-        print_lattice(lattice);
-    #endif
-
-    #if TRUE  // Third reduction
-    /**
-     * Scale last rows
-     */
-    mpz_set(lastlines_factor, lattice->LLL_params.scalelastlinefactor);
-    for (i = 0; i < lattice->num_cols; i++) {
-        mpz_mul(lattice->basis[i][lattice->num_rows - 1],
-                lattice->basis[i][lattice->num_rows - 1], lastlines_factor);
-    }
-    if (lattice->free_RHS) {
+        // Scale last rows
+        mpz_set(lastlines_factor, lattice->LLL_params.scalelastlinefactor);
         for (i = 0; i < lattice->num_cols; i++) {
-            mpz_mul(lattice->basis[i][lattice->num_rows - 2],
-                    lattice->basis[i][lattice->num_rows - 2], lastlines_factor);
+            mpz_mul(lattice->basis[i][lattice->num_rows - 1],
+                    lattice->basis[i][lattice->num_rows - 1], lastlines_factor);
         }
-    }
-
-    /**
-     * Third reduction
-     */
-    if (lattice->LLL_params.type == ITERATE) {
-        // ---------- Iterated LLL
-        iteratedlll(lattice, lattice->num_cols, lattice->num_rows,
-                lattice->LLL_params.iterate_no,
-                lattice->LLL_params.lll.delta_high, POT_LLL);
-    } else if (lattice->LLL_params.type == PROGBKZ) {
-        // ---------- Progressive BKZ
-        for (block_size = 4; block_size <= lattice->LLL_params.bkz.beta; block_size += 4) {
-            lD = lDnew;
-            shufflelattice(lattice);
-            lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
-                        lattice->LLL_params.lll.delta_higher,
-                        block_size, lattice->LLL_params.bkz.p,
-                        ENUM_BLOCK, 30,
-                        solutiontest, solutiontest_long);
-            fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
+        if (lattice->free_RHS) {
+            for (i = 0; i < lattice->num_cols; i++) {
+                mpz_mul(lattice->basis[i][lattice->num_rows - 2],
+                        lattice->basis[i][lattice->num_rows - 2], lastlines_factor);
+            }
         }
-    } else {
-        // ---------- BKZ
-        shufflelattice(lattice);
-        lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
-                    lattice->LLL_params.lll.delta_higher,
-                    lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
-                    ENUM_BLOCK, 30,
-                    solutiontest, solutiontest_long);
-        fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
 
-        #if FALSE
-            lD = lDnew;
-            shufflelattice(lattice);
-            lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
-                        lattice->LLL_params.lll.delta_higher,
-                        10000, lattice->LLL_params.bkz.p,
-                        ENUM_LDS_FULL, 20,
-                        solutiontest, solutiontest_long);
-            fprintf(stderr, "LDS improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
-        #endif
-
-        #if FALSE
-            for (i = 1; i < 10; i++) {
+        //
+        // Iterate or bkz
+        //
+        if (lattice->LLL_params.type == ITERATE) {
+            // ---------- Iterated LLL
+            iteratedlll(lattice, lattice->num_cols, lattice->num_rows,
+                    lattice->LLL_params.iterate_no,
+                    lattice->LLL_params.lll.delta_high, POT_LLL);
+        } else if (lattice->LLL_params.type == PROGBKZ) {
+            // ---------- Progressive BKZ
+            for (block_size = 4; block_size <= lattice->LLL_params.bkz.beta; block_size += 4) {
                 lD = lDnew;
                 shufflelattice(lattice);
                 lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
                             lattice->LLL_params.lll.delta_higher,
-                            lattice->LLL_params.bkz.beta + i, lattice->LLL_params.bkz.p,
-                            ENUM_BLOCK, 200,
+                            block_size, lattice->LLL_params.bkz.p,
+                            ENUM_BLOCK, 30,
                             solutiontest, solutiontest_long);
                 fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
             }
+        } else {
+            // ---------- BKZ
+            shufflelattice(lattice);
+            lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
+                        lattice->LLL_params.lll.delta_higher,
+                        lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
+                        ENUM_BLOCK, 30,
+                        solutiontest, solutiontest_long);
+            fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
+
+            #if FALSE
+                lD = lDnew;
+                shufflelattice(lattice);
+                lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
+                            lattice->LLL_params.lll.delta_higher,
+                            10000, lattice->LLL_params.bkz.p,
+                            ENUM_LDS_FULL, 20,
+                            solutiontest, solutiontest_long);
+                fprintf(stderr, "LDS improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
+            #endif
+
+            #if FALSE
+                for (i = 1; i < 10; i++) {
+                    lD = lDnew;
+                    shufflelattice(lattice);
+                    lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
+                                lattice->LLL_params.lll.delta_higher,
+                                lattice->LLL_params.bkz.beta + i, lattice->LLL_params.bkz.p,
+                                ENUM_BLOCK, 200,
+                                solutiontest, solutiontest_long);
+                    fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
+                }
+            #endif
+        }
+
+        #if GSA_OUT==TRUE
+            print_gsa(lattice->decomp.R, lattice->num_cols, 0);
         #endif
-    }
+        fprintf(stderr, "Third reduction successful\n"); fflush(stderr);
 
-    #if GSA_OUT==TRUE
-        print_gsa(lattice->decomp.R, lattice->num_cols, 0);
-    #endif
-    fprintf(stderr, "Third reduction successful\n"); fflush(stderr);
+        dump_lattice(lattice);
+        // print_lattice(lattice);
 
-    dump_lattice(lattice);
-    // print_lattice(lattice);
-
-    /* Undo scaling of last rows */
-    for (i = 0; i < lattice->num_cols; i++) {
-        mpz_divexact(lattice->basis[i][lattice->num_rows - 1],
-            lattice->basis[i][lattice->num_rows - 1],
-            lastlines_factor);
-    }
-    if (lattice->free_RHS) {
+        /*
+         * Undo scaling of last rows
+         */
         for (i = 0; i < lattice->num_cols; i++) {
-            mpz_divexact(lattice->basis[i][lattice->num_rows - 2],
-                lattice->basis[i][lattice->num_rows - 2],
+            mpz_divexact(lattice->basis[i][lattice->num_rows - 1],
+                lattice->basis[i][lattice->num_rows - 1],
                 lastlines_factor);
         }
-    }
-    #endif // Third reduction
+        if (lattice->free_RHS) {
+            for (i = 0; i < lattice->num_cols; i++) {
+                mpz_divexact(lattice->basis[i][lattice->num_rows - 2],
+                    lattice->basis[i][lattice->num_rows - 2],
+                    lastlines_factor);
+            }
+        }
+        #endif // End of third reduction
     #else
         read_NTL_lattice();
     #endif // Do reduction
