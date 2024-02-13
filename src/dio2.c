@@ -121,6 +121,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             #if FALSE
                 printf("After first reduction\n");
                 print_lattice(lattice);
+                fprintf(stderr, "max norm ");
                 mpz_out_str(stderr, 10, lattice->max_norm);
                 fprintf(stderr, "\n");
                 exit(0);

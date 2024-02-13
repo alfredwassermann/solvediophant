@@ -62,7 +62,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
     DOUBLE r_new, r_act;
     DOUBLE pot, pot_max;
-    DOUBLE matrix_factor = 0.0;
+    DOUBLE matrix_factor = 1.0;
     DOUBLE norm_bound;
     int pot_idx;
     int insert_pos, lowest_pos, k_max;
@@ -117,13 +117,14 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
     if (word_len == WORDLEN_MPZ) {
         mpz_init(musvl);
-        matrix_factor = (DOUBLE)mpz_get_d(lattice->matrix_factor);
+        matrix_factor = (DOUBLE)mpz_get_d(lattice->matrix_factor) * (DOUBLE)mpz_get_d(lattice->upperbounds_max);
     }
     if (reduction_type == KERNEL_LLL) {
         norm_bound = 0.5 * matrix_factor;
     } else {
         norm_bound = 0.5;
     }
+    // fprintf(stderr, "norm_bound = %lf %lf, %lf\n", norm_bound, (DOUBLE)mpz_get_d(lattice->matrix_factor), (DOUBLE)mpz_get_d(lattice->upperbounds_max));
 
     /* Test for trivial cases. */
     if ((z <= 1) || (up <= 1)) {
@@ -207,9 +208,11 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         for (j = k - 1; j >= low; j--) {
             /**
              * Subtract suitable multiple of $b_j$ from $b_k$.
-             *
-             * Size reduction according to Schnorr.
-             * Lazy size reduction, see Stehle, "Floating-point LLL: theoretical and practical aspects"
+             * Weak size reduction, see Stehle, "Floating-point LLL: theoretical and practical aspects"
+             * and also Koy, Schnorr, "Segment LLL reduction" and Schnorr, "Progress on LLL and Lattice Reduction"
+             * Stehle et. al., "HLLL, Householder LLL".
+             * 
+             * If size reduction is done we redo Householder reflection on that column.
              */
             if (fabs(R[k][j]) > eta * fabs(R[j][j]) + theta * fabs(R[k][k])) {
                 mus = ROUND(R[k][j] / R[j][j]);
@@ -242,12 +245,6 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             max_tricols = (count_tricols > max_tricols) ? count_tricols : max_tricols;
             if (count_tricols > stop_tricol) {
                 fprintf(stderr, "LLLH: too much tricol iterations (%d), k=%d, bit size: %d\n", stop_tricol, k, bit_size);
-
-                // for (i = 0; i < k; i++) {
-                //     fprintf(stderr, "%0.0lf ", R[i][i]);
-                // }
-                // fprintf(stderr, "\n");
-
                 exit(EXIT_ERR_NUMERIC);
             }
             goto again;
@@ -268,14 +265,11 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             we shift b_k to the last column of the
             matrix and restart lllH with s = s-1.
         */
-        // norm = hiprec_norm_l2(R[k], k + 1);
+        norm = hiprec_norm_l2(R[k], k + 1);
 
-        // if (norm != norm || norm < norm_bound) {  // nan or < 0.5, or < 0.5 * c to compute kernel.
-        // if (max_norm < norm_bound) {  // nan or < 0.5, or < 0.5 * c to compute kernel.
-        // if (norm != norm || norm < 0.5) {  // nan or < 0.5, or < 0.5 * c to compute kernel.
-        if (max_norm < 0.5) {  // nan or < 0.5, or < 0.5 * c to compute kernel.
+        if (norm != norm || norm < norm_bound) {  // nan or < 0.5, or < 0.5 * dome_factor to compute kernel.
+            // if (norm != norm || norm < 0.5) {  // nan or < 0.5, or < 0.5 * c to compute kernel.
     swap_zero_vector:
-            // print_lattice(lattice);
             fprintf(stderr, "lllH: Zero vector at %d\n", k);
             // fflush(stderr);
             // TODO
@@ -315,9 +309,13 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             pot = pot_max = 0.0;
             pot_idx = k;
             for (i = k - 1; i >= low; --i) {
-                for (j = k, r_new = 0.0; j >= i; --j) {
-                    r_new += R[k][j] * R[k][j];
-                }
+                #if BLAS
+                    r_new = cblas_ddot(k - i + 1, &(R[k][i]), 1, &(R[k][i]), 1);
+                #else
+                    for (j = k, r_new = 0.0; j >= i; --j) {
+                        r_new += R[k][j] * R[k][j];
+                    }
+                #endif
                 pot += log(r_new) - log(R[i][i] * R[i][i]);
 
                 if (pot < log(delta)/* && pot < pot_max*/) {
@@ -332,12 +330,6 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 i = (k > low) ? k - 1 : low;
                 r_new = R[k][k] * R[k][k] + R[k][i] * R[k][i];
                 deep_size = 2;
-                // if (reduction_type == KERNEL_LLL && k > low && 
-                //     norm > norm_bound && hiprec_norm_l2(R[k - 1], k) > norm_bound)
-                // ) {
-                //     deep_size = 1;
-                //     i = k;
-                // }
             } else {
                 // Deep insert
                 i = low;
@@ -408,7 +400,7 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
     // Apply Householder vectors H[0],..., H[k-1]
     // to R[k] = b[k]:
     //   R[k] -= beta_i * <R[k], H[i]> H[i]
-    #if 1
+    #if TRUE
         for (i = 0; i < k; ++i) {
             // w = < R[k], H[i] >
             w = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);

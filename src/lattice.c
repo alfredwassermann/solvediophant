@@ -322,6 +322,7 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
     int i, j;
     int lgs_rows = LGS->num_rows;
     int lgs_cols = LGS->num_cols;
+    mpz_t factor;
 
     // Set the lattice dimensions
     lattice->num_rows = lgs_rows + lgs_cols + 1;
@@ -343,20 +344,35 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
     lattice->work_on_long = FALSE;
 
     // Copy the linear system to the basis.
-    // Thereby, multiply the entries by a large (enough) factor.
     for (j = 0; j < lgs_rows; j++) {
         for (i = 0; i < lgs_cols; i++) {
-            mpz_mul(lattice->basis[i][j], LGS->matrix[j][i], lattice->matrix_factor);
+            mpz_set(lattice->basis[i][j], LGS->matrix[j][i]);
         }
-        mpz_mul(lattice->basis[lgs_cols][j], LGS->rhs[j], lattice->matrix_factor);
+        mpz_set(lattice->basis[lgs_cols][j], LGS->rhs[j]);
     }
 
+    // Determine lcm of upper bounds on the variables
     handle_upperbounds(LGS, lattice);
+
+    // 
+    // Multiply upper part of the lattice basis by
+    // matrix_factor * upperbounds_max
+    // 
+    mpz_init(factor);
+    mpz_mul(factor, lattice->matrix_factor, lattice->upperbounds_max);
+    for (j = 0; j < lgs_rows; j++) {
+        for (i = 0; i < lgs_cols; i++) {
+            mpz_mul(lattice->basis[i][j], lattice->basis[i][j], factor);
+        }
+        mpz_mul(lattice->basis[lgs_cols][j], lattice->basis[lgs_cols][j], factor);
+    }
+    mpz_clear(factor);
+
+    // Store removed variables to include them in solution vector
     handle_preselection(LGS, lattice);
 
     lattice->nom = 1;
     lattice->denom = 2;
-
     init_diagonal_part(LGS, lattice);
 
     decomp_alloc(lattice);
