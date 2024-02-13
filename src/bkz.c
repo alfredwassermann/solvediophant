@@ -119,9 +119,9 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
         }
         if (start_block == 0) {
             if (bit_size < bit_size_threshold) {
-                lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, DEEP_LLL, bit_size, WORDLEN_LONG, solutiontest_long);
+                lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, WORDLEN_LONG, solutiontest_long);
             } else {
-                lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, DEEP_LLL, bit_size, WORDLEN_MPZ, solutiontest);
+                lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, WORDLEN_MPZ, solutiontest);
             }
         }
 
