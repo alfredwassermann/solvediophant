@@ -258,7 +258,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             }
         }
 
-        print_lattice(lattice);
+        // print_lattice(lattice);
 
         #endif // End of third reduction
     #else
@@ -275,7 +275,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
      * explicit enumeration
      */
     fprintf(stderr, "\n"); fflush(stderr);
-    num_solutions = explicit_enumeration(lattice);
+    num_solutions = exhaustive_enumeration(lattice);
 
     if (lattice->LLL_params.silent)
         print_num_solutions(num_solutions);

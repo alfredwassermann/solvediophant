@@ -605,7 +605,7 @@ void init_dualbounds(lattice_t *lattice, DOUBLE ***fipo) {
     #endif
 }
 
-DOUBLE explicit_enumeration(lattice_t *lattice) {
+DOUBLE exhaustive_enumeration(lattice_t *lattice) {
     /* local variables for |explicit_enumeration() */
     /*|__attribute((aligned(16)))|*/
 
