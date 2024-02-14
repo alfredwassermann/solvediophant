@@ -678,7 +678,7 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
                 }
             }
         }
-        //print_lattice(lattice);
+        //print_lattice(lattice, stderr);
     }
 
     /* set the simple pruning bounds */

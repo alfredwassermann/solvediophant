@@ -77,8 +77,8 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
      */
     lgs_to_lattice(LGS, lattice);
     #if 0
-        printf("After scaling\n");
-        print_lattice(lattice);
+        fprintf(stderr, "After scaling\n");
+        print_lattice(lattice, stderr);
     #endif
 
     /**
@@ -104,8 +104,8 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         //shufflelattice(lattice);
 
         #if FALSE
-           printf("After permute\n");
-           print_lattice(lattice);
+           fprintf(stderr, "After permute\n");
+           print_lattice(lattice, stderr);
         #endif
 
         /*
@@ -119,8 +119,8 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             lattice->num_cols = org_cols;
 
             #if FALSE
-                printf("After first reduction\n");
-                print_lattice(lattice);
+                fprintf(stderr, "After first reduction\n");
+                print_lattice(lattice, stderr);
                 fprintf(stderr, "max norm ");
                 mpz_out_str(stderr, 10, lattice->max_norm);
                 fprintf(stderr, "\n");
@@ -137,8 +137,8 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
                 return 0;
             }
             #if False
-                printf("After cutting\n");
-                print_lattice(lattice);
+                fprintf(stderr, "After cutting\n");
+                print_lattice(lattice, stderr);
             #endif
             // exit(-1);
 
@@ -156,12 +156,12 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 
         } else {
             load_lattice(lattice, restart_filename);
-            //print_lattice(lattice);
+            //print_lattice(lattice, stderr);
         }
 
         #if FALSE
-            printf("After second reduction\n");
-            print_lattice(lattice);
+            fprintf(stderr, "After second reduction\n");
+            print_lattice(lattice, stderr);
         #endif
 
         #if TRUE
@@ -712,7 +712,7 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
             start += block_size;
         }
     #endif
-    //print_lattice(lattice);
+    //print_lattice(lattice, stderr);
 
     lD = log_potential(R, s, z);
     fprintf(stderr, "   log(D)= %f\n", lD);

@@ -449,7 +449,7 @@ double orthogonality_defect(lattice_t *lattice, DOUBLE **R, int s, int z) {
 
 void handle_signals(lattice_t *lattice, DOUBLE **R) {
     if (PRINT_REQUIRED && R != NULL) {
-        //print_lattice(lattice);
+        //print_lattice(lattice, stderr);
         print_lattice_stat(lattice, R);
         PRINT_REQUIRED = 0;
     }
