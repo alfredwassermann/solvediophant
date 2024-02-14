@@ -47,7 +47,7 @@ void print_lattice(lattice_t *lattice) {
     for (i = 0; i <= lattice->num_cols; i++) {
         for (j = 0; j < lattice->num_rows; j++) {
             if (lattice->work_on_long) {
-                printf("%ld ", lattice->basis_long[i][j]);
+                printf("%2ld ", lattice->basis_long[i][j]);
             } else {
                 mpz_out_str(NULL, 10, get_entry(lattice->basis, i, j));
                 printf(" ");
