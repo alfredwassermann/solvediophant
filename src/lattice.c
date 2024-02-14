@@ -41,22 +41,22 @@ void debug_print(char *m, int l) {
 /**
  * Print basis vectors as row vectors
  */
-void print_lattice(lattice_t *lattice) {
+void print_lattice(lattice_t *lattice, FILE *stream) {
     int i, j;
 
     for (i = 0; i <= lattice->num_cols; i++) {
         for (j = 0; j < lattice->num_rows; j++) {
             if (lattice->work_on_long) {
-                printf("%2ld ", lattice->basis_long[i][j]);
+                fprintf(stream, "%2ld ", lattice->basis_long[i][j]);
             } else {
-                mpz_out_str(NULL, 10, get_entry(lattice->basis, i, j));
-                printf(" ");
+                mpz_out_str(stream, 10, get_entry(lattice->basis, i, j));
+                fprintf(stream, " ");
             }
         }
-        printf("\n");
+        fprintf(stream, "\n");
     }
-    printf("\n");
-    fflush(stdout);
+    fprintf(stream, "\n");
+    fflush(stream);
     return;
 }
 

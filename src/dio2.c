@@ -258,7 +258,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             }
         }
 
-        // print_lattice(lattice);
+        // print_lattice(lattice, stderr);
 
         #endif // End of third reduction
     #else

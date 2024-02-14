@@ -20,7 +20,7 @@ extern void stop_program_sig(int sig);
 extern void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice);
 
 extern void debug_print(char *m, int l);
-extern void print_lattice(lattice_t *lattice);
+extern void print_lattice(lattice_t *lattice, FILE *stream);
 extern void print_lattice_stat(lattice_t *lattice, DOUBLE **R);
 extern void dump_lattice(lattice_t *lattice);
 extern void load_lattice(lattice_t *lattice, char *fname);

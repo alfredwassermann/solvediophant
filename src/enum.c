@@ -1173,10 +1173,12 @@ int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *u
         return 0;
     }
 
-    // for (k = 0; k < columns; k++) {
-    //     printf("%0.2lf ", us[k]);
-    // }
-    // printf("\n");
+    #if FALSE
+        for (k = 0; k < columns; k++) {
+            fprintf(stderr, "%2.0lf ", us[k]);
+        }
+        fprintf(stderr, "\n");
+    #endif
 
     if (!lattice->LLL_params.silent) {
         mpz_set_si(solution.upfac,1);
