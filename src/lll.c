@@ -368,7 +368,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                    ) {
                     insert_pos = i;
                     if (i < k - 1) {
-                        fprintf(stderr, "DeepLLL: k=%d, new=%d, pot_min=%lf, delta=%lf\n", k, i, r_new / (R[i][i] * R[i][i]), delta);
+                        fprintf(stderr, "DeepLLL: k=%d, new=%d, impvmt=%lf, delta=%lf\n", k, i, r_new / (R[i][i] * R[i][i]), delta);
                     }
                     break;
                 }
