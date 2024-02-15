@@ -181,7 +181,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             norm = householder_column_long(bl, R, H, beta, k, z, bit_size);
         }
 
-        if (norm != norm || fabs(norm) < 1.0e-12) {
+        if (norm != norm || norm < 1.0e-12) {
             goto swap_zero_vector;
         }
 
@@ -512,9 +512,12 @@ DOUBLE householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int
     // R[k][k] = mu;  // Golub, van Loan
     R[k][k] = -mu;    // Higham
 
-    return R[k][k];
+    return fabs(R[k][k]);
 }
 
+/**
+ * Returns norm of b_k^*
+ */
 DOUBLE householder_column(mpz_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int z, int bit_size) {
     int j;
     for (j = 0; j < z; ++j) {
@@ -523,6 +526,9 @@ DOUBLE householder_column(mpz_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
     return householder_column_inner_hiprec(R, H, beta, k, z, bit_size);
 }
 
+/**
+ * Returns norm of b_k^*
+ */
 DOUBLE householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int z, int bit_size) {
     int j;
     for (j = 0; j < z; ++j) {
