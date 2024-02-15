@@ -52,7 +52,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     long **bl = lattice->basis_long;
 
     int i, j, k;
-    DOUBLE norm, max_norm;
+    DOUBLE norm;
     DOUBLE theta, eta;
 
     DOUBLE mus;
@@ -176,14 +176,15 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         // Apply Householder vectors to column k of R  and
         // determine the Householder vector for column k
         if (word_len == WORDLEN_MPZ) {
-            max_norm = householder_column(b, R, H, beta, k, z, bit_size);
+            norm = householder_column(b, R, H, beta, k, z, bit_size);
         } else {
-            max_norm = householder_column_long(bl, R, H, beta, k, z, bit_size);
+            norm = householder_column_long(bl, R, H, beta, k, z, bit_size);
         }
 
-        // if (fabs(R[k][k]) < 1.0e-12) {
-        //     goto swap_zero_vector;
-        // }
+        if (norm != norm || fabs(norm) < 1.0e-12) {
+            goto swap_zero_vector;
+        }
+
         if (FALSE && k > 0) {
             fprintf(stderr, "\nBefore: R[%d]: ", k);
             for (j = 0; j <= k; j++) {
@@ -408,7 +409,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
 }
 
-void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int z, int bit_size) {
+DOUBLE householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int z, int bit_size) {
     int i;
     DOUBLE w, w_beta, mu;
     DOUBLE eps = 1.0e-15; // 0.0000000001;
@@ -510,30 +511,24 @@ void householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
     // Apply rotation to R[k][k] only
     // R[k][k] = mu;  // Golub, van Loan
     R[k][k] = -mu;    // Higham
+
+    return R[k][k];
 }
 
 DOUBLE householder_column(mpz_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int z, int bit_size) {
     int j;
-    DOUBLE max_val = 0.0;
-
     for (j = 0; j < z; ++j) {
         R[k][j] = (DOUBLE)mpz_get_d(b[k][j]);
-        // max_val = (fabs(R[k][j]) > max_val) ? fabs(R[k][j]) : max_val;
     }
-    householder_column_inner_hiprec(R, H, beta, k, z, bit_size);
-    return max_val;
+    return householder_column_inner_hiprec(R, H, beta, k, z, bit_size);
 }
 
 DOUBLE householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int z, int bit_size) {
     int j;
-    DOUBLE max_val = 0.0;
-
     for (j = 0; j < z; ++j) {
         R[k][j] = (DOUBLE)b[k][j];
-        // max_val = (fabs(R[k][j]) > max_val) ? fabs(R[k][j]) : max_val;
     }
-    householder_column_inner_hiprec(R, H, beta, k, z, bit_size);
-    return max_val;
+    return householder_column_inner_hiprec(R, H, beta, k, z, bit_size);
 }
 
 void size_reduction(mpz_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, int j, int z) {
