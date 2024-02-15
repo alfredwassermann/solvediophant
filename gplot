@@ -1,0 +1,13 @@
+# set terminal dumb 300 100
+set ytics 1
+set xtics 5
+set grid
+# set yrange [-0.5:10.5]
+
+plot "gsa.out", "gsa1.out"
+
+while (1) {
+    replot
+    pause 3
+}
+

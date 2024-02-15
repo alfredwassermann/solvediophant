@@ -241,7 +241,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr,"\t-bkz -beta{num} do BKZ with blocksize num\n");
             fprintf(stderr,"\t-pbkz -beta{num} do progressive BKZ with blocksize num\n");
             fprintf(stderr,"\t-c{num} scale equations by num (default=1099511627776=2**40)\n");
-            fprintf(stderr,"\t-scalelastline{num} scale last line by num (default=1000)\n");
+            fprintf(stderr,"\t-scalelastline{num} scale last line by num (default=1024)\n");
             fprintf(stderr,"\t-maxnorm* ???? default=1\n");
             fprintf(stderr,"\t-delta_low{num} delta for first LLL reduction\n");
             fprintf(stderr,"\t-delta_med{num} delta for second reduction\n");
@@ -284,21 +284,21 @@ int main(int argc, char *argv[]) {
         exit(EXIT_ERR_INPUT);
     }
     if (mpz_cmp_si(lattice.matrix_factor, 0) <= 0) {
-        fprintf(stderr,"You did not supply the options -c*. ");
+        fprintf(stderr,"You did not supply -c*. ");
         // fprintf(stderr,"It is set to 10000000000000.\n");
         // mpz_set_str(lattice.matrix_factor, "10000000000000", 10);
         fprintf(stderr,"It is set to 1099511627776=2**40.\n");        // 2**40
         mpz_set_str(lattice.matrix_factor, "1099511627776", 10);
     }
     if (mpz_cmp_si(lattice.max_norm, 0) <= 0) {
-        fprintf(stderr,"You did not supply the options -maxnorm*. ");
+        fprintf(stderr,"You did not supply -maxnorm*. ");
         fprintf(stderr,"It is set to 1.\n");
         mpz_set_si(lattice.max_norm, 1);
     }
     if (mpz_cmp_si(lattice.LLL_params.scalelastlinefactor, 0) <= 0) {
-        fprintf(stderr,"You did not supply the options -scalelastline*. ");
-        fprintf(stderr,"It is set to 1000.\n");
-        mpz_set_si(lattice.LLL_params.scalelastlinefactor, 1000);
+        fprintf(stderr,"You did not supply -scalelastline*. ");
+        fprintf(stderr,"It is set to %d.\n", LASTLINESFACTOR);
+        mpz_set_si(lattice.LLL_params.scalelastlinefactor, LASTLINESFACTOR);
     }
 
     if (lattice.LLL_params.exhaustive_enum.lds < 0) {

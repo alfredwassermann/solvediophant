@@ -22,7 +22,7 @@
 #define VERBOSE 1
 
 #define GIVENS 1
-#define LASTLINESFACTOR "1048576" /* =2**20 Before: "1000000" "100000000" */
+#define LASTLINESFACTOR 1024  /* =2**10 Before: "1000000" "100000000" */
 #define EPSILON 0.00001       /* 0.0001  */
 #define LLLCONST_LOW  0.50    /* 0.75*/
 #define LLLCONST_MED 0.82
