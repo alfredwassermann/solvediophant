@@ -8,7 +8,7 @@
 #define WORDLEN_MPZ 2
 
 #define DEEPINSERT 1
-#define DEEPINSERT_CONST 20
+#define DEEPINSERT_CONST 10
 
 #define ITERATE 0
 #define PROGBKZ 1
