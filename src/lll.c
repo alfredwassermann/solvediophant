@@ -61,7 +61,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     long *swap;
 
     DOUBLE r_new, r_act;
-    DOUBLE pot, pot_max;
+    DOUBLE pot, pot_min;
     DOUBLE matrix_factor = 1.0;
     DOUBLE norm_bound;
     int pot_idx;
@@ -210,7 +210,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
              * Weak size reduction, see Stehle, "Floating-point LLL: theoretical and practical aspects"
              * and also Koy, Schnorr, "Segment LLL reduction" and Schnorr, "Progress on LLL and Lattice Reduction"
              * Stehle et. al., "HLLL, Householder LLL".
-             * 
+             *
              * If size reduction is done we redo Householder reflection on that column.
              */
             if (fabs(R[k][j]) > eta * fabs(R[j][j]) + theta * fabs(R[k][k])) {
@@ -304,33 +304,47 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
         /* Fourth step: swap columns */
         if (reduction_type == POT_LLL) {
-            // Pot-LLL
-            pot = pot_max = 0.0;
-            pot_idx = k;
-            for (i = k - 1; i >= low; --i) {
+            /**
+             * Felix Fontein, Michael Schneider, Urs Wagner:
+             * PotLLL: a polynomial time version of LLL with deep insertions
+             */
+            pot_idx = low;
+            pot = 1.0;
+            pot_min = delta;
+            for (j = k - 1; j >= low; --j) {
                 #if BLAS
-                    r_new = cblas_ddot(k - i + 1, &(R[k][i]), 1, &(R[k][i]), 1);
+                    r_new = cblas_ddot(k - j + 1, &(R[k][j]), 1, &(R[k][j]), 1);
                 #else
-                    for (j = k, r_new = 0.0; j >= i; --j) {
-                        r_new += R[k][j] * R[k][j];
+                    for (i = k, r_new = 0.0; i >= j; --i) {
+                        r_new += R[k][i] * R[k][i];
                     }
                 #endif
-                pot += log(r_new) - log(R[i][i] * R[i][i]);
+                pot *= r_new / (R[j][j] * R[j][j]);
 
-                if (pot < log(delta)/* && pot < pot_max*/) {
-                    pot_max = pot;
-                    pot_idx = i;
+                if (pot < pot_min) {
+                    pot_min = pot;
+                    pot_idx = j;
                 }
             }
-            insert_pos = pot_idx;
+            if (pot_min < delta) {
+                fprintf(stderr, "PotLLL: k=%d, new=%d, pot_min=%lf, delta=%lf\n", k, pot_idx, pot_min, delta);
+                insert_pos = pot_idx;
+            } else {
+                insert_pos = k;
+            }
+
         } else {
             if (reduction_type == CLASSIC_LLL || reduction_type == KERNEL_LLL) {
+                //
                 // Standard LLL
+                //
                 i = (k > low) ? k - 1 : low;
                 r_new = R[k][k] * R[k][k] + R[k][i] * R[k][i];
                 deep_size = 2;
             } else {
+                //
                 // Deep insert
+                //
                 i = low;
                 #if BLAS
                     r_new = cblas_ddot(k + 1, R[k], 1, R[k], 1);
@@ -352,6 +366,9 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                     )
                    ) {
                     insert_pos = i;
+                    if (i < k - 1) {
+                        fprintf(stderr, "DeepLLL: k=%d, new=%d, pot_min=%lf, delta=%lf\n", k, i, r_new / (R[i][i] * R[i][i]), delta);
+                    }
                     break;
                 }
                 r_new -= R[k][i]*R[k][i];

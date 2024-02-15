@@ -318,7 +318,7 @@ DOUBLE hiprec_dot2_row(DOUBLE* x, int dx, DOUBLE* y, int dy, int n) {
 }
 
 /**
- * Square of ||x||_2, i.e. 
+ * Square of ||x||_2, i.e.
  * dot product of array x with itself of length n with high precision.
  */
 DOUBLE hiprec_normsq_l2(DOUBLE* x, int n) {
@@ -378,7 +378,7 @@ DOUBLE hiprec_normK_l2(DOUBLE* x, int n, int K) {
         twoSum2(S, P, &S, &(r[n + i - 1]));
     }
     r[2 * n - 1] = S;
-    
+
     return hiprec_sqrt(hiprec_sumK(r, 2 * n, K), 0.0);
 }
 

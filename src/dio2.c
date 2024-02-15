@@ -143,7 +143,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             // exit(-1);
 
             #if 1
-                shufflelattice(lattice);
+                // shufflelattice(lattice);
                 /**
                  * ------ Second reduction -----
                  */
@@ -204,7 +204,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             }
         } else {
             // ---------- BKZ
-            shufflelattice(lattice);
+            // shufflelattice(lattice);
             lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
                         lattice->LLL_params.lll.delta_higher,
                         lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,

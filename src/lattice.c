@@ -354,10 +354,10 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
     // Determine lcm of upper bounds on the variables
     handle_upperbounds(LGS, lattice);
 
-    // 
+    //
     // Multiply upper part of the lattice basis by
     // matrix_factor * upperbounds_max
-    // 
+    //
     mpz_init(factor);
     mpz_mul(factor, lattice->matrix_factor, lattice->upperbounds_max);
     for (j = 0; j < lgs_rows; j++) {

@@ -503,9 +503,9 @@ int preprocess(lgs_t *LGS) {
         LGS->rank = (rnk1_a > rnk2_a) ? rnk1_a : rnk2_a;
 
     #else
-        LGS->rank = rows;
+        LGS->rank = (rows < cols) ? rows : cols;
     #endif
-    fprintf(stderr, "rank >= %d\n", LGS->rank);
+    fprintf(stderr, "Rank <= %d\n", LGS->rank);
 
     return 1;
 }
