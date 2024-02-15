@@ -372,7 +372,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                     }
                     break;
                 }
-                r_new -= R[k][i]*R[k][i];
+                r_new -= R[k][i] * R[k][i];
                 i++;
             }
         }
