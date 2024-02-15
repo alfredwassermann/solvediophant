@@ -354,15 +354,15 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                         r_new += R[k][j] * R[k][j];
                     }
                 #endif
-                deep_size = reduction_type;
+                deep_size = DEEPINSERT_CONST; // reduction_type;
             }
 
             insert_pos = k;
             while (i < k) {
                 r_act = delta * R[i][i] * R[i][i];
-                if (r_new < 0.8 * r_act  ||                      // outside of deep-insert slices, but big improvement
+                if (r_new < 0.7 * r_act  ||                      // Possibly outside of deep-insert slices, but big improvement
                     (
-                        (i < deep_size || k - i < deep_size) && // inside of deep-insert slices
+                        (i < deep_size || k - i < deep_size) &&  // inside of deep-insert slices
                         r_new < r_act
                     )
                    ) {
