@@ -18,6 +18,7 @@
 #define POT_LLL -2
 #define DEEP_LLL -3
 #define KERNEL_LLL -4
+#define SS_LLL -5
 
 #define VERBOSE 1
 

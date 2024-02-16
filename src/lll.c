@@ -62,6 +62,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
     DOUBLE r_new, r_act;
     DOUBLE pot, pot_min;
+    DOUBLE Sjk, Djk, s, SS;
     DOUBLE matrix_factor = 1.0;
     DOUBLE norm_bound;
     int pot_idx;
@@ -309,7 +310,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
              * Felix Fontein, Michael Schneider, Urs Wagner:
              * PotLLL: a polynomial time version of LLL with deep insertions
              */
-            pot_idx = low;
+            pot_idx = k;
             pot = 1.0;
             pot_min = delta;
             for (j = k - 1; j >= low; --j) {
@@ -329,6 +330,32 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             }
             if (pot_min < delta) {
                 fprintf(stderr, "PotLLL: k=%d, new=%d, pot_min=%lf, delta=%lf\n", k, pot_idx, pot_min, delta);
+                insert_pos = pot_idx;
+            } else {
+                insert_pos = k;
+            }
+        } else if (reduction_type == SS_LLL) {
+            pot_idx = k;
+            pot_min = 0.0;
+            Djk = R[k][k] * R[k][k];
+            SS = R[k][k] * R[k][k];
+            Sjk = 0.0;
+            for (j = k - 1; j >= low; --j) {
+                SS += R[j][j]* R[j][j];
+                s = R[k][j] * R[j][j] / R[k][k];
+                s *= s;
+                Djk += s;
+                Sjk += s * (R[j][j]* R[j][j] - Djk) / Djk;
+                // fprintf(stderr, "S: k:%d, j:%d Djk:%lf Sjk:%0.20lf\n", k, j, Djk, Sjk);
+
+                if (Sjk > pot_min) {
+                    pot_min = Sjk;
+                    pot_idx = j;
+                    // fprintf(stderr, "SSLLL'': k=%d, new=%d, pot_min=%lf, delta=%lf\n", k, pot_idx, pot_min, (1.0 - 1.e-6) * SS);
+                }
+            }
+            if (pot_idx < k && pot_min > 1.e-6 * SS) {
+                fprintf(stderr, "SSLLL: k=%d, new=%d, pot_min=%lf, delta=%lf\n", k, pot_idx, pot_min, 1.e-6 * SS);
                 insert_pos = pot_idx;
             } else {
                 insert_pos = k;
