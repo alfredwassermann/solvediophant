@@ -6,5 +6,5 @@
 - Experiment with sdbkz
 - Reestablish fast and good "pruned enumeration"
 - lds in pruned enumeration
-- Compute kernel with algorithm in Cohen: 2.4.10 or 2.7.2
+- Compute kernel with the algorithm in Cohen: 2.4.10 or 2.7.2
 - Use daxpy and BLAS wherever possible

@@ -25,8 +25,8 @@ All solutions are found also with lds
 - 7-(26, 8, 6) designs.
 0/1 problem, 14 solutions
 
-* KM_PGL_2_25_7_9.txt: 
-- There must be solution, since there are solutions for PGGL
+* KM_PGL_2_25_7_9.txt:
+- There must be a solution since there are solutions for PGGL
 - 7-(26, 8, 54) designs.
 0/1 problem, ? solutions
 
