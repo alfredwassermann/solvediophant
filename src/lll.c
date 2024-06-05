@@ -271,7 +271,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         if (norm != norm || norm < norm_bound) {  // nan or < 0.5, or < 0.5 * dome_factor to compute kernel.
             // if (norm != norm || norm < 0.5) {  // nan or < 0.5, or < 0.5 * c to compute kernel.
     swap_zero_vector:
-            fprintf(stderr, "lllH: Zero vector at %d\n", k);
+            // fprintf(stderr, "lllH: Zero vector at %d\n", k);
             // fflush(stderr);
             // TODO
             // Check where the 0-vector is positioned to
@@ -329,7 +329,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 }
             }
             if (pot_min < delta) {
-                fprintf(stderr, "PotLLL: k=%d, new=%d, pot_min=%lf, delta=%lf\n", k, pot_idx, pot_min, delta);
+                // fprintf(stderr, "PotLLL: k=%d, new=%d, pot_min=%lf, delta=%lf\n", k, pot_idx, pot_min, delta);
                 insert_pos = pot_idx;
             } else {
                 insert_pos = k;
