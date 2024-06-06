@@ -1196,7 +1196,7 @@ int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *u
                 mpz_set_si(solution.u, 0);
             } else {
                 if (!lattice->is_zero_one) {
-                    if (mpz_cmp_si(lattice->upperbounds[i],0)!=0) {
+                    if (mpz_cmp_si(lattice->upperbounds[i],0) != 0) {
                         mpz_divexact(solution.upfac, lattice->upperbounds_max, lattice->upperbounds[i]);
                     } else {
                         mpz_set(solution.upfac, lattice->upperbounds_max);
