@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <math.h>
 #include <gmp.h>
@@ -80,9 +81,9 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     // fprintf(stderr, "-------------------------- Do LLLH %d -------------------------------------------------------------\n", word_len);
 
     if (word_len == WORDLEN_MPZ) {
-        lattice->work_on_long = FALSE;
+        lattice->work_on_long = false;
     } else {
-        lattice->work_on_long = TRUE;
+        lattice->work_on_long = true;
     }
 
     eta = ETACONST;
@@ -151,7 +152,6 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         #endif
         handle_signals(lattice, R);
 
-        // #if FALSE
         // // Look ahead
         // i = householder_column(b, R, H, beta, k, s, z, bit_size);
         // if (i > k) {
@@ -163,16 +163,17 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
         //     //fprintf(stderr, "GET %d from %d\n", k, i);
         // }
-        // #endif
 
         count_tricols = 0;
     again:
-        if (FALSE && count_tricols > 0) {
-            fprintf(stderr, "\nBefore householder\n");
-            if (word_len == WORDLEN_MPZ) {
-                check_precision(b[k], R[k], z, k);
+        #if IS_USED
+            if (count_tricols > 0) {
+                fprintf(stderr, "\nBefore householder\n");
+                if (word_len == WORDLEN_MPZ) {
+                    check_precision(b[k], R[k], z, k);
+                }
             }
-        }
+        #endif
 
         // Apply Householder vectors to column k of R  and
         // determine the Householder vector for column k
@@ -186,23 +187,23 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             goto swap_zero_vector;
         }
 
-        if (FALSE && k > 0) {
-            fprintf(stderr, "\nBefore: R[%d]: ", k);
-            for (j = 0; j <= k; j++) {
-                fprintf(stderr, " %0.20lf", R[k][j]);
-            }
-            fprintf(stderr, "\n");
-            fprintf(stderr, "mu: %0.20lf\n", R[k][k-1] / R[k-1][k-1]);
-        }
+        // if (k > 0) {
+        //     fprintf(stderr, "\nBefore: R[%d]: ", k);
+        //     for (j = 0; j <= k; j++) {
+        //         fprintf(stderr, " %0.20lf", R[k][j]);
+        //     }
+        //     fprintf(stderr, "\n");
+        //     fprintf(stderr, "mu: %0.20lf\n", R[k][k-1] / R[k-1][k-1]);
+        // }
 
-        if (FALSE && count_tricols > 0) {
-            fprintf(stderr, "After householder\n");
-            if (word_len == WORDLEN_MPZ) {
-                check_precision(b[k], R[k], z, k);
-            }
-        }
+        // if (count_tricols > 0) {
+        //     fprintf(stderr, "After householder\n");
+        //     if (word_len == WORDLEN_MPZ) {
+        //         check_precision(b[k], R[k], z, k);
+        //     }
+        // }
 
-        if (FALSE) fprintf(stderr, "k=%d\n", k);
+        // fprintf(stderr, "k=%d\n", k);
 
         redo_tricol = 0;
         /* Size reduction of $b_k$ */
@@ -232,14 +233,14 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         }
         // fprintf(stderr, "\n");
 
-        if (FALSE && redo_tricol > 0) {
-            fprintf(stderr, "\n");
-            fprintf(stderr, "redo=%d, tricol=%d \n", redo_tricol, count_tricols+1);
-            if (word_len == WORDLEN_MPZ) {
-                // check_precision(b[k - 1], R[k - 1], z, k - 1);
-                check_precision(b[k], R[k], z, k);
-            }
-        }
+        // if (redo_tricol > 0) {
+        //     fprintf(stderr, "\n");
+        //     fprintf(stderr, "redo=%d, tricol=%d \n", redo_tricol, count_tricols+1);
+        //     if (word_len == WORDLEN_MPZ) {
+        //         // check_precision(b[k - 1], R[k - 1], z, k - 1);
+        //         check_precision(b[k], R[k], z, k);
+        //     }
+        // }
 
         if (redo_tricol) {
             count_tricols++;
@@ -251,14 +252,14 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             goto again;
         }
 
-        if (FALSE && k > 0) {
-            fprintf(stderr, "After: R[%d]: ", k);
-            for (j = 0; j <= k; j++) {
-                fprintf(stderr, " %0.20lf", R[k][j]);
-            }
-            fprintf(stderr, "\n");
-            fprintf(stderr, "mu: %0.20lf\n", R[k][k-1] / R[k-1][k-1]);
-        }
+        // if (Fk > 0) {
+        //     fprintf(stderr, "After: R[%d]: ", k);
+        //     for (j = 0; j <= k; j++) {
+        //         fprintf(stderr, " %0.20lf", R[k][j]);
+        //     }
+        //     fprintf(stderr, "\n");
+        //     fprintf(stderr, "mu: %0.20lf\n", R[k][k-1] / R[k-1][k-1]);
+        // }
 
         /*
             Before going to step 4 we test if $b_k$ is linear dependent.

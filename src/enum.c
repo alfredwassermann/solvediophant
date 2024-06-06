@@ -1,5 +1,6 @@
 #include <signal.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <time.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -106,9 +107,9 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                 int level, int max_steps) {
 
     int i;
-    int goto_back;
-    int is_good;
-    int is_new_node = TRUE;
+    bool goto_back;
+    bool is_good;
+    bool is_new_node = true;
     int columns = lattice->num_cols;
     int rows = lattice->num_rows;
 
@@ -169,26 +170,26 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
 
         // handle_signals(lattice, NULL);
 
-        goto_back = FALSE;
-        is_good = TRUE;
+        goto_back = false;
+        is_good = true;
 
         /* compute new |cs| */
         coeff = u + y;
         node->cs = parent_node->cs + coeff * coeff * c[level];
 
         if (node->cs >= Fd)  {
-            goto_back = TRUE;
+            goto_back = true;
         } else if (fabs(coeff) > lattice->decomp.bd_1norm[level]) {
             /* Use (1, -1, 0, ...) as linear combination in Hoelder pruning */
-            goto_back = TRUE;
+            goto_back = true;
             ++hoelder2_success;
         } else if (fabs(u) > fipo[0][level] || fabs(u + 1) > fipo[1][level]) {
             dual_bound_success++;
-            is_good = FALSE;
+            is_good = false;
         } else {
             if (is_new_node) {
                 norm1 = compute_w(node->w, parent_node->w, bd, coeff, level, rows);
-                is_new_node = FALSE;
+                is_new_node = false;
             } else {
                 norm1 = compute_w2(node->w, bd, u - u_previous, level, rows);
             }
@@ -196,9 +197,9 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
             if (level > 0) {
                 if (node->cs > Fqeps * norm1) {
                     ++hoelder_success;
-                    is_good = FALSE;
+                    is_good = false;
                     if (eta == 1) {
-                        goto_back = TRUE;
+                        goto_back = true;
                     } else {
                         eta = 1;
                         delta *= -1;
@@ -212,10 +213,10 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                         Fq,
                         bd, y, columns);
                     // if (i < 0) {
-                    //     goto_back = TRUE;
+                    //     goto_back = true;
                     // } else
                     if (i > 0) {
-                        is_good = FALSE;
+                        is_good = false;
                     }
                 }
             }
@@ -227,7 +228,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
             node->us = u;
             ed->num++;
             node = &(ed->nodes)[ed->num];
-            is_new_node = TRUE;
+            is_new_node = true;
 
             if (max_steps >= 0 && ed->num >= max_steps) {
                 return 0;
@@ -254,7 +255,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
             delta += d * ((delta * d >= 0) ? 1: -1);
         }
         u = v + delta;
-    } while (TRUE);
+    } while (true);
 
     return 0;
 }
@@ -314,12 +315,10 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
         }
     }
 
-    #if TRUE
-        level++;
-        if (level > level_max) {
-            level_max = level;
-        }
-    #endif
+    level++;
+    if (level > level_max) {
+        level_max = level;
+    }
     return level;
 }
 
@@ -578,13 +577,12 @@ void init_dualbounds(lattice_t *lattice, DOUBLE ***fipo) {
             }
             norm_2 += entry * entry;
             norm_1 += fabs(entry);
-            #if TRUE
+
             for (l = cols - 1; l < cols; l++) {
                 entry += muinv[cols - 1][l] * lattice->decomp.bd[l][j] / lattice->decomp.c[l];
             }
             norm_1_2 += entry * entry;
             norm_1_1 += fabs(entry);
-            #endif
 
         }
         norm_2 = SQRT(norm_2 * lattice->decomp.Fd);
@@ -1173,7 +1171,7 @@ int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *u
         return 0;
     }
 
-    #if FALSE
+    #if IS_USED
         for (k = 0; k < columns; k++) {
             fprintf(stderr, "%2.0lf ", us[k]);
         }

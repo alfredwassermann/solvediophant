@@ -1,5 +1,6 @@
 #ifndef _DATASTRUCT_H
 #define _DATASTRUCT_H
+#include <stdbool.h>
 #include <gmp.h>
 
 #define SQRT sqrt
@@ -91,8 +92,8 @@ typedef struct {
     int lgs_rank;
 
     int num_boundedvars;
-    int is_zero_one; // true, if 0/1 variables
-    int work_on_long;
+    bool is_zero_one; // true, if 0/1 variables
+    bool work_on_long;
     int free_RHS;
     int cut_after;
 

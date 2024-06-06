@@ -1,5 +1,6 @@
 #include <signal.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <time.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -216,7 +217,7 @@ void handle_upperbounds(lgs_t *LGS, lattice_t *lattice) {
     // Handle upper bounds
     mpz_init_set_si(lattice->upperbounds_max, 1);
 
-    lattice->is_zero_one = TRUE;
+    lattice->is_zero_one = true;
     if (LGS->upperbounds == NULL) {
         fprintf(stderr, "No upper bounds: assume 0/1 variables \n"); fflush(stderr);
     } else {
@@ -234,7 +235,7 @@ void handle_upperbounds(lgs_t *LGS, lattice_t *lattice) {
             }
         }
         if (mpz_cmp_si(lattice->upperbounds_max, 1) > 0) {
-            lattice->is_zero_one = FALSE;
+            lattice->is_zero_one = false;
         }
         fprintf(stderr, "upper bounds found. Max=");
         mpz_out_str(stderr, 10, lattice->upperbounds_max);
@@ -341,7 +342,7 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
     }
 
     allocate_basis(lattice);
-    lattice->work_on_long = FALSE;
+    lattice->work_on_long = false;
 
     // Copy the linear system to the basis.
     for (j = 0; j < lgs_rows; j++) {

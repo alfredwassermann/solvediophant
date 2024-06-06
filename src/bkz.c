@@ -1,4 +1,5 @@
 #include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
@@ -147,13 +148,11 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
         r_tt = R[start_block][start_block];
         r_tt *= r_tt;
         if (delta * r_tt > new_cj) {
-            #if TRUE
-                if (beta > 0) {
-                    fprintf(stderr, "enum %d successful %d %lf improvement: %lf\n",
-                                        beta, start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
-                    fflush(stderr);
-                }
-            #endif
+            if (beta > 0) {
+                fprintf(stderr, "enum %d successful %d %lf improvement: %lf\n",
+                                    beta, start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
+                fflush(stderr);
+            }
 
             /* successful enumeration */
             if (bit_size < bit_size_threshold) {
@@ -213,7 +212,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
     lD = log_potential(R, s, z);
     free_bkz_enum(&bkz_enum);
 
-    #if FALSE
+    #if IS_USED
         fprintf(stderr, "bkz: log(D)= %f\n", lD);
         fflush(stderr);
     #endif
@@ -243,9 +242,9 @@ void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t
     mpz_t *swapvl;
     int i, j;
 
-    #if FALSE
-    long g;
-    long q, ui;
+    #if IS_USED
+        long g;
+        long q, ui;
     #endif
 
     /* build new basis */
@@ -293,9 +292,9 @@ void insert_vector_long(lattice_t *lattice, long *u, int start, int end, int z) 
     long *swap;
     int i, j;
 
-    #if FALSE
-    int g;
-    long q, ui, hv;
+    #if IS_USED
+        int g;
+        long q, ui, hv;
     #endif
 
     // Store new linear combination in lattice->swap_long
@@ -642,7 +641,7 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                         for (i = start_block; i <= end_block; i++) {
                             u[i] = (long)round(u_loc[i]);
                         }
-                        #if FALSE
+                        #if IS_USED
                             fprintf(stderr, "i ");
                             for (i = start_block; i <= end_block; i++) {
                                 fprintf(stderr, "%ld ", u[i]);

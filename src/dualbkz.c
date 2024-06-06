@@ -201,11 +201,13 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
             i = end_block;
 
             new_cj2 = 1.0 / (R[i][i] * R[i][i]);
-            if (FALSE && fabs(new_cj2 - new_cj) > EPSILON) {
-                fprintf(stderr, "???????????????? We have a problem at %d: %lf %lf\n", i, new_cj2, new_cj);
-                fflush(stderr);
-                exit(EXIT_ERR_INPUT);
-            }
+            #if IS_USED
+                if (fabs(new_cj2 - new_cj) > EPSILON) {
+                    fprintf(stderr, "???????????????? We have a problem at %d: %lf %lf\n", i, new_cj2, new_cj);
+                    fflush(stderr);
+                    exit(EXIT_ERR_INPUT);
+                }
+            #endif
             lllH(lattice, R, h_beta, H, h, 0, h_end, z, delta, CLASSIC_LLL, bit_size, WORDLEN_MPZ, solutiontest);
             //cnt = -1;
             cnt++;
@@ -218,9 +220,9 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
 
     lD = log_potential(R, s, z);
 
-    #if FALSE
-    fprintf(stderr, "bkz: log(D)= %f\n", lD);
-    fflush(stderr);
+    #if IS_USED
+        fprintf(stderr, "bkz: log(D)= %f\n", lD);
+        fflush(stderr);
     #endif
 
     free(u);

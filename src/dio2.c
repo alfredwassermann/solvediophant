@@ -94,16 +94,14 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         /**
          * Rotate last lattice column to the first position
          */
-        #if TRUE
         swap_vec = lattice->basis[lattice->num_cols-1];
         for (i = lattice->num_cols - 1; i > 0; i--) {
             lattice->basis[i] = lattice->basis[i - 1];
         }
         lattice->basis[0] = swap_vec;
-        #endif
         //shufflelattice(lattice);
 
-        #if FALSE
+        #if IS_USED
            fprintf(stderr, "After permute\n");
            print_lattice(lattice, stderr);
         #endif
@@ -118,7 +116,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             lll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.lll.delta_low, KERNEL_LLL/* DEEP_LLL */);
             lattice->num_cols = org_cols;
 
-            #if FALSE
+            #if IS_USED
                 fprintf(stderr, "After first reduction\n");
                 print_lattice(lattice, stderr);
                 fprintf(stderr, "max norm ");
@@ -159,7 +157,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             //print_lattice(lattice, stderr);
         }
 
-        #if FALSE
+        #if IS_USED
             fprintf(stderr, "After second reduction\n");
             print_lattice(lattice, stderr);
         #endif
@@ -212,7 +210,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
                         solutiontest, solutiontest_long);
             fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
 
-            #if FALSE
+            #if IS_USED
                 lD = lDnew;
                 shufflelattice(lattice);
                 lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
@@ -223,7 +221,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
                 fprintf(stderr, "LDS improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
             #endif
 
-            #if FALSE
+            #if IS_USED
                 for (i = 1; i < 10; i++) {
                     lD = lDnew;
                     shufflelattice(lattice);
@@ -492,11 +490,11 @@ int solutiontest_long(lattice_t *lattice, int position) {
     int low, up;
     int end;
 
-    #if 0
-    int is_good = TRUE;
+    #if IS_USED
+    int is_good = 1;
     for (j = 0; j < lattice->num_rows; ++j) {
         if (labs(lattice->basis_long[position][j]) != 1) {
-            is_good = FALSE;
+            is_good = 0;
             break;
         }
     }
@@ -689,29 +687,17 @@ DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE qua
     bit_size = get_bit_size(lattice);
 
     //r = lllH(lattice, R, beta, H, 0, 0, s, z, quality, reduction_type, bit_size, WORDLEN_MPZ);
-    #if TRUE
-        while (start < s) {
-            fprintf(stderr, "Block reduce %d\n", start);
-            up = start + block_size;
-            up = (up > s) ? s : up;
-
-            basis_org = lattice->basis;
-            lattice->basis = &(lattice->basis[start]);
-            size = (start + block_size > up) ? up - start : block_size;
-            lllH(lattice, R, beta, H, 0, 0, size, z, quality, reduction_type, bit_size, WORDLEN_MPZ, solutiontest);
-            lattice->basis = basis_org;
-            start += block_size;
-        }
-    #else
-        while (start < s) {
-            fprintf(stderr, "Block reduce %d\n", start);
-            up = start + block_size;
-            up = (up > s) ? s : up;
-
-            lllH(lattice, R, beta, H, start, start, up, z, quality, reduction_type, bit_size, WORDLEN_MPZ);
-            start += block_size;
-        }
-    #endif
+    while (start < s) {
+        fprintf(stderr, "Block reduce %d\n", start);
+        up = start + block_size;
+        up = (up > s) ? s : up;
+        basis_org = lattice->basis;
+        lattice->basis = &(lattice->basis[start]);
+        size = (start + block_size > up) ? up - start : block_size;
+        lllH(lattice, R, beta, H, 0, 0, size, z, quality, reduction_type, bit_size, WORDLEN_MPZ, solutiontest);
+        lattice->basis = basis_org;
+        start += block_size;
+    }
     //print_lattice(lattice, stderr);
 
     lD = log_potential(R, s, z);

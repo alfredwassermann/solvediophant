@@ -2,7 +2,8 @@
 #define _LLLCONST_H
 
 #define TRUE 1
-#define FALSE 0
+// #define FALSE 0
+#define IS_USED 0
 
 #define WORDLEN_LONG 1
 #define WORDLEN_MPZ 2
