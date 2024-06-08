@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
         printf("%0.20lf %0.20lf\n", a.hi, a.lo);
     #endif
 
-    #if 1
+    #if 0
         printf("fma: %lf\n", fma(3.0, 1700000000.0, -1.0));
         printf("--------- TwoProduct\n");
         x = 11111111.111111111;
@@ -96,28 +96,42 @@ int main(int argc, char *argv[]) {
         printf("Hi2  : %0.20lf\n", hiprec_sqrt(y*y, 2* y * z + z));
     #endif
 
-    #if 0
+    #if 1
     {
         printf("--------- Sum2s\n");
-        const int n = 10000;
-        DOUBLE p[n];
-        int sg;
+        const int n = 500000;
+        // DOUBLE p[n];
+        DOUBLE *p;
+        int sgn;
 
+        p = (DOUBLE*)calloc(n, sizeof(DOUBLE));
         for (i = 0, sgn = 1.0; i < n; i++) {
-            // p[i] = 2.0 / (DOUBLE)(i + 1);
-            // p[i] = 10000.0 * (DOUBLE)(sgn * i);
-            p[i] = 1.0 / ((i+1) * (i+1));
-            // sgn *= (-1.0);
+            p[i] = sgn * 2.0 / (DOUBLE)(i + 1);
+            // if (i % 31 == 0) {
+            //     p[i] *= 1000000;
+            // }
+            // if (i % 17 == 0) {
+            //     p[i] *= 25252525 * sgn;
+            // }
+            // p[i] = 1.0 * (DOUBLE)(sgn * i);
+            // p[i] = 1.0 / ((i+1) * (i+1));
+            sgn *= (-1.0);
             // printf("%lf ", p[i]);
         }
         // printf("\n");
 
+        printf("Start\n");
+        double s = 0.0;
+        for (int j = 0; j < 10000; j++) {
+            s += sumNaive(p, n - j);
+        }
         printf("Naive %0.20lf\n", sumNaive(p, n));
-        printf("sum2s %0.20lf\n", sum2s(p, n));
-        printf("sum2  %0.20lf\n", sumKvert(p, n, 2));
-        printf("sum3  %0.20lf\n", sumKvert(p, n, 3));
-        printf("sum4  %0.20lf\n", sumKvert(p, n, 4));
-        printf("sum5  %0.20lf\n", sumKvert(p, n, 5));
+        printf("Naive %0.20lf\n", s);
+        // printf("sum2s %0.20lf\n", hiprec_sum2(p, n));
+        // printf("sum2  %0.20lf\n", hiprec_sumK(p, n, 2));
+        // printf("sum3  %0.20lf\n", hiprec_sumK(p, n, 3));
+        // printf("sum4  %0.20lf\n", hiprec_sumK(p, n, 4));
+        // printf("sum5  %0.20lf\n", hiprec_sumK(p, n, 5));
     }
     #endif
 

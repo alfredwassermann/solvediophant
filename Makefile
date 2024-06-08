@@ -5,20 +5,21 @@ PDF=pdf
 
 # CFLAGS= -O3 -Wall -g -pg
 
-CFLAGS= -O3 -Wall \
-    -funroll-all-loops    \
-    --param max-unroll-times=2 \
-	-flto \
-    -march=native -mtune=native -msse -msse2 -msse3 -mssse3 -m64 \
-    -pipe  \
-	-finline-functions  \
-    -fomit-frame-pointer \
-	-ftree-vectorize \
-	-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4
+CFLAGS= -O3 -Ofast               \
+    # -funroll-all-loops         \
+    # --param max-unroll-times=2 \
+	# -flto                      \
+    # -march=native -mtune=native -msse -msse2 -msse3 -mssse3 -m64 \
+    # -pipe                      \
+	# -finline-functions         \
+    # -fomit-frame-pointer       \
+	-ftree-vectorize             \
+	-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4 \
+	-mavx -mavx2                 \
+	-Wall
 # -O3 -ffast-math -fno-cx-limited-range -funroll-loops --param max-unroll-times=2 -march=native
 
 #CFLAGS= -O3 -Wall -funroll-all-loops
-
 	#	-fprofile-use \
 	#-ffinite-math-only -fno-trapping-math -fno-signaling-nans -fno-signed-zeros \
 	#-ftree-vectorizer-verbose=2
