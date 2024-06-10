@@ -5,7 +5,7 @@ PDF=pdf
 
 # CFLAGS= -O3 -Wall -g -pg
 
-CFLAGS= -O3 -Ofast               \
+CFLAGS= -O3             \
     # -funroll-all-loops         \
     # --param max-unroll-times=2 \
 	# -flto                      \
@@ -28,7 +28,6 @@ CFLAGS= -O3 -Ofast               \
 	#-fprofile-generate -fprofile-use\
 
 #CFLAGS= -O3 -Wall
-
 #CFLAGS= -O3 -mcpu=i686 -march=i686 -fforce-addr -funroll-loops -frerun-cse-after-loop -frerun-loop-opt -malign-functions=4
 #CFLAGS= -g -Wall
 
