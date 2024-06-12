@@ -5,7 +5,8 @@ PDF=pdf
 
 # CFLAGS= -O3 -Wall -g -pg
 
-CFLAGS= -O3             \
+CFLAGS= -O3                    \
+	-fno-math-errno            \
     # -funroll-all-loops         \
     # --param max-unroll-times=2 \
 	# -flto                      \
