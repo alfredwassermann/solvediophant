@@ -150,6 +150,16 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
         d = (v > -y) ? -1 : 1;
     }
 
+    // {
+    //     long lo_bound_loc, up_bound_loc;
+    //     lo_bound_loc = (long)ceil(-lattice->decomp.bd_1norm[level] - y); 
+    //     up_bound_loc =  (long)floor(lattice->decomp.bd_1norm[level] - y);
+    //     fprintf(stderr, "%d bounds on u: %ld %ld\n", 
+    //         level,
+    //         lo_bound_loc,
+    //         up_bound_loc
+    //     );
+    // }
     do {
         /* increase loop counter */
         loops++;
@@ -208,6 +218,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                         continue;
                     }
                 } else {
+                    // fprintf(stderr, "level=%d, cs=%0.5lf, n1=%0.5lf, diff=%0.5lf\n", level, node->cs, norm1, norm1-node->cs);
                     i = prune_only_zeros(lattice, node->w, parent_node->w,
                         level, rows,
                         Fq,
