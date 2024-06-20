@@ -7,6 +7,10 @@ PDF=pdf
 
 CFLAGS= -O3                    \
 	-fno-math-errno            \
+	-ftree-vectorize             \
+	-mavx -mavx2                 \
+    -march=haswell \
+	-Wall
     # -funroll-all-loops         \
     # --param max-unroll-times=2 \
 	# -flto                      \
@@ -14,10 +18,7 @@ CFLAGS= -O3                    \
     # -pipe                      \
 	# -finline-functions         \
     # -fomit-frame-pointer       \
-	-ftree-vectorize             \
-	-floop-interchange -floop-strip-mine -floop-block # gcc >=4.4 \
-	-mavx -mavx2                 \
-	-Wall
+	# -floop-interchange -floop-strip-mine -floop-block # gcc >=4.4 \
 # -O3 -ffast-math -fno-cx-limited-range -funroll-loops --param max-unroll-times=2 -march=native
 
 #CFLAGS= -O3 -Wall -funroll-all-loops
