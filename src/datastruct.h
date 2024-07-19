@@ -128,7 +128,7 @@ typedef struct {
 } stat_t;
 
 /**
- * Needed for swaping in bkz, see also dio2.c
+ * Needed for swapping in bkz, see also dio2.c
  */
 #define ADDITIONAL_COLS 1
 

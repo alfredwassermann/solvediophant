@@ -136,7 +136,10 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
     DOUBLE **H     = lattice->decomp.H;
 
     DOUBLE r_tt;
-    DOUBLE new_cj, new_cj2;
+    DOUBLE new_cj;
+    #if IS_USED
+    DOUBLE new_cj2;
+    #endif
     DOUBLE lD;
 
     static mpz_t hv;
@@ -200,8 +203,8 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
             lllH(lattice, R, h_beta, H, h, h, h_end, z, 0.0, CLASSIC_LLL, bit_size, WORDLEN_MPZ, solutiontest);
             i = end_block;
 
-            new_cj2 = 1.0 / (R[i][i] * R[i][i]);
             #if IS_USED
+                new_cj2 = 1.0 / (R[i][i] * R[i][i]);
                 if (fabs(new_cj2 - new_cj) > EPSILON) {
                     fprintf(stderr, "???????????????? We have a problem at %d: %lf %lf\n", i, new_cj2, new_cj);
                     fflush(stderr);

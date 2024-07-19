@@ -49,7 +49,8 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 
     int i, j;
     int block_size;
-    DOUBLE lD, lDnew;
+    DOUBLE lD = 0.0;
+    DOUBLE lDnew = 0.0;
     mpz_t *swap_vec;
 
     /**

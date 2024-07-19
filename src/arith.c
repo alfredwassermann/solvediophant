@@ -161,7 +161,7 @@ DOUBLE hiprec_sum2(DOUBLE* p, int n) {
  */
 DOUBLE hiprec_sumK(DOUBLE* p, int n, int K) {
     DOUBLE s, alpha;
-    DOUBLE q[K - 1];
+    DOUBLE q[K];
     int i, j, k;
 
     if (n <= 0) return 0.0;

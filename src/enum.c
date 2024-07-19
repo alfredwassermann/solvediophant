@@ -357,7 +357,9 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
                 int lds_k,
                 int lds_threshold) {
 
-    int start, end, pos, do_left_branch_last, p;
+    int start, end;
+    int pos;
+    int do_left_branch_last, p;
     int next_lds_k;
     int ret;
 
@@ -458,6 +460,8 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
             // At the end, we execute the leftmost branch at the end.
             ed->pos = pos = p % ed->num;
         } else {
+            // Not relevant since this happens only if lds_threshold > 0
+            pos = p;
             if (p == end) {
                 break;
             }

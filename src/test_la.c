@@ -151,15 +151,15 @@ int main(int argc, char *argv[]) {
         for (i = 0, sgn = 1.0; i < n; i++) {
             p[i] = sgn * 2.0 / (DOUBLE)(i + 1);
             // p[i] = 1.0;
-            // if (i % 31 == 0) {
-            //     p[i] *= 1000000;
-            // }
+            // // if (i % 31 == 0) {
+            // //     p[i] *= 1000000;
+            // // }
             // if (i % 17 == 0) {
             //     p[i] *= 25252525 * sgn;
             // }
             // p[i] = 1.0 * (DOUBLE)(sgn * i);
             // p[i] = 1.0 / ((i+1) * (i+1));
-            sgn *= (-1.0);
+            // sgn *= (-1.0);
             // printf("%lf ", p[i]);
         }
         // printf("\n");
@@ -167,13 +167,13 @@ int main(int argc, char *argv[]) {
         printf("Start\n");
         double s = 0.0;
         for (int j = 0; j < 10000; j++) {
-            // double q1 = sumNaive(p, n - j);
-            double q1 = sumNaiveAVX(p, n - j);
+            double q1 = sumNaive(p, n - j);
+            // double q1 = sumNaiveAVX(p, n - j);
             // printf("%0.16lf %0.16lf  %0.16lf\n", q1, q2, q1 - q2);
             s += q1;
         }
-        printf("Naive %0.20lf\n", sumNaive(p, n));
         printf("Naive %0.20lf\n", s);
+        printf("Naive %0.20lf\n", sumNaive(p, n));
         // printf("sum2s %0.20lf\n", hiprec_sum2(p, n));
         // printf("sum2  %0.20lf\n", hiprec_sumK(p, n, 2));
         // printf("sum3  %0.20lf\n", hiprec_sumK(p, n, 3));
