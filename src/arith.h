@@ -24,9 +24,8 @@ typedef struct {
     (lo) = _mm256_sub_pd((a), (lo));     \
     (z) = _mm256_sub_pd((b), (z));       \
     (lo) = _mm256_add_pd((lo), (z));     \
-    (hi) = _mm256_add_pd((h), (lo));          \
+    (hi) = (h);                          \
 }
-
 
 extern hiprec twoSum(DOUBLE a, DOUBLE b);
 extern void twoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo);
@@ -44,6 +43,7 @@ extern DOUBLE hiprec_sqrt(DOUBLE T, DOUBLE t);
 extern DOUBLE sumNaive(DOUBLE* p, int n);
 extern DOUBLE hiprec_sum2(DOUBLE* p, int n);
 extern DOUBLE hiprec_SUM(DOUBLE* p, int n);
+extern DOUBLE hiprec_SUM_AVX(DOUBLE* p, int n);
 extern DOUBLE hiprec_sumK(DOUBLE* p, int n, int K);
 extern DOUBLE hiprec_norm_l1(DOUBLE* p, int n);
 extern DOUBLE hiprec_normK_l1(DOUBLE* p, int n, int K);

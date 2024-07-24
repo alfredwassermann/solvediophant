@@ -137,47 +137,6 @@ DOUBLE hiprec_sqrt(DOUBLE T, DOUBLE t) {
     return P + p;
 }
 
-DOUBLE hiprec_SUM_AVX(DOUBLE* p, int n) {
-    hiprec s; 
-    DOUBLE sigma_d;
-    int i;
-
-    if (n <= 0) return 0.0;
-
-    int n_4 = n & -4;
-
-    __m256d sum_hi = _mm256_load_pd(&p[i]);
-    __m256d lo = {0.0, 0.0, 0.0, 0.0};
-    __m256d sigma = {0.0, 0.0, 0.0, 0.0};
-    __m256d h = {0.0, 0.0, 0.0, 0.0};
-    __m256d z = {0.0, 0.0, 0.0, 0.0};
-
-    for (i = 4; i < n_4; i += 4) {
-        __m256d b = _mm256_load_pd(&p[i]);
-        TWOSUM_AVX(sum_hi, b, sum_hi, lo, h, z);
-        sigma = _mm256_add_pd(sigma, lo);
-    }
-
-    __m128d xmm = _mm256_extractf128_pd(sum_hi, 1); // xmm = {c,d}
-    __m256d ymm = {xmm[0], xmm[1], 0, 0};           // ymm = {c,d,0,0}
-    sum_hi = _mm256_hadd_pd(sum_hi, ymm);           // sum = {a+b,c+d,c+d,0}
-    sum_hi = _mm256_hadd_pd(sum_hi, sum_hi);        // sum = {a+b+c+d,a+b+c+d,c+d,c+d}
-    s.hi = sum_hi[0];
-
-    xmm = _mm256_extractf128_pd(sigma, 1);          // xmm = {c,d}
-    ymm = {xmm[0], xmm[1], 0, 0};                   // ymm = {c,d,0,0}
-    sigma = _mm256_hadd_pd(sigma, ymm);             // sum = {a+b,c+d,c+d,0}
-    sigma = _mm256_hadd_pd(sigma, sigma);           // sum = {a+b+c+d,a+b+c+d,c+d,c+d}
-    sigma_d = sigma[0];
-
-    for (i = 1; i < n; i++) {
-        s = twoSum(s.hi, p[i]);
-        sigma_d += s.lo;
-    }
-
-    return s.hi + sigma_d;
-}
-
 /**
  * Sum entries of array p of length n with double precision.
  */
@@ -219,6 +178,56 @@ DOUBLE hiprec_SUM(DOUBLE* p, int n) {
     }
 
     return s.hi + sigma;
+}
+
+DOUBLE hiprec_SUM_AVX(DOUBLE* p, int n) {
+    hiprec s; 
+    DOUBLE sigma_d;
+    int i = 0;
+
+    if (n <= 0) return 0.0;
+
+    int n_4 = n & -4;
+
+printf("A %d\n", n_4);
+    if (n_4 >= 4) {
+printf("A1 %lf\n", p[i]);
+        __m256d sum_hi = _mm256_load_pd(&p[i]);
+
+printf("A2 %lf\n", sum_hi[1]);
+        __m256d sigma = {0.0, 0.0, 0.0, 0.0};
+printf("A3\n");
+        __m256d lo, h, z;
+
+printf("B\n");
+
+        for (i = 4; i < n_4; i += 4) {
+            __m256d b = _mm256_load_pd(&p[i]);
+            TWOSUM_AVX(sum_hi, b, sum_hi, lo, h, z);
+            sigma = _mm256_add_pd(sigma, lo);
+        }
+
+printf("C\n");
+        // Add the sums horizontally
+        s.hi = sum_hi[0];
+        sigma_d = sigma[0];
+        for (i = 1; i < 4; i++) {
+            s = twoSum(s.hi, sum_hi[i]);
+            sigma_d += s.lo + sigma[i];
+        }
+    } else {
+printf("D\n");
+        s.hi = p[0];
+        sigma_d = 0;
+    }
+
+    // Add the trailing entries
+    for (i = 1; i < n; i++) {
+        s = twoSum(s.hi, p[i]);
+        sigma_d += s.lo;
+    }
+
+    return s.hi + sigma_d;
 }
 
 /**

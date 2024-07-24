@@ -184,9 +184,11 @@ int main(int argc, char *argv[])
         printf("--------- Sum2s\n");
         printf("Start\n");
 
-        printf("Naive %0.20lf\n", sumNaive(p, n));
-        printf("sum2s %0.20lf\n", hiprec_sum2(p, n));
-        printf("SUM   %0.20lf\n", hiprec_SUM(p, n));
+        printf("Naive  %0.20lf\n", sumNaive(p, n));
+        printf("NaiveA %0.20lf\n", sumNaiveAVX(p, n));
+        printf("sum2s  %0.20lf\n", hiprec_sum2(p, n));
+        printf("SUM    %0.20lf\n", hiprec_SUM(p, n));
+        printf("SUMAVX %0.20lf\n", hiprec_SUM_AVX(p, n));
         // printf("sum2  %0.20lf\n", hiprec_sumK(p, n, 2));
         // printf("sum3  %0.20lf\n", hiprec_sumK(p, n, 3));
         // printf("sum4  %0.20lf\n", hiprec_sumK(p, n, 4));
