@@ -6,6 +6,27 @@ typedef struct {
     DOUBLE lo;
 } hiprec;
 
+/**
+ * Add two doubles and store the result in hi, lo.
+ * h, z are helper variables
+ */
+#define TWOSUM(a, b, hi, lo, h, z) { \
+    (h) = (a) + (b);                 \
+    (z) = (h) - (a);                 \
+    (lo) = ((a) - ((h) - (z))) + ((b) - (z)); \
+    (hi) = (h);                      \
+}
+
+#define TWOSUM_AVX(a, b, hi, lo, h, z) { \
+    (h) = _mm256_add_pd((a), (b));       \
+    (z) = _mm256_sub_pd((h), (a));       \
+    (lo) = _mm256_sub_pd((h), (z));      \
+    (lo) = _mm256_sub_pd((a), (lo));     \
+    (z) = _mm256_sub_pd((b), (z));       \
+    (lo) = _mm256_add_pd((lo), (z));     \
+    (hi) = _mm256_add_pd((h), (lo));          \
+}
+
 
 extern hiprec twoSum(DOUBLE a, DOUBLE b);
 extern void twoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo);
@@ -22,6 +43,7 @@ extern DOUBLE hiprec_sqrt(DOUBLE T, DOUBLE t);
 
 extern DOUBLE sumNaive(DOUBLE* p, int n);
 extern DOUBLE hiprec_sum2(DOUBLE* p, int n);
+extern DOUBLE hiprec_SUM(DOUBLE* p, int n);
 extern DOUBLE hiprec_sumK(DOUBLE* p, int n, int K);
 extern DOUBLE hiprec_norm_l1(DOUBLE* p, int n);
 extern DOUBLE hiprec_normK_l1(DOUBLE* p, int n, int K);

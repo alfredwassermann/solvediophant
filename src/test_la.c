@@ -8,12 +8,11 @@
 #include "arith.h"
 
 DOUBLE *getArray(int len, int type) {
-    const int n = 500000;
     DOUBLE *p;
     int i, sgn;
 
     p = (DOUBLE *)calloc(len, sizeof(DOUBLE));
-    for (i = 0, sgn = 1.0; i < n; i++) {
+    for (i = 0, sgn = 1.0; i < len; i++) {
         switch (type) {
             case 1:
                 p[i] = 1.0 * (DOUBLE)(sgn * i);
@@ -117,7 +116,7 @@ int main(int argc, char *argv[])
     DOUBLE y = 100000.0;
     DOUBLE z;
     hiprec a;
-    int n = 500000;
+    int n = 50000;
 
 
     #if 0
@@ -187,6 +186,7 @@ int main(int argc, char *argv[])
 
         printf("Naive %0.20lf\n", sumNaive(p, n));
         printf("sum2s %0.20lf\n", hiprec_sum2(p, n));
+        printf("SUM   %0.20lf\n", hiprec_SUM(p, n));
         // printf("sum2  %0.20lf\n", hiprec_sumK(p, n, 2));
         // printf("sum3  %0.20lf\n", hiprec_sumK(p, n, 3));
         // printf("sum4  %0.20lf\n", hiprec_sumK(p, n, 4));
