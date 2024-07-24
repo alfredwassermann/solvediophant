@@ -7,36 +7,70 @@
 #include "const.h"
 #include "arith.h"
 
+DOUBLE *getArray(int len, int type) {
+    const int n = 500000;
+    DOUBLE *p;
+    int i, sgn;
+
+    p = (DOUBLE *)calloc(len, sizeof(DOUBLE));
+    for (i = 0, sgn = 1.0; i < n; i++) {
+        switch (type) {
+            case 1:
+                p[i] = 1.0 * (DOUBLE)(sgn * i);
+                break;
+            case 2:
+                p[i] = sgn * 2.0 / (DOUBLE)(i + 1);
+                break;
+            case 3:
+                p[i] = 1.0 / ((i+1) * (i+1));
+                break;
+            default:
+                p[i] = 1.0;
+        }
+        sgn *= (-1.0);
+        // printf("%lf ", p[i]);
+    }
+    return p;
+}
+
 //
 // Naive implementations for comparison
 //
-DOUBLE sumNaive(DOUBLE* p, int n) {
+DOUBLE sumNaive(DOUBLE *p, int n)
+{
     DOUBLE s;
     int i;
 
-    for (i = 0, s = 0.0; i < n; i++) {
+    for (i = 0, s = 0.0; i < n; i++)
+    {
         s += p[i];
     }
     return s;
 }
 
-DOUBLE dotNaive(DOUBLE* x, DOUBLE* y, int n) {
+DOUBLE dotNaive(DOUBLE *x, DOUBLE *y, int n)
+{
     DOUBLE s;
     int i;
-    if (n <= 0) return 0.0;
+    if (n <= 0)
+        return 0.0;
 
-    for (i = 0, s = 0.0; i < n; i++) {
+    for (i = 0, s = 0.0; i < n; i++)
+    {
         s += x[i] * y[i];
     }
     return s;
 }
 
-DOUBLE dotNaiveQP(DOUBLE* x, DOUBLE* y, int n) {
+DOUBLE dotNaiveQP(DOUBLE *x, DOUBLE *y, int n)
+{
     _Float128 s;
     int i;
-    if (n <= 0) return 0.0;
+    if (n <= 0)
+        return 0.0;
 
-    for (i = 0, s = 0.0; i < n; i++) {
+    for (i = 0, s = 0.0; i < n; i++)
+    {
         s += x[i] * y[i];
     }
     return (DOUBLE)s;
@@ -45,56 +79,61 @@ DOUBLE dotNaiveQP(DOUBLE* x, DOUBLE* y, int n) {
 //
 // AVX2
 //
-DOUBLE sumNaiveAVX(DOUBLE* p, int n) {
-       long i = 0;
-       long n_4 = n & -4;
-       DOUBLE s;
-    
-        __m256d sum = {0.0, 0.0, 0.0, 0.0};
-        while (i < n_4) {
-            __m256d vp = _mm256_load_pd(&p[i]);
-            sum = _mm256_add_pd (vp, sum);
-            i += 4;
-        }
-        
-                                                       // sum = {a,b,c,d}
-        __m128d xmm = _mm256_extractf128_pd (sum, 1);  // xmm = {c,d}
-        __m256d ymm = {xmm[0], xmm[1], 0, 0};          // ymm = {c,d,0,0}
-        sum = _mm256_hadd_pd (sum, ymm);               // sum = {a+b,c+d,c+d,0}
-        sum = _mm256_hadd_pd (sum, sum);               // sum = {a+b+c+d,a+b+c+d,c+d,c+d}
+DOUBLE sumNaiveAVX(DOUBLE *p, int n)
+{
+    long i = 0;
+    long n_4 = n & -4;
+    DOUBLE s;
 
-        s = sum[0];
+    __m256d sum = {0.0, 0.0, 0.0, 0.0};
+    while (i < n_4)
+    {
+        __m256d vp = _mm256_load_pd(&p[i]);
+        sum = _mm256_add_pd(vp, sum);
+        i += 4;
+    }
 
-        while (i < n) {
-            s += p[i];
-            i++;
-        }
+    // sum = {a,b,c,d}
+    __m128d xmm = _mm256_extractf128_pd(sum, 1); // xmm = {c,d}
+    __m256d ymm = {xmm[0], xmm[1], 0, 0};        // ymm = {c,d,0,0}
+    sum = _mm256_hadd_pd(sum, ymm);              // sum = {a+b,c+d,c+d,0}
+    sum = _mm256_hadd_pd(sum, sum);              // sum = {a+b+c+d,a+b+c+d,c+d,c+d}
 
-        return s;
+    s = sum[0];
+
+    while (i < n)
+    {
+        s += p[i];
+        i++;
+    }
+
+    return s;
 }
 
-
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 
     DOUBLE x = 0.00000000001;
     DOUBLE y = 100000.0;
     DOUBLE z;
     hiprec a;
-    int i;
+    int n = 500000;
+
 
     #if 0
+        // Test primitive functions I 
         printf("--------- ADD\n");
         z = x + y;
         printf("%0.20lf\n", z);
         a = twoSum(x, y);
         printf("%0.20lf %0.20lf\n", a.hi, a.lo);
-
         printf("--------- Split\n");
         a = split(z);
         printf("%0.20lf %0.20lf\n", a.hi, a.lo);
     #endif
 
     #if 0
+        // Test primitive functions II
         printf("fma: %lf\n", fma(3.0, 1700000000.0, -1.0));
         printf("--------- TwoProduct\n");
         x = 11111111.111111111;
@@ -122,16 +161,15 @@ int main(int argc, char *argv[]) {
             sum[0] += 
         }
 
-
         printf("accSqrt: %0.20lf\n", hiprec_sqrt(x1, y1));
     #endif
 
     #if 0
+        // Test sqrt function
         printf("--------- sqrt\n");        if (i >= n) {
             i -= 3;
             sum[0] += 
         }
-
 
         y = 5000000000000000.0; 
         z = 2;
@@ -140,41 +178,15 @@ int main(int argc, char *argv[]) {
     #endif
 
     #if 1
+    // Test summation
     {
+        DOUBLE *p = getArray(n, 2);
+
         printf("--------- Sum2s\n");
-        const int n = 500000;
-        // DOUBLE p[n];
-        DOUBLE *p;
-        int sgn;
-
-        p = (DOUBLE*)calloc(n, sizeof(DOUBLE));
-        for (i = 0, sgn = 1.0; i < n; i++) {
-            p[i] = sgn * 2.0 / (DOUBLE)(i + 1);
-            // p[i] = 1.0;
-            // // if (i % 31 == 0) {
-            // //     p[i] *= 1000000;
-            // // }
-            // if (i % 17 == 0) {
-            //     p[i] *= 25252525 * sgn;
-            // }
-            // p[i] = 1.0 * (DOUBLE)(sgn * i);
-            // p[i] = 1.0 / ((i+1) * (i+1));
-            // sgn *= (-1.0);
-            // printf("%lf ", p[i]);
-        }
-        // printf("\n");
-
         printf("Start\n");
-        double s = 0.0;
-        for (int j = 0; j < 10000; j++) {
-            double q1 = sumNaive(p, n - j);
-            // double q1 = sumNaiveAVX(p, n - j);
-            // printf("%0.16lf %0.16lf  %0.16lf\n", q1, q2, q1 - q2);
-            s += q1;
-        }
-        printf("Naive %0.20lf\n", s);
+
         printf("Naive %0.20lf\n", sumNaive(p, n));
-        // printf("sum2s %0.20lf\n", hiprec_sum2(p, n));
+        printf("sum2s %0.20lf\n", hiprec_sum2(p, n));
         // printf("sum2  %0.20lf\n", hiprec_sumK(p, n, 2));
         // printf("sum3  %0.20lf\n", hiprec_sumK(p, n, 3));
         // printf("sum4  %0.20lf\n", hiprec_sumK(p, n, 4));
@@ -183,6 +195,26 @@ int main(int argc, char *argv[]) {
     #endif
 
     #if 0
+    // Multiple summations
+    {
+        DOUBLE *p = getArray(50000, 0);
+
+        printf("--------- Sum2s\n");
+        printf("Start\n");
+        double s = 0.0;
+
+        for (int j = 0; j < 1000; j++) {
+            double q1 = sumNaive(p, n - j);
+            // double q1 = sumNaiveAVX(p, n - j);
+            // printf("%0.16lf %0.16lf  %0.16lf\n", q1, q2, q1 - q2);
+            s += q1;
+        }
+        printf("Naive %0.20lf\n", s);
+    }
+    #endif
+
+    #if 0
+    // Test dot product
     {
         printf("--------- Dot\n");
         const int n = 60000;
