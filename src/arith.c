@@ -215,9 +215,9 @@ DOUBLE sumNaiveAVX(DOUBLE *p, int n)
 }
 
 DOUBLE hiprec_SUM_AVX(DOUBLE* p, int n) {
+    long i = 0;
     hiprec s; 
     DOUBLE sigma_d;
-    long i = 0;
     __m256d lo, h, z;
 
     if (n <= 0) return 0.0;
