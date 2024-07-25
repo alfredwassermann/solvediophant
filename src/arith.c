@@ -229,7 +229,7 @@ DOUBLE hiprec_SUM_AVX(DOUBLE* p, int n) {
         __m256d sigma  = {0.0, 0.0, 0.0, 0.0};
 
         for (i = 0; i < n_4; i += 4) {
-            __m256d vp = _mm256_load_pd(&p[i]);
+            __m256d vp = _mm256_loadu_pd(&p[i]);
             TWOSUM_AVX(sum_hi, vp, sum_hi, lo, h, z);
             sigma = _mm256_add_pd(sigma, lo);
         }

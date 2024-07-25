@@ -12,8 +12,8 @@ DOUBLE *getArray(int len, int type) {
     int i, sgn;
 
     // p = (DOUBLE *)calloc(len, sizeof(DOUBLE));
-    // p = (DOUBLE *)malloc(len * sizeof(DOUBLE));
-    p = (DOUBLE *)aligned_alloc(32, len * sizeof(DOUBLE));
+    p = (DOUBLE *)malloc(len * sizeof(DOUBLE));
+    // p = (DOUBLE *)aligned_alloc(32, len * sizeof(DOUBLE));
     for (i = 0, sgn = 1.0; i < len; i++) {
         switch (type) {
             case 1:
@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
         for (int j = 0; j < 100000; j++) {
             // double q1 = sumNaive(p, n - j);
             // double q1 = sumNaiveAVX(p, n - j);
-            // double q1 = hiprec_SUM_AVX(p, n - j);
+            double q1 = hiprec_SUM_AVX(p, n - j);
             // double q1 = hiprec_sum2(p, n - j);
             // printf("%0.16lf %0.16lf  %0.16lf\n", q1, q2, q1 - q2);
             s += q1;
