@@ -225,23 +225,12 @@ DOUBLE hiprec_SUM_AVX(DOUBLE* p, int n) {
     long n_4 = n & -4;
 
     if (n_4 >= 4) {
-        //__m256d sum_hi = _mm256_load_pd(&p[i]);
-        __m256d sum_hi = _mm256_setzero_pd(); // {0.0, 0.0, 0.0, 0.0};
-        __m256d sigma  = _mm256_setzero_pd(); // {0.0, 0.0, 0.0, 0.0};
+        __m256d sum_hi = {0.0, 0.0, 0.0, 0.0};
+        __m256d sigma  = {0.0, 0.0, 0.0, 0.0};
 
         for (i = 0; i < n_4; i += 4) {
-            __m256d vp = _mm256_loadu_pd(&p[i]);
+            __m256d vp = _mm256_load_pd(&p[i]);
             TWOSUM_AVX(sum_hi, vp, sum_hi, lo, h, z);
-
-    // h  = _mm256_add_pd(sum_hi, vp);   
-    // z  = _mm256_sub_pd(h, sum_hi);   
-    // lo = _mm256_sub_pd(h, z);   
-    // lo = _mm256_sub_pd(sum_hi, lo);  
-    // z  = _mm256_sub_pd(vp, z);   
-    // lo = _mm256_add_pd(lo, z);  
-    // sum_hi = h;                       
-
-
             sigma = _mm256_add_pd(sigma, lo);
         }
 

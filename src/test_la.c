@@ -12,7 +12,8 @@ DOUBLE *getArray(int len, int type) {
     int i, sgn;
 
     // p = (DOUBLE *)calloc(len, sizeof(DOUBLE));
-    p = (DOUBLE *)malloc(len * sizeof(DOUBLE));
+    // p = (DOUBLE *)malloc(len * sizeof(DOUBLE));
+    p = (DOUBLE *)aligned_alloc(32, len * sizeof(DOUBLE));
     for (i = 0, sgn = 1.0; i < len; i++) {
         switch (type) {
             case 1:
@@ -143,7 +144,7 @@ int main(int argc, char *argv[])
         printf("Hi2  : %0.20lf\n", hiprec_sqrt(y*y, 2* y * z + z));
     #endif
 
-    #if 1
+    #if 0
     // Test summation
     {
         DOUBLE *p = getArray(n, 2);
@@ -163,22 +164,24 @@ int main(int argc, char *argv[])
     }
     #endif
 
-    #if 0
+    #if 1
     // Multiple summations
     {
-        DOUBLE *p = getArray(50000, 0);
+        DOUBLE *p = getArray(50000, 2);
 
         printf("--------- Sum2s\n");
         printf("Start\n");
         double s = 0.0;
 
-        for (int j = 0; j < 1000; j++) {
-            double q1 = sumNaive(p, n - j);
+        for (int j = 0; j < 100000; j++) {
+            // double q1 = sumNaive(p, n - j);
             // double q1 = sumNaiveAVX(p, n - j);
+            // double q1 = hiprec_SUM_AVX(p, n - j);
+            // double q1 = hiprec_sum2(p, n - j);
             // printf("%0.16lf %0.16lf  %0.16lf\n", q1, q2, q1 - q2);
             s += q1;
         }
-        printf("Naive %0.20lf\n", s);
+        printf("Res: %0.20lf\n", s);
     }
     #endif
 
