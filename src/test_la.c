@@ -11,7 +11,8 @@ DOUBLE *getArray(int len, int type) {
     DOUBLE *p;
     int i, sgn;
 
-    p = (DOUBLE *)calloc(len, sizeof(DOUBLE));
+    // p = (DOUBLE *)calloc(len, sizeof(DOUBLE));
+    p = (DOUBLE *)malloc(len * sizeof(DOUBLE));
     for (i = 0, sgn = 1.0; i < len; i++) {
         switch (type) {
             case 1:
@@ -73,40 +74,6 @@ DOUBLE dotNaiveQP(DOUBLE *x, DOUBLE *y, int n)
         s += x[i] * y[i];
     }
     return (DOUBLE)s;
-}
-
-//
-// AVX2
-//
-DOUBLE sumNaiveAVX(DOUBLE *p, int n)
-{
-    long i = 0;
-    long n_4 = n & -4;
-    DOUBLE s;
-
-    __m256d sum = {0.0, 0.0, 0.0, 0.0};
-    while (i < n_4)
-    {
-        __m256d vp = _mm256_load_pd(&p[i]);
-        sum = _mm256_add_pd(vp, sum);
-        i += 4;
-    }
-
-    // sum = {a,b,c,d}
-    __m128d xmm = _mm256_extractf128_pd(sum, 1); // xmm = {c,d}
-    __m256d ymm = {xmm[0], xmm[1], 0, 0};        // ymm = {c,d,0,0}
-    sum = _mm256_hadd_pd(sum, ymm);              // sum = {a+b,c+d,c+d,0}
-    sum = _mm256_hadd_pd(sum, sum);              // sum = {a+b+c+d,a+b+c+d,c+d,c+d}
-
-    s = sum[0];
-
-    while (i < n)
-    {
-        s += p[i];
-        i++;
-    }
-
-    return s;
 }
 
 int main(int argc, char *argv[])

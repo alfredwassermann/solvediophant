@@ -18,11 +18,11 @@ typedef struct {
 }
 
 #define TWOSUM_AVX(a, b, hi, lo, h, z) { \
-    (h) = _mm256_add_pd((a), (b));       \
-    (z) = _mm256_sub_pd((h), (a));       \
+    (h)  = _mm256_add_pd((a), (b));      \
+    (z)  = _mm256_sub_pd((h), (a));      \
     (lo) = _mm256_sub_pd((h), (z));      \
     (lo) = _mm256_sub_pd((a), (lo));     \
-    (z) = _mm256_sub_pd((b), (z));       \
+    (z)  = _mm256_sub_pd((b), (z));      \
     (lo) = _mm256_add_pd((lo), (z));     \
     (hi) = (h);                          \
 }
@@ -41,6 +41,7 @@ extern void twoSquare2(DOUBLE a, DOUBLE *x, DOUBLE *y);
 extern DOUBLE hiprec_sqrt(DOUBLE T, DOUBLE t);
 
 extern DOUBLE sumNaive(DOUBLE* p, int n);
+extern DOUBLE sumNaiveAVX(DOUBLE *p, int n);
 extern DOUBLE hiprec_sum2(DOUBLE* p, int n);
 extern DOUBLE hiprec_SUM(DOUBLE* p, int n);
 extern DOUBLE hiprec_SUM_AVX(DOUBLE* p, int n);
