@@ -234,7 +234,7 @@ DOUBLE hiprec_SUM_AVX(DOUBLE* p, int n) {
             sigma = _mm256_add_pd(sigma, lo);
         }
 
-        // Add the sums horizontally
+        // Add up the horizontal sum
         s.hi = sum_hi[0];
         sigma_d = sigma[0];
         for (i = 1; i < 4; i++) {

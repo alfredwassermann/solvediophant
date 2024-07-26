@@ -144,8 +144,8 @@ int main(int argc, char *argv[])
         printf("Hi2  : %0.20lf\n", hiprec_sqrt(y*y, 2* y * z + z));
     #endif
 
-    #if 0
     // Test summation
+    #if 0
     {
         DOUBLE *p = getArray(n, 2);
 
@@ -164,8 +164,8 @@ int main(int argc, char *argv[])
     }
     #endif
 
-    #if 1
     // Multiple summations
+    #if 1
     {
         DOUBLE *p = getArray(50000, 2);
 
@@ -185,8 +185,8 @@ int main(int argc, char *argv[])
     }
     #endif
 
-    #if 0
     // Test dot product
+    #if 0
     {
         printf("--------- Dot\n");
         const int n = 60000;
