@@ -149,7 +149,8 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
         r_tt *= r_tt;
         if (delta * r_tt > new_cj) {
             if (beta > 0) {
-                fprintf(stderr, "enum %d successful %d %lf improvement: %lf\n",
+                fprintf(stderr, "tour %d, enum %d successful %d %lf improvement: %lf\n",
+                                    tour_cnt,
                                     beta, start_block,  delta * r_tt - new_cj, new_cj / (delta * r_tt));
                 fflush(stderr);
             }

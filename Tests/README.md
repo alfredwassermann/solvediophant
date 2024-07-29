@@ -5,7 +5,7 @@
 
 * KM_Id9_t2_k3.in:
 0/1 problem, 840 solutions, easy
-
+    
 * KM_PGGL_2_32_t7_k8.in:
 0/1 problem, 4996426 solutions, ca. 16 min
 ./solvediophant -bkz -beta100 -p40 -silent Tests/KM_PGGL_2_32_t7_k8.in (18 min, 13 min mit compute_w2, 10min with btmdx2 using compute_w2)

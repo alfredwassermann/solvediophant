@@ -748,6 +748,8 @@ DOUBLE hiprec_normsq_l2_AVX(DOUBLE* x, int n) {
 
 /**
  * ||x||_2, i.e. square root of dot product of array x with itself of length n with high precision.
+ * "Fast and accurate computation of the Euclidean norm of a vector"
+ * Siegfried M. Rump (2007)
  */
 DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
     DOUBLE S, s, P, p, H, h;
@@ -764,6 +766,7 @@ DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
         d = h + (s + p);
         fastTwoSum2(H, d, &S, &s);
     }
+    // fprintf(stderr, ">%0.20lf %0.20lf\n", S, s);
     return hiprec_sqrt(S, s);
 }
 
@@ -773,6 +776,7 @@ DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
  */
 DOUBLE hiprec_norm_l2_AVX(DOUBLE* x, int n) {
     hiprec s = hiprec_normsq_l2_AVX_kernel(x, n);
+    // fprintf(stderr, ":%0.20lf %0.20lf\n", s.hi, s.lo);
     return hiprec_sqrt(s.hi, s.lo);
 }
 

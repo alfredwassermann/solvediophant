@@ -270,8 +270,19 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         #if defined(USE_AVX)
             norm = hiprec_norm_l2_AVX(R[k], k + 1);
             // double n1 = hiprec_norm_l2(R[k], k + 1);
-            // if (n1 != norm) {
-            //     // fprintf(stderr, "n!!! %0.20lf\n", norm - n1);
+            // if (fabs(n1 - norm) > 1.e-6) {
+            //     fprintf(stderr, "n!!! %0.20lf %d\n", norm - n1, k + 1);
+            //     fprintf(stderr, "%0.20lf\n%0.20lf\n%0.20lf\n%0.20lf\n",
+            //         hiprec_normsq_l2(R[k], k + 1),
+            //         hiprec_normsq_l2_AVX(R[k], k + 1),
+            //         hiprec_norm_l2(R[k], k + 1),
+            //         hiprec_norm_l2_AVX(R[k], k + 1)
+            //         );
+            //     // fprintf(stderr, "%0.20lf\n%0.20lf\n",
+            //     //     hiprec_norm_l2(R[k], k + 1),
+            //     //     hiprec_norm_l2_AVX(R[k], k + 1)
+            //     //     );
+            //     // exit(1);
             // }
         #else
             norm = hiprec_norm_l2(R[k], k + 1);
