@@ -277,8 +277,8 @@ DOUBLE hiprec_sum_AVX(DOUBLE* p, int n) {
             sigma_d += s.lo + sigma1[i];
         }
     } else {
-        s.hi = p[0];
-        sigma_d = 0;
+        s.hi = 0.0;
+        sigma_d = 0.0;
     }
 
     // Add the trailing entries
@@ -462,8 +462,8 @@ DOUBLE hiprec_norm_l1_AVX(DOUBLE* p, int n) {
             sigma_d += s.lo + sigma1[i];
         }
     } else {
-        s.hi = p[0];
-        sigma_d = 0;
+        s.hi = 0.0;
+        sigma_d = 0.0;
     }
 
     // Add the trailing entries
@@ -496,15 +496,13 @@ DOUBLE hiprec_dot2_AVX(DOUBLE* x, DOUBLE* y, int n) {
     long i = 0;
     hiprec s; 
     DOUBLE sigma_d;
-    __m256d vp, lo, h, z;
+    __m256d a, b, hi, lo, q, h, z;
 
     if (n <= 0) return 0.0;
 
     long n_16 = n & -16;
 
     if (n_16 >= 16) {
-        __m256d a = {-0.0, -0.0, -0.0, -0.0};
-
         __m256d sum_hi1 = {0.0, 0.0, 0.0, 0.0};
         __m256d sigma1  = {0.0, 0.0, 0.0, 0.0};
         __m256d sum_hi2 = {0.0, 0.0, 0.0, 0.0};
@@ -515,25 +513,32 @@ DOUBLE hiprec_dot2_AVX(DOUBLE* x, DOUBLE* y, int n) {
         __m256d sigma4  = {0.0, 0.0, 0.0, 0.0};
 
         for (i = 0; i < n_16; i += 16) {
-            vp = _mm256_loadu_pd(&p[i]);
-            vp = _mm256_andnot_pd(a, vp);
-
-            TWOSUM_AVX(sum_hi1, vp, sum_hi1, lo, h, z);
+            a = _mm256_loadu_pd(&x[i]);
+            b = _mm256_loadu_pd(&y[i]);
+            TWOPROD_AVX(a, b, hi, lo);
+            TWOSUM_AVX(sum_hi1, hi, sum_hi1, q, h, z);
+            sigma1 = _mm256_add_pd(sigma1, q);
             sigma1 = _mm256_add_pd(sigma1, lo);
 
-            vp = _mm256_loadu_pd(&p[i + 4]);
-            vp = _mm256_andnot_pd(a, vp);
-            TWOSUM_AVX(sum_hi2, vp, sum_hi2, lo, h, z);
+            a = _mm256_loadu_pd(&x[i + 4]);
+            b = _mm256_loadu_pd(&y[i + 4]);
+            TWOPROD_AVX(a, b, hi, lo);
+            TWOSUM_AVX(sum_hi2, hi, sum_hi2, q, h, z);
+            sigma2 = _mm256_add_pd(sigma2, q);
             sigma2 = _mm256_add_pd(sigma2, lo);
 
-            vp = _mm256_loadu_pd(&p[i + 8]);
-            vp = _mm256_andnot_pd(a, vp);
-            TWOSUM_AVX(sum_hi3, vp, sum_hi3, lo, h, z);
+            a = _mm256_loadu_pd(&x[i + 8]);
+            b = _mm256_loadu_pd(&y[i + 8]);
+            TWOPROD_AVX(a, b, hi, lo);
+            TWOSUM_AVX(sum_hi3, hi, sum_hi3, q, h, z);
+            sigma3 = _mm256_add_pd(sigma3, q);
             sigma3 = _mm256_add_pd(sigma3, lo);
 
-            vp = _mm256_loadu_pd(&p[i + 12]);
-            vp = _mm256_andnot_pd(a, vp);
-            TWOSUM_AVX(sum_hi4, vp, sum_hi4, lo, h, z);
+            a = _mm256_loadu_pd(&x[i + 12]);
+            b = _mm256_loadu_pd(&y[i + 12]);
+            TWOPROD_AVX(a, b, hi, lo);
+            TWOSUM_AVX(sum_hi4, hi, sum_hi4, q, h, z);
+            sigma4 = _mm256_add_pd(sigma4, q);
             sigma4 = _mm256_add_pd(sigma4, lo);
         }
 
@@ -555,14 +560,19 @@ DOUBLE hiprec_dot2_AVX(DOUBLE* x, DOUBLE* y, int n) {
             sigma_d += s.lo + sigma1[i];
         }
     } else {
-        s.hi = p[0];
-        sigma_d = 0;
+        s.hi = 0.0;
+        sigma_d = 0.0;
     }
 
     // Add the trailing entries
-    for (i = n_16; i < n; i++) {
-        s = twoSum(s.hi, p[i]);
-        sigma_d += s.lo;
+    {
+        DOUBLE h, r;
+        for (i = n_16; i < n; i++) {
+            twoProd2(x[i], y[i], &h, &r);
+            s = twoSum(s.hi, h);
+            sigma_d += (r + s.lo);
+
+        }
     }
 
     return s.hi + sigma_d;

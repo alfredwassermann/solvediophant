@@ -208,17 +208,26 @@ int main(int argc, char *argv[])
     #if 1
     {
         printf("--------- Dot\n");
-        const int n = 60000;
+        const int n = 60013;
 
         DOUBLE *p = getArray(n, 2);
         DOUBLE *q = getArray(n, 3);
 
-        printf("Naive %0.20lf\n", dotNaive(p, q, n));
-        printf("NaiQP %0.20lf\n", dotNaiveQP(p, q, n));
-        printf("dot2  %0.20lf\n", hiprec_dot2(p, q, n));
-        printf("NaiveNorm   %0.20lf\n", sqrt(dotNaive(p, p, n)));
-        printf("NaiveNormQP %0.20lf\n", sqrt(dotNaiveQP(p, p, n)));
-        printf("norm        %0.20lf\n", hiprec_norm_l2(p, n));
+        printf("Naive  %0.20lf\n", dotNaive(p, q, n));
+        printf("NaiQP  %0.20lf\n", dotNaiveQP(p, q, n));
+        printf("dot2   %0.20lf\n", hiprec_dot2(p, q, n));
+        printf("dotAVX %0.20lf\n", hiprec_dot2_AVX(p, q, n));
+
+        double s = 0.0;
+        for (int j = 0; j < 100000; j++) {
+            // double q1 = hiprec_dot2(p, q, n - j);
+            double q1 = hiprec_dot2_AVX(p, q, n - j);
+            s += q1;
+        }
+
+        // printf("NaiveNorm   %0.20lf\n", sqrt(dotNaive(p, p, n)));
+        // printf("NaiveNormQP %0.20lf\n", sqrt(dotNaiveQP(p, p, n)));
+        // printf("norm        %0.20lf\n", hiprec_norm_l2(p, n));
     }
     #endif
 

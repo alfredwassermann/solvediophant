@@ -27,6 +27,11 @@ typedef struct {
     (hi) = (h);                          \
 }
 
+#define TWOPROD_AVX(a, b, hi, lo) {          \
+    (hi)  = _mm256_mul_pd((a), (b));         \
+    (lo)  = _mm256_fmsub_pd((a), (b), (hi)); \
+}
+
 extern hiprec twoSum(DOUBLE a, DOUBLE b);
 extern void twoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo);
 extern void fastTwoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo);
@@ -53,6 +58,7 @@ extern DOUBLE hiprec_norm_l1_AVX(DOUBLE* p, int n);
 extern DOUBLE dotNaive(DOUBLE* x, DOUBLE* y, int n);
 extern DOUBLE dotNaiveQP(DOUBLE* x, DOUBLE* y, int n);
 extern DOUBLE hiprec_dot2(DOUBLE* x, DOUBLE* y, int n);
+extern DOUBLE hiprec_dot2_AVX(DOUBLE* x, DOUBLE* y, int n);
 extern DOUBLE hiprec_dotK(DOUBLE* x, DOUBLE* y, int n, int K);
 extern DOUBLE hiprec_dot2_row(DOUBLE* x, int dx, DOUBLE* y, int dy, int n);
 extern DOUBLE hiprec_normsq_l2(DOUBLE* x, int n);
