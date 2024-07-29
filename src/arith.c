@@ -214,32 +214,67 @@ DOUBLE sumNaiveAVX(DOUBLE *p, int n)
     return s;
 }
 
-DOUBLE hiprec_SUM_AVX(DOUBLE* p, int n) {
+DOUBLE hiprec_sum_AVX(DOUBLE* p, int n) {
     long i = 0;
     hiprec s; 
     DOUBLE sigma_d;
-    __m256d lo, h, z;
+    __m256d vp, lo, h, z;
 
     if (n <= 0) return 0.0;
 
-    long n_4 = n & -4;
+    long n_16 = n & -16;
 
-    if (n_4 >= 4) {
-        __m256d sum_hi = {0.0, 0.0, 0.0, 0.0};
-        __m256d sigma  = {0.0, 0.0, 0.0, 0.0};
+    if (n_16 >= 16) {
+        // __m256d sum_hi = {0.0, 0.0, 0.0, 0.0};
+        // __m256d sigma  = {0.0, 0.0, 0.0, 0.0};
 
-        for (i = 0; i < n_4; i += 4) {
-            __m256d vp = _mm256_loadu_pd(&p[i]);
-            TWOSUM_AVX(sum_hi, vp, sum_hi, lo, h, z);
-            sigma = _mm256_add_pd(sigma, lo);
+        __m256d sum_hi1 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sigma1  = {0.0, 0.0, 0.0, 0.0};
+        __m256d sum_hi2 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sigma2  = {0.0, 0.0, 0.0, 0.0};
+        __m256d sum_hi3 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sigma3  = {0.0, 0.0, 0.0, 0.0};
+        __m256d sum_hi4 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sigma4  = {0.0, 0.0, 0.0, 0.0};
+
+        for (i = 0; i < n_16; i += 16) {
+            // vp = _mm256_loadu_pd(&p[i]);
+            // TWOSUM_AVX(sum_hi, vp, sum_hi, lo, h, z);
+            // sigma = _mm256_add_pd(sigma, lo);
+            
+            vp = _mm256_loadu_pd(&p[i]);
+            TWOSUM_AVX(sum_hi1, vp, sum_hi1, lo, h, z);
+            sigma1 = _mm256_add_pd(sigma1, lo);
+
+            vp = _mm256_loadu_pd(&p[i + 4]);
+            TWOSUM_AVX(sum_hi2, vp, sum_hi2, lo, h, z);
+            sigma2 = _mm256_add_pd(sigma2, lo);
+
+            vp = _mm256_loadu_pd(&p[i + 8]);
+            TWOSUM_AVX(sum_hi3, vp, sum_hi3, lo, h, z);
+            sigma3 = _mm256_add_pd(sigma3, lo);
+
+            vp = _mm256_loadu_pd(&p[i + 12]);
+            TWOSUM_AVX(sum_hi4, vp, sum_hi4, lo, h, z);
+            sigma4 = _mm256_add_pd(sigma4, lo);
         }
 
+        TWOSUM_AVX(sum_hi1, sum_hi2, sum_hi1, lo, h, z);
+        sigma1 = _mm256_add_pd(sigma1, sigma2);
+        sigma1 = _mm256_add_pd(sigma1, lo);
+        TWOSUM_AVX(sum_hi3, sum_hi4, sum_hi3, lo, h, z);
+        sigma3 = _mm256_add_pd(sigma3, sigma4);
+        sigma3 = _mm256_add_pd(sigma3, lo);
+        TWOSUM_AVX(sum_hi1, sum_hi3, sum_hi1, lo, h, z);
+        sigma1 = _mm256_add_pd(sigma1, sigma3);
+        sigma1 = _mm256_add_pd(sigma1, lo);
+
         // Add up the horizontal sum
-        s.hi = sum_hi[0];
-        sigma_d = sigma[0];
+        s.hi = sum_hi1[0];
+        sigma_d = sigma1[0];
         for (i = 1; i < 4; i++) {
-            s = twoSum(s.hi, sum_hi[i]);
-            sigma_d += s.lo + sigma[i];
+            s = twoSum(s.hi, sum_hi1[i]);
+            sigma_d += s.lo + sigma1[i];
         }
     } else {
         s.hi = p[0];
@@ -247,7 +282,7 @@ DOUBLE hiprec_SUM_AVX(DOUBLE* p, int n) {
     }
 
     // Add the trailing entries
-    for (i = n_4; i < n; i++) {
+    for (i = n_16; i < n; i++) {
         s = twoSum(s.hi, p[i]);
         sigma_d += s.lo;
     }
@@ -364,6 +399,82 @@ DOUBLE hiprec_normK_l1(DOUBLE* p, int n, int K) {
     return s + q[K - 2];
 }
 
+DOUBLE hiprec_norm_l1_AVX(DOUBLE* p, int n) {
+    long i = 0;
+    hiprec s; 
+    DOUBLE sigma_d;
+    __m256d vp, lo, h, z;
+
+    if (n <= 0) return 0.0;
+
+    long n_16 = n & -16;
+
+    if (n_16 >= 16) {
+        __m256d a = {-0.0, -0.0, -0.0, -0.0};
+
+        __m256d sum_hi1 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sigma1  = {0.0, 0.0, 0.0, 0.0};
+        __m256d sum_hi2 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sigma2  = {0.0, 0.0, 0.0, 0.0};
+        __m256d sum_hi3 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sigma3  = {0.0, 0.0, 0.0, 0.0};
+        __m256d sum_hi4 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sigma4  = {0.0, 0.0, 0.0, 0.0};
+
+        for (i = 0; i < n_16; i += 16) {
+            vp = _mm256_loadu_pd(&p[i]);
+            vp = _mm256_andnot_pd(a, vp);
+
+            TWOSUM_AVX(sum_hi1, vp, sum_hi1, lo, h, z);
+            sigma1 = _mm256_add_pd(sigma1, lo);
+
+            vp = _mm256_loadu_pd(&p[i + 4]);
+            vp = _mm256_andnot_pd(a, vp);
+            TWOSUM_AVX(sum_hi2, vp, sum_hi2, lo, h, z);
+            sigma2 = _mm256_add_pd(sigma2, lo);
+
+            vp = _mm256_loadu_pd(&p[i + 8]);
+            vp = _mm256_andnot_pd(a, vp);
+            TWOSUM_AVX(sum_hi3, vp, sum_hi3, lo, h, z);
+            sigma3 = _mm256_add_pd(sigma3, lo);
+
+            vp = _mm256_loadu_pd(&p[i + 12]);
+            vp = _mm256_andnot_pd(a, vp);
+            TWOSUM_AVX(sum_hi4, vp, sum_hi4, lo, h, z);
+            sigma4 = _mm256_add_pd(sigma4, lo);
+        }
+
+        TWOSUM_AVX(sum_hi1, sum_hi2, sum_hi1, lo, h, z);
+        sigma1 = _mm256_add_pd(sigma1, sigma2);
+        sigma1 = _mm256_add_pd(sigma1, lo);
+        TWOSUM_AVX(sum_hi3, sum_hi4, sum_hi3, lo, h, z);
+        sigma3 = _mm256_add_pd(sigma3, sigma4);
+        sigma3 = _mm256_add_pd(sigma3, lo);
+        TWOSUM_AVX(sum_hi1, sum_hi3, sum_hi1, lo, h, z);
+        sigma1 = _mm256_add_pd(sigma1, sigma3);
+        sigma1 = _mm256_add_pd(sigma1, lo);
+
+        // Add up the horizontal sum
+        s.hi = sum_hi1[0];
+        sigma_d = sigma1[0];
+        for (i = 1; i < 4; i++) {
+            s = twoSum(s.hi, sum_hi1[i]);
+            sigma_d += s.lo + sigma1[i];
+        }
+    } else {
+        s.hi = p[0];
+        sigma_d = 0;
+    }
+
+    // Add the trailing entries
+    for (i = n_16; i < n; i++) {
+        s = twoSum(s.hi, p[i]);
+        sigma_d += s.lo;
+    }
+
+    return s.hi + sigma_d;
+}
+
 /**
  * Dot product of arrays x and y of length n with high precision.
 */
@@ -379,6 +490,82 @@ DOUBLE hiprec_dot2(DOUBLE* x, DOUBLE* y, int n) {
         s += (q + r);
     }
     return p + s;
+}
+
+DOUBLE hiprec_dot2_AVX(DOUBLE* x, DOUBLE* y, int n) {
+    long i = 0;
+    hiprec s; 
+    DOUBLE sigma_d;
+    __m256d vp, lo, h, z;
+
+    if (n <= 0) return 0.0;
+
+    long n_16 = n & -16;
+
+    if (n_16 >= 16) {
+        __m256d a = {-0.0, -0.0, -0.0, -0.0};
+
+        __m256d sum_hi1 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sigma1  = {0.0, 0.0, 0.0, 0.0};
+        __m256d sum_hi2 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sigma2  = {0.0, 0.0, 0.0, 0.0};
+        __m256d sum_hi3 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sigma3  = {0.0, 0.0, 0.0, 0.0};
+        __m256d sum_hi4 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sigma4  = {0.0, 0.0, 0.0, 0.0};
+
+        for (i = 0; i < n_16; i += 16) {
+            vp = _mm256_loadu_pd(&p[i]);
+            vp = _mm256_andnot_pd(a, vp);
+
+            TWOSUM_AVX(sum_hi1, vp, sum_hi1, lo, h, z);
+            sigma1 = _mm256_add_pd(sigma1, lo);
+
+            vp = _mm256_loadu_pd(&p[i + 4]);
+            vp = _mm256_andnot_pd(a, vp);
+            TWOSUM_AVX(sum_hi2, vp, sum_hi2, lo, h, z);
+            sigma2 = _mm256_add_pd(sigma2, lo);
+
+            vp = _mm256_loadu_pd(&p[i + 8]);
+            vp = _mm256_andnot_pd(a, vp);
+            TWOSUM_AVX(sum_hi3, vp, sum_hi3, lo, h, z);
+            sigma3 = _mm256_add_pd(sigma3, lo);
+
+            vp = _mm256_loadu_pd(&p[i + 12]);
+            vp = _mm256_andnot_pd(a, vp);
+            TWOSUM_AVX(sum_hi4, vp, sum_hi4, lo, h, z);
+            sigma4 = _mm256_add_pd(sigma4, lo);
+        }
+
+        TWOSUM_AVX(sum_hi1, sum_hi2, sum_hi1, lo, h, z);
+        sigma1 = _mm256_add_pd(sigma1, sigma2);
+        sigma1 = _mm256_add_pd(sigma1, lo);
+        TWOSUM_AVX(sum_hi3, sum_hi4, sum_hi3, lo, h, z);
+        sigma3 = _mm256_add_pd(sigma3, sigma4);
+        sigma3 = _mm256_add_pd(sigma3, lo);
+        TWOSUM_AVX(sum_hi1, sum_hi3, sum_hi1, lo, h, z);
+        sigma1 = _mm256_add_pd(sigma1, sigma3);
+        sigma1 = _mm256_add_pd(sigma1, lo);
+
+        // Add up the horizontal sum
+        s.hi = sum_hi1[0];
+        sigma_d = sigma1[0];
+        for (i = 1; i < 4; i++) {
+            s = twoSum(s.hi, sum_hi1[i]);
+            sigma_d += s.lo + sigma1[i];
+        }
+    } else {
+        s.hi = p[0];
+        sigma_d = 0;
+    }
+
+    // Add the trailing entries
+    for (i = n_16; i < n; i++) {
+        s = twoSum(s.hi, p[i]);
+        sigma_d += s.lo;
+    }
+
+    return s.hi + sigma_d;
 }
 
 /**

@@ -44,10 +44,11 @@ extern DOUBLE sumNaive(DOUBLE* p, int n);
 extern DOUBLE sumNaiveAVX(DOUBLE *p, int n);
 extern DOUBLE hiprec_sum2(DOUBLE* p, int n);
 extern DOUBLE hiprec_SUM(DOUBLE* p, int n);
-extern DOUBLE hiprec_SUM_AVX(DOUBLE* p, int n);
+extern DOUBLE hiprec_sum_AVX(DOUBLE* p, int n);
 extern DOUBLE hiprec_sumK(DOUBLE* p, int n, int K);
 extern DOUBLE hiprec_norm_l1(DOUBLE* p, int n);
 extern DOUBLE hiprec_normK_l1(DOUBLE* p, int n, int K);
+extern DOUBLE hiprec_norm_l1_AVX(DOUBLE* p, int n);
 
 extern DOUBLE dotNaive(DOUBLE* x, DOUBLE* y, int n);
 extern DOUBLE dotNaiveQP(DOUBLE* x, DOUBLE* y, int n);

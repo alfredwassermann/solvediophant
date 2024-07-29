@@ -23,7 +23,7 @@ DOUBLE *getArray(int len, int type) {
                 p[i] = sgn * 2.0 / (DOUBLE)(i + 1);
                 break;
             case 3:
-                p[i] = 1.0 / ((i+1) * (i+1));
+                p[i] = -1.0 / ((i+1) * (i+1));
                 break;
             default:
                 p[i] = 1.0;
@@ -87,8 +87,8 @@ int main(int argc, char *argv[])
     int n = 50000;
 
 
+    // Test primitive functions I 
     #if 0
-        // Test primitive functions I 
         printf("--------- ADD\n");
         z = x + y;
         printf("%0.20lf\n", z);
@@ -99,8 +99,8 @@ int main(int argc, char *argv[])
         printf("%0.20lf %0.20lf\n", a.hi, a.lo);
     #endif
 
+    // Test primitive functions II
     #if 0
-        // Test primitive functions II
         printf("fma: %lf\n", fma(3.0, 1700000000.0, -1.0));
         printf("--------- TwoProduct\n");
         x = 11111111.111111111;
@@ -131,8 +131,8 @@ int main(int argc, char *argv[])
         printf("accSqrt: %0.20lf\n", hiprec_sqrt(x1, y1));
     #endif
 
+    // Test sqrt function
     #if 0
-        // Test sqrt function
         printf("--------- sqrt\n");        if (i >= n) {
             i -= 3;
             sum[0] += 
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
         printf("NaiveA %0.20lf\n", sumNaiveAVX(p, n));
         printf("sum2s  %0.20lf\n", hiprec_sum2(p, n));
         printf("SUM    %0.20lf\n", hiprec_SUM(p, n));
-        printf("SUMAVX %0.20lf\n", hiprec_SUM_AVX(p, n));
+        printf("SUMAVX %0.20lf\n", hiprec_sum_AVX(p, n));
         // printf("sum2  %0.20lf\n", hiprec_sumK(p, n, 2));
         // printf("sum3  %0.20lf\n", hiprec_sumK(p, n, 3));
         // printf("sum4  %0.20lf\n", hiprec_sumK(p, n, 4));
@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
     #endif
 
     // Multiple summations
-    #if 1
+    #if 0
     {
         DOUBLE *p = getArray(50000, 2);
 
@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
         for (int j = 0; j < 100000; j++) {
             // double q1 = sumNaive(p, n - j);
             // double q1 = sumNaiveAVX(p, n - j);
-            double q1 = hiprec_SUM_AVX(p, n - j);
+            double q1 = hiprec_sum_AVX(p, n - j);
             // double q1 = hiprec_sum2(p, n - j);
             // printf("%0.16lf %0.16lf  %0.16lf\n", q1, q2, q1 - q2);
             s += q1;
@@ -185,18 +185,33 @@ int main(int argc, char *argv[])
     }
     #endif
 
-    // Test dot product
+    // Test l1 norm
     #if 0
+    {
+        DOUBLE *p = getArray(n, 2);
+
+        printf("hiprec l1  %0.20lf\n", hiprec_norm_l1(p, n));
+        printf("hiprec l1  %0.20lf\n", hiprec_norm_l1_AVX(p, n));
+
+        double s = 0.0;
+        for (int j = 0; j < 100000; j++) {
+            // double q1 = hiprec_norm_l1(p, n - j);
+            double q1 = hiprec_norm_l1_AVX(p, n - j);
+            s += q1;
+        }
+        printf("Res: %0.20lf\n", s);
+
+    }
+    #endif
+
+    // Test dot product
+    #if 1
     {
         printf("--------- Dot\n");
         const int n = 60000;
-        DOUBLE p[n];
-        DOUBLE q[n];
 
-        for (i = 0, sgn = 1.0; i < n; i++) {
-            p[i] = 2.0 / (DOUBLE)(i + 1);
-            q[i] = 1.0 / ((i+1) * (i+1));
-        }
+        DOUBLE *p = getArray(n, 2);
+        DOUBLE *q = getArray(n, 3);
 
         printf("Naive %0.20lf\n", dotNaive(p, q, n));
         printf("NaiQP %0.20lf\n", dotNaiveQP(p, q, n));
