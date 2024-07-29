@@ -20,6 +20,8 @@ All solutions are found also with lds
 * KM_PSL_2_25_7_9.txt:
 - 7-(26, 9, 54) designs. Probably no solutions
 0/1 problem, ? solutions
+Difficult to compute basis of kernel, if prec_low < 0.88 and c large
+
 
 * KM_PGL_2_25_7_8.txt:
 - 7-(26, 8, 6) designs.
