@@ -8,7 +8,7 @@ typedef struct {
 
 /**
  * Add two doubles and store the result in hi, lo.
- * h, z are helper variables
+ * h, z are helper (double) variables
  */
 #define TWOSUM(a, b, hi, lo, h, z) { \
     (h) = (a) + (b);                 \
@@ -17,6 +17,10 @@ typedef struct {
     (hi) = (h);                      \
 }
 
+/**
+ * Add two _mm256 words and store the result in hi, lo.
+ * h, z are helper (_mm256) variables
+ */
 #define TWOSUM_AVX(a, b, hi, lo, h, z) { \
     (h)  = _mm256_add_pd((a), (b));      \
     (z)  = _mm256_sub_pd((h), (a));      \
@@ -27,9 +31,10 @@ typedef struct {
     (hi) = (h);                          \
 }
 
-    // (*hi) = a + b;
-    // (*lo) = (a - (*hi)) + b;
-
+/**
+ * Add two _mm256 words a and b with a>= b and store the result in hi, lo.
+ * h is a helper (_mm256) variable
+ */
 #define FASTTWOSUM_AVX(a, b, hi, lo, h) { \
     (h)  = _mm256_add_pd((a), (b));       \
     (lo) = _mm256_sub_pd((a), (h));       \
@@ -37,11 +42,19 @@ typedef struct {
     (hi) = (h);                           \
 }
 
+/**
+ * Multiply the _mm256 words a and b using fma.
+ * Store the result in hi and lo.
+ */
 #define TWOPROD_AVX(a, b, hi, lo) {          \
     (hi)  = _mm256_mul_pd((a), (b));         \
     (lo)  = _mm256_fmsub_pd((a), (b), (hi)); \
 }
 
+/**
+ * Square the _mm256 word a using fma.
+ * Store the result in hi and lo.
+ */
 #define TWOSQUARE_AVX(a, hi, lo) {           \
     (hi)  = _mm256_mul_pd((a), (a));         \
     (lo)  = _mm256_fmsub_pd((a), (a), (hi)); \

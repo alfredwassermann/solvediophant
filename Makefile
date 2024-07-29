@@ -8,9 +8,10 @@ PDF=pdf
 CFLAGS= -O3                    \
     -DUSE_AVX                  \
 	-fno-math-errno            \
-	-ftree-vectorize             \
-	-mavx -mavx2                 \
-    -march=haswell \
+	-ftree-vectorize           \
+	-mavx -mavx2               \
+    -msse3 -mssse3 -msse4.1    \
+    -march=haswell             \
 	-Wall
     # -funroll-all-loops         \
     # --param max-unroll-times=2 \

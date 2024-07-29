@@ -180,9 +180,9 @@ DOUBLE hiprec_SUM(DOUBLE* p, int n) {
     return s.hi + sigma;
 }
 
-//
-// AVX2
-//
+/**
+ * Naive summation using AVX
+ */
 DOUBLE sumNaiveAVX(DOUBLE *p, int n)
 {
     long i = 0;
@@ -214,6 +214,9 @@ DOUBLE sumNaiveAVX(DOUBLE *p, int n)
     return s;
 }
 
+/**
+ * hiprec summation using AVX.
+ */
 DOUBLE hiprec_sum_AVX(DOUBLE* p, int n) {
     long i = 0;
     hiprec s; 
@@ -335,7 +338,7 @@ DOUBLE hiprec_sumK(DOUBLE* p, int n, int K) {
 }
 
 /**
- * Sum absolute values of entries of array p of length n with double precision.
+ * Sum absolute values of entries of array p of length n with hiprec.
  */
 DOUBLE hiprec_norm_l1(DOUBLE* p, int n) {
     DOUBLE sigma;
@@ -399,6 +402,9 @@ DOUBLE hiprec_normK_l1(DOUBLE* p, int n, int K) {
     return s + q[K - 2];
 }
 
+/**
+ * Sum absolute values of entries of array p of length n with high precision using AVX.
+ */
 DOUBLE hiprec_norm_l1_AVX(DOUBLE* p, int n) {
     long i = 0;
     hiprec s; 
@@ -477,7 +483,7 @@ DOUBLE hiprec_norm_l1_AVX(DOUBLE* p, int n) {
 
 /**
  * Dot product of arrays x and y of length n with high precision.
-*/
+ */
 DOUBLE hiprec_dot2(DOUBLE* x, DOUBLE* y, int n) {
     DOUBLE p, q, h, r, sigma;
     int i;
@@ -492,6 +498,9 @@ DOUBLE hiprec_dot2(DOUBLE* x, DOUBLE* y, int n) {
     return p + sigma;
 }
 
+/**
+ * Dot product of arrays x and y of length n with high precision using AVX.
+ */
 DOUBLE hiprec_dot2_AVX(DOUBLE* x, DOUBLE* y, int n) {
     long i = 0;
     hiprec s; 
@@ -635,6 +644,14 @@ DOUBLE hiprec_normsq_l2(DOUBLE* x, int n) {
     return S + s;
 }
 
+/**
+ * @private
+ * Square of ||x||_2, i.e.
+ * dot product of array x with itself of length n with high precision using AVX.
+ * Used in hiprec_normsq_l2_AVX and hiprec_norm_l2_AVX.
+ * @returns hiprec
+ * 
+ */
 hiprec hiprec_normsq_l2_AVX_kernel(DOUBLE* x, int n) {
     long i = 0;
     hiprec s; 
@@ -720,6 +737,10 @@ hiprec hiprec_normsq_l2_AVX_kernel(DOUBLE* x, int n) {
     // return s.hi + sigma_d;
 }
 
+/**
+ * Square of ||x||_2, i.e.
+ * dot product of array x with itself of length n with high precision using AVX.
+ */
 DOUBLE hiprec_normsq_l2_AVX(DOUBLE* x, int n) {
     hiprec s = hiprec_normsq_l2_AVX_kernel(x, n);
     return s.hi + s.lo;
@@ -746,6 +767,10 @@ DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
     return hiprec_sqrt(S, s);
 }
 
+/**
+ * ||x||_2, i.e. square root of dot product of array x with itself of length n with high precision
+ * using AVX.
+ */
 DOUBLE hiprec_norm_l2_AVX(DOUBLE* x, int n) {
     hiprec s = hiprec_normsq_l2_AVX_kernel(x, n);
     return hiprec_sqrt(s.hi, s.lo);
