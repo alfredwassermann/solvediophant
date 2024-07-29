@@ -571,7 +571,6 @@ DOUBLE hiprec_dot2_AVX(DOUBLE* x, DOUBLE* y, int n) {
             twoProd2(x[i], y[i], &h, &r);
             s = twoSum(s.hi, h);
             sigma_d += (r + s.lo);
-
         }
     }
 
@@ -619,7 +618,7 @@ DOUBLE hiprec_dot2_row(DOUBLE* x, int dx, DOUBLE* y, int dy, int n) {
  */
 DOUBLE hiprec_normsq_l2(DOUBLE* x, int n) {
     DOUBLE S, s, P, p, H, h;
-    DOUBLE c, d;
+    DOUBLE d;
     int i;
 
     if (n <= 0) return 0.0;
@@ -629,11 +628,100 @@ DOUBLE hiprec_normsq_l2(DOUBLE* x, int n) {
     for (i = 0; i < n; i++) {
         twoSquare2(x[i], &P, &p);
         twoSum2(S, P, &H, &h);
-        c = s + p;
-        d = h + c;
+        d = h + (s + p);
         fastTwoSum2(H, d, &S, &s);
     }
     return S + s;
+}
+
+hiprec hiprec_normsq_l2_AVX_kernel(DOUBLE* x, int n) {
+    long i = 0;
+    hiprec s; 
+    DOUBLE sigma_d;
+    __m256d a, hi, lo, q, h, z;
+
+    s.hi = 0.0;
+    s.lo = 0.0;
+
+    if (n <= 0) return s;
+
+    long n_16 = n & -16;
+
+    if (n_16 >= 16) {
+        __m256d sum_hi1 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sigma1  = {0.0, 0.0, 0.0, 0.0};
+        __m256d sum_hi2 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sigma2  = {0.0, 0.0, 0.0, 0.0};
+        __m256d sum_hi3 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sigma3  = {0.0, 0.0, 0.0, 0.0};
+        __m256d sum_hi4 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sigma4  = {0.0, 0.0, 0.0, 0.0};
+
+        for (i = 0; i < n_16; i += 16) {
+            a = _mm256_loadu_pd(&x[i]);
+            TWOSQUARE_AVX(a, hi, lo);
+            TWOSUM_AVX(sum_hi1, hi, sum_hi1, q, h, z);
+            sigma1 = _mm256_add_pd(sigma1, q);
+            sigma1 = _mm256_add_pd(sigma1, lo);
+
+            a = _mm256_loadu_pd(&x[i + 4]);
+            TWOSQUARE_AVX(a, hi, lo);
+            TWOSUM_AVX(sum_hi2, hi, sum_hi2, q, h, z);
+            sigma2 = _mm256_add_pd(sigma2, q);
+            sigma2 = _mm256_add_pd(sigma2, lo);
+
+            a = _mm256_loadu_pd(&x[i + 8]);
+            TWOSQUARE_AVX(a, hi, lo);
+            TWOSUM_AVX(sum_hi3, hi, sum_hi3, q, h, z);
+            sigma3 = _mm256_add_pd(sigma3, q);
+            sigma3 = _mm256_add_pd(sigma3, lo);
+
+            a = _mm256_loadu_pd(&x[i + 12]);
+            TWOSQUARE_AVX(a, hi, lo);
+            TWOSUM_AVX(sum_hi4, hi, sum_hi4, q, h, z);
+            sigma4 = _mm256_add_pd(sigma4, q);
+            sigma4 = _mm256_add_pd(sigma4, lo);
+        }
+
+        TWOSUM_AVX(sum_hi1, sum_hi2, sum_hi1, lo, h, z);
+        sigma1 = _mm256_add_pd(sigma1, sigma2);
+        sigma1 = _mm256_add_pd(sigma1, lo);
+        TWOSUM_AVX(sum_hi3, sum_hi4, sum_hi3, lo, h, z);
+        sigma3 = _mm256_add_pd(sigma3, sigma4);
+        sigma3 = _mm256_add_pd(sigma3, lo);
+        TWOSUM_AVX(sum_hi1, sum_hi3, sum_hi1, lo, h, z);
+        sigma1 = _mm256_add_pd(sigma1, sigma3);
+        sigma1 = _mm256_add_pd(sigma1, lo);
+
+        // Add up the horizontal sum
+        s.hi = sum_hi1[0];
+        sigma_d = sigma1[0];
+        for (i = 1; i < 4; i++) {
+            s = twoSum(s.hi, sum_hi1[i]);
+            sigma_d += s.lo + sigma1[i];
+        }
+    } else {
+        s.hi = 0.0;
+        sigma_d = 0.0;
+    }
+
+    // Add the trailing entries
+    {
+        DOUBLE h, r;
+        for (i = n_16; i < n; i++) {
+            twoSquare2(x[i], &h, &r);
+            s = twoSum(s.hi, h);
+            sigma_d += (r + s.lo);
+        }
+    }
+    s.lo = sigma_d;
+    return s;
+    // return s.hi + sigma_d;
+}
+
+DOUBLE hiprec_normsq_l2_AVX(DOUBLE* x, int n) {
+    hiprec s = hiprec_normsq_l2_AVX_kernel(x, n);
+    return s.hi + s.lo;
 }
 
 /**
@@ -641,7 +729,7 @@ DOUBLE hiprec_normsq_l2(DOUBLE* x, int n) {
  */
 DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
     DOUBLE S, s, P, p, H, h;
-    DOUBLE c, d;
+    DOUBLE d;
     int i;
 
     if (n <= 0) return 0.0;
@@ -651,11 +739,15 @@ DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
     for (i = 0; i < n; i++) {
         twoSquare2(x[i], &P, &p);
         twoSum2(S, P, &H, &h);
-        c = s + p;
-        d = h + c;
+        d = h + (s + p);
         fastTwoSum2(H, d, &S, &s);
     }
     return hiprec_sqrt(S, s);
+}
+
+DOUBLE hiprec_norm_l2_AVX(DOUBLE* x, int n) {
+    hiprec s = hiprec_normsq_l2_AVX_kernel(x, n);
+    return hiprec_sqrt(s.hi, s.lo);
 }
 
 /**

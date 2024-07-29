@@ -27,9 +27,24 @@ typedef struct {
     (hi) = (h);                          \
 }
 
+    // (*hi) = a + b;
+    // (*lo) = (a - (*hi)) + b;
+
+#define FASTTWOSUM_AVX(a, b, hi, lo, h) { \
+    (h)  = _mm256_add_pd((a), (b));       \
+    (lo) = _mm256_sub_pd((a), (h));       \
+    (lo) = _mm256_add_pd((lo), (b));      \
+    (hi) = (h);                           \
+}
+
 #define TWOPROD_AVX(a, b, hi, lo) {          \
     (hi)  = _mm256_mul_pd((a), (b));         \
     (lo)  = _mm256_fmsub_pd((a), (b), (hi)); \
+}
+
+#define TWOSQUARE_AVX(a, hi, lo) {           \
+    (hi)  = _mm256_mul_pd((a), (a));         \
+    (lo)  = _mm256_fmsub_pd((a), (a), (hi)); \
 }
 
 extern hiprec twoSum(DOUBLE a, DOUBLE b);
@@ -62,7 +77,9 @@ extern DOUBLE hiprec_dot2_AVX(DOUBLE* x, DOUBLE* y, int n);
 extern DOUBLE hiprec_dotK(DOUBLE* x, DOUBLE* y, int n, int K);
 extern DOUBLE hiprec_dot2_row(DOUBLE* x, int dx, DOUBLE* y, int dy, int n);
 extern DOUBLE hiprec_normsq_l2(DOUBLE* x, int n);
+extern DOUBLE hiprec_normsq_l2_AVX(DOUBLE* x, int n);
 extern DOUBLE hiprec_norm_l2(DOUBLE* x, int n);
+extern DOUBLE hiprec_norm_l2_AVX(DOUBLE* x, int n);
 extern DOUBLE hiprec_normK_l2(DOUBLE* x, int n, int K);
 
 #endif

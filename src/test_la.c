@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
     #endif
 
     // Test dot product
-    #if 1
+    #if 0
     {
         printf("--------- Dot\n");
         const int n = 60013;
@@ -228,6 +228,31 @@ int main(int argc, char *argv[])
         // printf("NaiveNorm   %0.20lf\n", sqrt(dotNaive(p, p, n)));
         // printf("NaiveNormQP %0.20lf\n", sqrt(dotNaiveQP(p, p, n)));
         // printf("norm        %0.20lf\n", hiprec_norm_l2(p, n));
+    }
+    #endif
+
+    // Test 2-norm
+    #if 1
+    {
+        printf("--------- Norm\n");
+        const int n = 60013;
+
+        DOUBLE *p = getArray(n, 2);
+
+        printf("normsq      %0.20lf\n", hiprec_normsq_l2(p, n));
+        printf("normsqAVX   %0.20lf\n", hiprec_normsq_l2_AVX(p, n));
+        printf("\n");
+        printf("NaiveNorm   %0.20lf\n", sqrt(dotNaive(p, p, n)));
+        printf("NaiveNormQP %0.20lf\n", sqrt(dotNaiveQP(p, p, n)));
+        printf("norm2       %0.20lf\n", hiprec_norm_l2(p, n));
+        printf("normAVX     %0.20lf\n", hiprec_norm_l2_AVX(p, n));
+
+        double s = 0.0;
+        for (int j = 0; j < 100000; j++) {
+            // double q1 = hiprec_norm_l2(p, n - j);
+            double q1 = hiprec_norm_l2_AVX(p, n - j);
+            s += q1;
+        }
     }
     #endif
 
