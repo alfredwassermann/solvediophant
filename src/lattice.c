@@ -476,7 +476,7 @@ void shufflelattice(lattice_t *lattice) {
     int i, j, r;
     unsigned int s;
 
-    #if TRUE
+    #if FALSE
         s = (unsigned)(time(0))*getpid();
     #else
         s = 1300964772;

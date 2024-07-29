@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
     #endif
 
     // Test dot product
-    #if 0
+    #if 1
     {
         printf("--------- Dot\n");
         const int n = 60013;
@@ -224,15 +224,11 @@ int main(int argc, char *argv[])
             double q1 = hiprec_dot2_AVX(p, q, n - j);
             s += q1;
         }
-
-        // printf("NaiveNorm   %0.20lf\n", sqrt(dotNaive(p, p, n)));
-        // printf("NaiveNormQP %0.20lf\n", sqrt(dotNaiveQP(p, p, n)));
-        // printf("norm        %0.20lf\n", hiprec_norm_l2(p, n));
     }
     #endif
 
     // Test 2-norm
-    #if 1
+    #if 0
     {
         printf("--------- Norm\n");
         const int n = 60013;

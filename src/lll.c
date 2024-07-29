@@ -262,12 +262,21 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         // }
 
         /*
-            Before going to step 4 we test if $b_k$ is linear dependent.
+            Before going to step 4 we test if $b_k$ is linearly dependent.
             If we find a linear dependent vector $b_k$,
             we shift b_k to the last column of the
             matrix and restart lllH with s = s-1.
         */
-        norm = hiprec_norm_l2(R[k], k + 1);
+        #if defined(USE_AVX)
+            norm = hiprec_norm_l2_AVX(R[k], k + 1);
+            // double n1 = hiprec_norm_l2(R[k], k + 1);
+            // if (n1 != norm) {
+            //     // fprintf(stderr, "n!!! %0.20lf\n", norm - n1);
+            // }
+        #else
+            norm = hiprec_norm_l2(R[k], k + 1);
+        #endif
+
 
         if (norm != norm || norm < norm_bound) {  // nan or < 0.5, or < 0.5 * dome_factor to compute kernel.
             // if (norm != norm || norm < 0.5) {  // nan or < 0.5, or < 0.5 * c to compute kernel.
@@ -448,7 +457,15 @@ DOUBLE householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int
     #if TRUE
         for (i = 0; i < k; ++i) {
             // w = < R[k], H[i] >
-            w = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
+            #if defined(USE_AVX)
+                w = hiprec_dot2_AVX(&(R[k][i]), &(H[i][i]), z - i);
+                // double w1 = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
+                // if (w1 != w) {
+                //     fprintf(stderr, "w!!! %0.20lf %d\n", w - w1, (z-i));
+                // }
+            #else
+                w = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
+            #endif
             w_beta = w * beta[i];
 
             #if BLAS
@@ -503,7 +520,15 @@ DOUBLE householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int
     // }
 
     // More stable suggestion from Higham:
-    mu = hiprec_norm_l2(&(R[k][k]), z - k);
+    #if defined(USE_AVX)
+        mu = hiprec_norm_l2_AVX(&(R[k][k]), z - k);
+        // double mu1 = hiprec_norm_l2(&(R[k][k]), z - k);
+        // if (mu1 != mu) {
+        //     fprintf(stderr, "mu!!! %0.20lf\n", mu - mu1);
+        // }
+    #else
+        mu = hiprec_norm_l2(&(R[k][k]), z - k);
+    #endif
     if (R[k][k] < -eps) {
         mu = -mu;
     }

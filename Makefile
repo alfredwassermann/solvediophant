@@ -6,6 +6,7 @@ PDF=pdf
 # CFLAGS= -O3 -Wall -g -pg
 
 CFLAGS= -O3                    \
+    -DUSE_AVX                  \
 	-fno-math-errno            \
 	-ftree-vectorize             \
 	-mavx -mavx2                 \
