@@ -289,7 +289,7 @@ int main(int argc, char *argv[]) {
     }
     if (mpz_cmp_si(lattice.matrix_factor, 0) <= 0) {
         fprintf(stderr,"You did not supply -c* or -C*. ");
-        fprintf(stderr,"It is set to 1099511627776=2**40.\n");        // 2**40
+        fprintf(stderr,"It is set to 1099511627776=2^40.\n");        // 2**40
         mpz_set_str(lattice.matrix_factor, "1099511627776", 10);
     } else {
         fprintf(stderr,"Scale factor c=");
