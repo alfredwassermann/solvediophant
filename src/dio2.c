@@ -114,7 +114,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         fprintf(stderr, "\n"); fflush(stderr);
         if (!restart) {
             int org_cols = lattice->num_cols;  // Kernel vectors are swapped to the end.
-            lll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.lll.delta_low, KERNEL_LLL/* DEEP_LLL */);
+            lll(lattice, lattice->num_cols, lattice->num_rows, lattice->LLL_params.lll.delta_low, DEEP_LLL/*KERNEL_LLL*//* DEEP_LLL */);
             lattice->num_cols = org_cols;
 
             #if IS_USED

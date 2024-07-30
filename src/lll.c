@@ -269,21 +269,6 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
         */
         #if defined(USE_AVX)
             norm = hiprec_norm_l2_AVX(R[k], k + 1);
-            // double n1 = hiprec_norm_l2(R[k], k + 1);
-            // if (fabs(n1 - norm) > 1.e-6) {
-            //     fprintf(stderr, "n!!! %0.20lf %d\n", norm - n1, k + 1);
-            //     fprintf(stderr, "%0.20lf\n%0.20lf\n%0.20lf\n%0.20lf\n",
-            //         hiprec_normsq_l2(R[k], k + 1),
-            //         hiprec_normsq_l2_AVX(R[k], k + 1),
-            //         hiprec_norm_l2(R[k], k + 1),
-            //         hiprec_norm_l2_AVX(R[k], k + 1)
-            //         );
-            //     // fprintf(stderr, "%0.20lf\n%0.20lf\n",
-            //     //     hiprec_norm_l2(R[k], k + 1),
-            //     //     hiprec_norm_l2_AVX(R[k], k + 1)
-            //     //     );
-            //     // exit(1);
-            // }
         #else
             norm = hiprec_norm_l2(R[k], k + 1);
         #endif
@@ -415,9 +400,9 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                     )
                    ) {
                     insert_pos = i;
-                    if (i < k - 1) {
-                        fprintf(stderr, "DeepLLL: k=%d, new=%d, impvmt=%lf, delta=%lf\n", k, i, r_new / (R[i][i] * R[i][i]), delta);
-                    }
+                    // if (i < k - 1) {
+                    //     fprintf(stderr, "DeepLLL: k=%d, new=%d, impvmt=%lf, delta=%lf\n", k, i, r_new / (R[i][i] * R[i][i]), delta);
+                    // }
                     break;
                 }
                 r_new -= R[k][i] * R[k][i];
@@ -470,10 +455,6 @@ DOUBLE householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int
             // w = < R[k], H[i] >
             #if defined(USE_AVX)
                 w = hiprec_dot2_AVX(&(R[k][i]), &(H[i][i]), z - i);
-                // double w1 = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
-                // if (w1 != w) {
-                //     fprintf(stderr, "w!!! %0.20lf %d\n", w - w1, (z-i));
-                // }
             #else
                 w = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
             #endif
@@ -533,10 +514,6 @@ DOUBLE householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int
     // More stable suggestion from Higham:
     #if defined(USE_AVX)
         mu = hiprec_norm_l2_AVX(&(R[k][k]), z - k);
-        // double mu1 = hiprec_norm_l2(&(R[k][k]), z - k);
-        // if (mu1 != mu) {
-        //     fprintf(stderr, "mu!!! %0.20lf\n", mu - mu1);
-        // }
     #else
         mu = hiprec_norm_l2(&(R[k][k]), z - k);
     #endif
