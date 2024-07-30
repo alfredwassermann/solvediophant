@@ -207,6 +207,9 @@ int main(int argc, char *argv[]) {
                 mpz_ui_pow_ui(lattice.matrix_factor, 10, strtoul(suffix, &endptr, 10)); /* Version for the NTL output */
             #endif
 
+        } else if (get_param(argc, argv, i, "-C", suffix) != 0) {
+            mpz_ui_pow_ui(lattice.matrix_factor, 2, strtoul(suffix, &endptr, 10));
+
         } else if (get_param(argc, argv, i, "-maxnorm", suffix) != 0) {
             mpz_set_str(lattice.max_norm,suffix,10);
 
@@ -241,6 +244,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr,"\t-bkz -beta{num} do BKZ with blocksize num\n");
             fprintf(stderr,"\t-pbkz -beta{num} do progressive BKZ with blocksize num\n");
             fprintf(stderr,"\t-c{num} scale equations by num (default=1099511627776=2**40)\n");
+            fprintf(stderr,"\t-C{num} scale equations by 2^num (default=1099511627776=2**40)\n");
             fprintf(stderr,"\t-scalelastline{num} scale last line by num (default=1024)\n");
             fprintf(stderr,"\t-maxnorm* ???? default=1\n");
             fprintf(stderr,"\t-delta_low{num} delta for first LLL reduction\n");
@@ -284,11 +288,13 @@ int main(int argc, char *argv[]) {
         exit(EXIT_ERR_INPUT);
     }
     if (mpz_cmp_si(lattice.matrix_factor, 0) <= 0) {
-        fprintf(stderr,"You did not supply -c*. ");
-        // fprintf(stderr,"It is set to 10000000000000.\n");
-        // mpz_set_str(lattice.matrix_factor, "10000000000000", 10);
+        fprintf(stderr,"You did not supply -c* or -C*. ");
         fprintf(stderr,"It is set to 1099511627776=2**40.\n");        // 2**40
         mpz_set_str(lattice.matrix_factor, "1099511627776", 10);
+    } else {
+        fprintf(stderr,"Scale factor c=");
+        mpz_out_str(stderr, 10, lattice.matrix_factor);
+        fprintf(stderr, "\n");
     }
     if (mpz_cmp_si(lattice.max_norm, 0) <= 0) {
         fprintf(stderr,"You did not supply -maxnorm*. ");
