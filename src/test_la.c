@@ -228,7 +228,7 @@ int main(int argc, char *argv[])
     #endif
 
     // Test 2-norm
-    #if 0
+    #if 1
     {
         printf("--------- Norm\n");
         const int n = 60013;
