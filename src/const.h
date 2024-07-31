@@ -1,6 +1,8 @@
 #ifndef _LLLCONST_H
 #define _LLLCONST_H
 
+#include <stdbool.h>
+
 #define TRUE 1
 // #define FALSE 0
 #define IS_USED 0
@@ -43,6 +45,7 @@
 extern int SILENT;
 extern int PRINT_REQUIRED;
 extern int DUMP_REQUIRED;
+extern bool HAS_AVX2;
 
 #define ROUND(r) ceil(r-0.5)
 #define SQRT sqrt

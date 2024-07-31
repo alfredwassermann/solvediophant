@@ -267,11 +267,11 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             we shift b_k to the last column of the
             matrix and restart lllH with s = s-1.
         */
-        #if defined(USE_AVX)
+        if (HAS_AVX2) {
             norm = hiprec_norm_l2_AVX(R[k], k + 1);
-        #else
+        } else {
             norm = hiprec_norm_l2(R[k], k + 1);
-        #endif
+        }
 
 
         if (norm != norm || norm < norm_bound) {  // nan or < 0.5, or < 0.5 * dome_factor to compute kernel.
@@ -320,15 +320,18 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             pot = 1.0;
             pot_min = delta;
             for (j = k - 1; j >= low; --j) {
-                #if defined(USE_AVX)
+                if (HAS_AVX2) {
                     r_new = hiprec_normsq_l2_AVX(&(R[k][j]), k - j + 1);
-                #elif BLAS
-                    r_new = cblas_ddot(k - j + 1, &(R[k][j]), 1, &(R[k][j]), 1);
-                #else
-                    for (i = k, r_new = 0.0; i >= j; --i) {
-                        r_new += R[k][i] * R[k][i];
-                    }
-                #endif
+                } else {
+                    r_new = hiprec_normsq_l2(&(R[k][j]), k - j + 1);
+                }
+                    // #if BLAS
+                    //     r_new = cblas_ddot(k - j + 1, &(R[k][j]), 1, &(R[k][j]), 1);
+                    // #else
+                    //     for (i = k, r_new = 0.0; i >= j; --i) {
+                    //         r_new += R[k][i] * R[k][i];
+                    //     }
+                    // #endif
                 pot *= r_new / (R[j][j] * R[j][j]);
 
                 if (pot < pot_min) {
@@ -382,15 +385,18 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 // Deep insert
                 //
                 i = low;
-                #if defined(USE_AVX)
+                if (HAS_AVX2) {
                     r_new = hiprec_normsq_l2_AVX(R[k], k + 1);
-                #elif BLAS
-                    r_new = cblas_ddot(k + 1, R[k], 1, R[k], 1);
-                #else
-                    for (j = 0, r_new = 0.0; j <= k; ++j) {
-                        r_new += R[k][j] * R[k][j];
-                    }
-                #endif
+                } else {
+                    r_new = hiprec_normsq_l2(R[k], k + 1);
+                }
+                    // #if BLAS
+                    //     r_new = cblas_ddot(k + 1, R[k], 1, R[k], 1);
+                    // #else
+                    //     for (j = 0, r_new = 0.0; j <= k; ++j) {
+                    //         r_new += R[k][j] * R[k][j];
+                    //     }
+                    // #endif
                 deep_size = DEEPINSERT_CONST; // reduction_type;
             }
 
@@ -457,11 +463,11 @@ DOUBLE householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int
     #if TRUE
         for (i = 0; i < k; ++i) {
             // w = < R[k], H[i] >
-            #if defined(USE_AVX)
+            if (HAS_AVX2) {
                 w = hiprec_dot2_AVX(&(R[k][i]), &(H[i][i]), z - i);
-            #else
+            } else {
                 w = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
-            #endif
+            }
             w_beta = w * beta[i];
 
             #if BLAS
@@ -516,11 +522,11 @@ DOUBLE householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int
     // }
 
     // More stable suggestion from Higham:
-    #if defined(USE_AVX)
+    if (HAS_AVX2) {
         mu = hiprec_norm_l2_AVX(&(R[k][k]), z - k);
-    #else
+    } else {
         mu = hiprec_norm_l2(&(R[k][k]), z - k);
-    #endif
+    }
     if (R[k][k] < -eps) {
         mu = -mu;
     }

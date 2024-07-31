@@ -1,5 +1,6 @@
 #include <signal.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/times.h>  /* For run time measurements */
@@ -92,6 +93,7 @@ int get_param(int argc, char *argv[], int i, char *name, char *suffix) {
 int SILENT;
 int PRINT_REQUIRED;
 int DUMP_REQUIRED;
+bool HAS_AVX2;
 
 /**
  * Main program
@@ -135,6 +137,19 @@ int main(int argc, char *argv[]) {
     char *res;
 
     strcpy(sol_filename, "solutions");
+
+    if (__builtin_cpu_supports("avx2")) {
+        #if USE_AVX
+            fprintf(stderr, "CPU supports AVX2\n");
+            HAS_AVX2 = true;
+        #else 
+            fprintf(stderr, "AVX2 not enabled during compilation\n");
+            HAS_AVX2 = false;
+        #endif
+    } else {
+        fprintf(stderr, "CPU does not support AVX2\n");
+        HAS_AVX2 = false;
+    }
 
     /**
      * Init structs lattice and LLL_params

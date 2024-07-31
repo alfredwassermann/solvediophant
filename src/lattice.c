@@ -15,6 +15,7 @@
 #include "datastruct.h"
 #include "lattice.h"
 #include "lll.h"
+#include "arith.h"
 
 #if defined(USE_BLAS)
     #define BLAS 1
@@ -176,17 +177,21 @@ DOUBLE dot_mpz (mpz_t *v, mpz_t *w, int z) {
 }
 
 DOUBLE dot_double(DOUBLE *v, DOUBLE *w , int n) {
-    #if defined(USE_AVX)
+
+    if (HAS_AVX2) {
         return hiprec_dot2_AVX(v, w, n);
-    #elif BLAS
-        return cblas_ddot(n, v, 1, w, 1);
-    #else
-        DOUBLE r;
-        int i;
-        r = 0.0;
-        for (i = n - 1; i >= 0; i--) r += v[i] * w[i];
-        return r;
-    #endif
+    } else {
+        return hiprec_dot2(v, w, n);
+    }
+        // #if BLAS
+        //     return cblas_ddot(n, v, 1, w, 1);
+        // #else
+        //     DOUBLE r;
+        //     int i;
+        //     r = 0.0;
+        //     for (i = n - 1; i >= 0; i--) r += v[i] * w[i];
+        //     return r;
+        // #endif
 }
 
 void allocate_basis (lattice_t *lattice) {
