@@ -320,7 +320,9 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             pot = 1.0;
             pot_min = delta;
             for (j = k - 1; j >= low; --j) {
-                #if BLAS
+                #if defined(USE_AVX)
+                    r_new = hiprec_normsq_l2_AVX(&(R[k][j]), k - j + 1);
+                #elif BLAS
                     r_new = cblas_ddot(k - j + 1, &(R[k][j]), 1, &(R[k][j]), 1);
                 #else
                     for (i = k, r_new = 0.0; i >= j; --i) {
@@ -380,7 +382,9 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 // Deep insert
                 //
                 i = low;
-                #if BLAS
+                #if defined(USE_AVX)
+                    r_new = hiprec_normsq_l2_AVX(R[k], k + 1);
+                #elif BLAS
                     r_new = cblas_ddot(k + 1, R[k], 1, R[k], 1);
                 #else
                     for (j = 0, r_new = 0.0; j <= k; ++j) {

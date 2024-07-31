@@ -176,7 +176,9 @@ DOUBLE dot_mpz (mpz_t *v, mpz_t *w, int z) {
 }
 
 DOUBLE dot_double(DOUBLE *v, DOUBLE *w , int n) {
-    #if BLAS
+    #if defined(USE_AVX)
+        return hiprec_dot2_AVX(v, w, n);
+    #elif BLAS
         return cblas_ddot(n, v, 1, w, 1);
     #else
         DOUBLE r;
