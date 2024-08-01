@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gmp.h>
 
 #include "const.h"
+#include "arith.h"
 #include "lgs.h"
 #include "datastruct.h"
 #include "lattice.h"
@@ -929,8 +930,11 @@ DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max) {
 
 DOUBLE compute_w2(DOUBLE *w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     #if BLAS
-        cblas_daxpy(rows, alpha, bd[level], 1, w, 1);
-        return cblas_dasum(rows, w, 1);
+        // cblas_daxpy(rows, alpha, bd[level], 1, w, 1);
+        // return cblas_dasum(rows, w, 1);
+        // return hiprec_daxpy_dasum_AVX(alpha, bd[level], w, w, rows);
+        return daxpy_dasum_AVX(alpha, bd[level], w, w, rows);
+
     #else
         int i;
         register DOUBLE norm1 = 0.0;
@@ -946,10 +950,13 @@ DOUBLE compute_w2(DOUBLE *w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
 
 DOUBLE compute_w(DOUBLE *w, DOUBLE *w1, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     #if BLAS
-        cblas_dcopy(rows, w1, 1, w, 1);
-        //memcpy(w, w1, sizeof(DOUBLE)*rows);
-        cblas_daxpy(rows, alpha, bd[level], 1, w, 1);
-        return cblas_dasum(rows, w, 1);
+        // cblas_dcopy(rows, w1, 1, w, 1);
+        // cblas_daxpy(rows, alpha, bd[level], 1, w, 1);
+        // return cblas_dasum(rows, w, 1);
+        // Seems to be slightly slower
+        // return hiprec_daxpy_dasum_AVX(alpha, bd[level], w1, w, rows);
+        return daxpy_dasum_AVX(alpha, bd[level], w1, w, rows);
+
     #else
         register int i;
         register DOUBLE norm1 = 0.0;

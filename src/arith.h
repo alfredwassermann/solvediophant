@@ -123,4 +123,6 @@ extern DOUBLE hiprec_norm_l2(DOUBLE* x, int n);
 extern DOUBLE hiprec_norm_l2_AVX(DOUBLE* x, int n);
 extern DOUBLE hiprec_normK_l2(DOUBLE* x, int n, int K);
 
+extern DOUBLE hiprec_daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n);
+extern DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n);
 #endif

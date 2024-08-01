@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
         printf("hiprec l1  %0.20lf\n", hiprec_norm_l1_AVX(p, n));
 
         double s = 0.0;
-        for (int j = 0; j < 100000; j++) {
+        for (int j = 0; j < n; j++) {
             // double q1 = hiprec_norm_l1(p, n - j);
             double q1 = hiprec_norm_l1_AVX(p, n - j);
             s += q1;
