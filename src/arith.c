@@ -131,6 +131,15 @@ void twoProd2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo) {
 }
 
 /**
+ * Multiply two numbers and return hiprec result in parameters hi and lo,
+ * use fma()
+ */
+void twoProd2fma(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo) {
+    (*hi) = a * b;
+    (*lo) = fma(a, b, -(*hi));
+}
+
+/**
  * Multiply a * a and return hiprec result.
 */
 hiprec twoSquare(DOUBLE a) {
@@ -152,6 +161,15 @@ void twoSquare2(DOUBLE a, DOUBLE *hi, DOUBLE *lo) {
 }
 
 /**
+ * Multiply a * a and return hiprec result in parameters hi and lo,
+ * use fma().
+ */
+void twoSquare2fma(DOUBLE a, DOUBLE *hi, DOUBLE *lo) {
+    (*hi) = a * a;
+    (*lo) = fma(a, a, -(*hi));
+}
+
+/**
  *  Accurate square root of hiprec number (T, t).
  */
 DOUBLE hiprec_sqrt(DOUBLE T, DOUBLE t) {
@@ -160,7 +178,7 @@ DOUBLE hiprec_sqrt(DOUBLE T, DOUBLE t) {
 
     P = sqrt(T);
 
-    twoSquare2(P, &H, &h);
+    twoSquare2fma(P, &H, &h);
     r = (T - H) - h;
     r = t + r;
     p = r / (2 * P);
@@ -447,7 +465,7 @@ DOUBLE hiprec_norm_l1_AVX(DOUBLE* p, int n) {
     long n_16 = n & -16;
 
     if (n_16 >= 16) {
-        __m256d a = {-0.0, -0.0, -0.0, -0.0};
+        __m256d a = {-0.0, -0.0, -0.0, -0.0}; // Used for fabs()
 
         __m256d sum_hi1 = {0.0, 0.0, 0.0, 0.0};
         __m256d sigma1  = {0.0, 0.0, 0.0, 0.0};
@@ -516,17 +534,17 @@ DOUBLE hiprec_norm_l1_AVX(DOUBLE* p, int n) {
  * Dot product of arrays x and y of length n with high precision.
  */
 DOUBLE hiprec_dot2(DOUBLE* x, DOUBLE* y, int n) {
-    DOUBLE p, q, h, r, sigma;
+    DOUBLE S, h, s, r, sigma;
     int i;
     if (n <= 0) return 0.0;
 
-    twoProd2(x[0], y[0], &p, &sigma);
+    twoProd2fma(x[0], y[0], &S, &sigma);
     for (i = 1; i < n; i++) {
-        twoProd2(x[i], y[i], &h, &r);
-        twoSum2(p, h, &p, &q);
-        sigma += (q + r);
+        twoProd2fma(x[i], y[i], &h, &r);
+        twoSum2(S, h, &S, &s);
+        sigma += (s + r);
     }
-    return p + sigma;
+    return S + sigma;
 }
 
 /**
@@ -609,7 +627,7 @@ DOUBLE hiprec_dot2_AVX(DOUBLE* x, DOUBLE* y, int n) {
     {
         DOUBLE hi, lo;
         for (i = n_16; i < n; i++) {
-            twoProd2(x[i], y[i], &hi, &lo);
+            twoProd2fma(x[i], y[i], &hi, &lo);
             s = twoSum(s.hi, hi);
             sigma_d += (lo + s.lo);
         }
@@ -627,9 +645,9 @@ DOUBLE hiprec_dotK(DOUBLE* x, DOUBLE* y, int n, int K) {
     int i;
     if (n <= 0) return 0.0;
 
-    twoProd2(x[0], y[0], &P, &(r[0]));
+    twoProd2fma(x[0], y[0], &P, &(r[0]));
     for (i = 1; i < n; i++) {
-        twoProd2(x[i], y[i], &H, &(r[i]));
+        twoProd2fma(x[i], y[i], &H, &(r[i]));
         twoSum2(P, H, &P, &(r[n + i - 1]));
     }
     r[2 * n - 1] = P;
@@ -644,9 +662,9 @@ DOUBLE hiprec_dot2_row(DOUBLE* x, int dx, DOUBLE* y, int dy, int n) {
     int i, jx, jy;
     if (n <= 0) return 0.0;
 
-    twoProd2(x[0], y[0], &p, &s);
+    twoProd2fma(x[0], y[0], &p, &s);
     for (i = 1, jx = dx, jy = dy; i < n; i++, jx += dx, jy += dy) {
-        twoProd2(x[jx], y[jy], &h, &r);
+        twoProd2fma(x[jx], y[jy], &h, &r);
         twoSum2(p, h, &p, &q);
         s += (q + r);
     }
@@ -654,25 +672,40 @@ DOUBLE hiprec_dot2_row(DOUBLE* x, int dx, DOUBLE* y, int dy, int n) {
 }
 
 /**
+ * @private
+ * Square of ||x||_2, i.e.
+ * dot product of array x with itself of length n with high precision.
+ * Used in hiprec_normsq_l2_AVX and hiprec_norm_l2_AVX.
+ * @returns hiprec
+ * 
+ */
+hiprec hiprec_normsq_l2_kernel(DOUBLE* x, int n) {
+    DOUBLE P, p, H, h;
+    DOUBLE d;
+    hiprec s;
+    int i;
+
+    s.hi = 0.0;
+    s.lo = 0.0;
+
+    if (n <= 0) return s;
+
+    for (i = 0; i < n; i++) {
+        twoSquare2fma(x[i], &P, &p);
+        fastTwoSum2(s.hi, P, &H, &h);
+        d = h + (s.lo + p);
+        fastTwoSum2(H, d, &(s.hi), &(s.lo));
+    }
+    return s;
+}
+
+/**
  * Square of ||x||_2, i.e.
  * dot product of array x with itself of length n with high precision.
  */
 DOUBLE hiprec_normsq_l2(DOUBLE* x, int n) {
-    DOUBLE S, s, P, p, H, h;
-    DOUBLE d;
-    int i;
-
-    if (n <= 0) return 0.0;
-
-    S = 0.0;
-    s = 0.0;
-    for (i = 0; i < n; i++) {
-        twoSquare2(x[i], &P, &p);
-        twoSum2(S, P, &H, &h);
-        d = h + (s + p);
-        fastTwoSum2(H, d, &S, &s);
-    }
-    return S + s;
+    hiprec s = hiprec_normsq_l2_kernel(x, n);
+    return s.hi + s.lo;
 }
 
 /**
@@ -709,25 +742,29 @@ hiprec hiprec_normsq_l2_AVX_kernel(DOUBLE* x, int n) {
         for (i = 0; i < n_16; i += 16) {
             a = _mm256_loadu_pd(x + i);
             TWOSQUARE_AVX(a, hi, lo);
-            TWOSUM_AVX(sum_hi1, hi, sum_hi1, q, h, z);
+            // TWOSUM_AVX(sum_hi1, hi, sum_hi1, q, h, z);
+            FASTTWOSUM_AVX(sum_hi1, hi, sum_hi1, q, h);
             lo = _mm256_add_pd(lo, q);
             sigma1 = _mm256_add_pd(sigma1, lo);
 
             a = _mm256_loadu_pd(x + i + 4);
             TWOSQUARE_AVX(a, hi, lo);
-            TWOSUM_AVX(sum_hi2, hi, sum_hi2, q, h, z);
+            // TWOSUM_AVX(sum_hi2, hi, sum_hi2, q, h, z);
+            FASTTWOSUM_AVX(sum_hi2, hi, sum_hi2, q, h);
             lo = _mm256_add_pd(lo, q);
             sigma2 = _mm256_add_pd(sigma2, lo);
 
             a = _mm256_loadu_pd(x + i + 8);
             TWOSQUARE_AVX(a, hi, lo);
-            TWOSUM_AVX(sum_hi3, hi, sum_hi3, q, h, z);
+            // TWOSUM_AVX(sum_hi3, hi, sum_hi3, q, h, z);
+            FASTTWOSUM_AVX(sum_hi3, hi, sum_hi3, q, h);
             lo = _mm256_add_pd(lo, q);
             sigma3 = _mm256_add_pd(sigma3, lo);
 
             a = _mm256_loadu_pd(x + i + 12);
             TWOSQUARE_AVX(a, hi, lo);
-            TWOSUM_AVX(sum_hi4, hi, sum_hi4, q, h, z);
+            // TWOSUM_AVX(sum_hi4, hi, sum_hi4, q, h, z);
+            FASTTWOSUM_AVX(sum_hi4, hi, sum_hi4, q, h);
             lo = _mm256_add_pd(lo, q);
             sigma4 = _mm256_add_pd(sigma4, lo);
         }
@@ -758,7 +795,7 @@ hiprec hiprec_normsq_l2_AVX_kernel(DOUBLE* x, int n) {
     {
         DOUBLE hi, lo;
         for (i = n_16; i < n; i++) {
-            twoSquare2(x[i], &hi, &lo);
+            twoSquare2fma(x[i], &hi, &lo);
             s = twoSum(s.hi, hi);
             sigma_d += (lo + s.lo);
         }
@@ -782,22 +819,8 @@ DOUBLE hiprec_normsq_l2_AVX(DOUBLE* x, int n) {
  * Siegfried M. Rump (2007)
  */
 DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
-    DOUBLE S, s, P, p, H, h;
-    DOUBLE d;
-    int i;
-
-    if (n <= 0) return 0.0;
-
-    S = 0.0;
-    s = 0.0;
-    for (i = 0; i < n; i++) {
-        twoSquare2(x[i], &P, &p);
-        twoSum2(S, P, &H, &h);
-        d = h + (s + p);
-        fastTwoSum2(H, d, &S, &s);
-    }
-    // fprintf(stderr, ">%0.20lf %0.20lf\n", S, s);
-    return hiprec_sqrt(S, s);
+    hiprec s = hiprec_normsq_l2_kernel(x, n);
+    return hiprec_sqrt(s.hi, s.lo);
 }
 
 /**
@@ -822,7 +845,7 @@ DOUBLE hiprec_normK_l2(DOUBLE* x, int n, int K) {
 
     S = 0.0;
     for (i = 0; i < n; i++) {
-        twoSquare2(x[i], &P, &(r[i]));
+        twoSquare2fma(x[i], &P, &(r[i]));
         twoSum2(S, P, &S, &(r[n + i - 1]));
     }
     r[2 * n - 1] = S;
