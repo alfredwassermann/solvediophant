@@ -275,6 +275,7 @@ int main(int argc, char *argv[])
         printf("--------- Dot\n");
         const int n = 60013;
 
+        DOUBLE q1;
         DOUBLE *p = getArray(n, 2);
         DOUBLE *q = getArray(n, 3);
 
@@ -284,11 +285,12 @@ int main(int argc, char *argv[])
         printf("dotAVX %0.20lf\n", hiprec_dot2_AVX(p, q, n));
 
         double s = 0.0;
-        for (int j = 0; j < 100000; j++) {
-            // double q1 = hiprec_dot2(p, q, n - j);
-            double q1 = hiprec_dot2_AVX(p, q, n - j);
+        for (int j = 0; j < n; j++) {
+            // q1 = hiprec_dot2(p, q, n - j);
+            q1 = hiprec_dot2_AVX(p, q, n - j);
             s += q1;
         }
+        printf("Multiple dot %0.20lf\n", s);
     }
     #endif
 
@@ -298,6 +300,7 @@ int main(int argc, char *argv[])
         printf("--------- Norm\n");
         const int n = 60013;
 
+        DOUBLE q1 = 0.0;
         DOUBLE *p = getArray(n, 2);
 
         printf("normsq      %0.20lf\n", hiprec_normsq_l2(p, n));
@@ -309,11 +312,12 @@ int main(int argc, char *argv[])
         printf("normAVX     %0.20lf\n", hiprec_norm_l2_AVX(p, n));
 
         double s = 0.0;
-        for (int j = 0; j < 100000; j++) {
-            // double q1 = hiprec_norm_l2(p, n - j);
-            double q1 = hiprec_norm_l2_AVX(p, n - j);
+        for (int j = 0; j < n; j++) {
+            // q1 = hiprec_norm_l2(p, n - j);
+            q1 = hiprec_norm_l2_AVX(p, n - j);
             s += q1;
         }
+        printf("Multiple norm %0.20lf\n", s);
     }
     #endif
 

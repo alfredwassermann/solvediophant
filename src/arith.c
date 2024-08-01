@@ -794,8 +794,10 @@ DOUBLE hiprec_normsq_l2_AVX(DOUBLE* x, int n) {
  * using AVX.
  */
 DOUBLE hiprec_norm_l2_AVX(DOUBLE* x, int n) {
+    if (n <= 0) {
+        return 0.0;
+    }
     hiprec s = hiprec_normsq_l2_AVX_kernel(x, n);
-    // fprintf(stderr, ":%0.20lf %0.20lf\n", s.hi, s.lo);
     return hiprec_sqrt(s.hi, s.lo);
 }
 
