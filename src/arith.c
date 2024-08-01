@@ -230,40 +230,6 @@ DOUBLE hiprec_SUM(DOUBLE* p, int n) {
 }
 
 /**
- * Naive summation using AVX
- */
-DOUBLE sumNaiveAVX(DOUBLE *p, int n)
-{
-    long i = 0;
-    long n_4 = n & -4;
-    DOUBLE s;
-
-    __m256d sum = {0.0, 0.0, 0.0, 0.0};
-    while (i < n_4)
-    {
-        __m256d vp = _mm256_load_pd(&p[i]);
-        sum = _mm256_add_pd(vp, sum);
-        i += 4;
-    }
-
-    // sum = {a,b,c,d}
-    __m128d xmm = _mm256_extractf128_pd(sum, 1); // xmm = {c,d}
-    __m256d ymm = {xmm[0], xmm[1], 0, 0};        // ymm = {c,d,0,0}
-    sum = _mm256_hadd_pd(sum, ymm);              // sum = {a+b,c+d,c+d,0}
-    sum = _mm256_hadd_pd(sum, sum);              // sum = {a+b+c+d,a+b+c+d,c+d,c+d}
-
-    s = sum[0];
-
-    while (i < n)
-    {
-        s += p[i];
-        i++;
-    }
-
-    return s;
-}
-
-/**
  * hiprec summation using AVX.
  */
 DOUBLE hiprec_sum_AVX(DOUBLE* p, int n) {
@@ -709,6 +675,16 @@ DOUBLE hiprec_normsq_l2(DOUBLE* x, int n) {
 }
 
 /**
+ * ||x||_2, i.e. square root of dot product of array x with itself of length n with high precision.
+ * "Fast and accurate computation of the Euclidean norm of a vector"
+ * Siegfried M. Rump (2007)
+ */
+DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
+    hiprec s = hiprec_normsq_l2_kernel(x, n);
+    return hiprec_sqrt(s.hi, s.lo);
+}
+
+/**
  * @private
  * Square of ||x||_2, i.e.
  * dot product of array x with itself of length n with high precision using AVX.
@@ -811,16 +787,6 @@ hiprec hiprec_normsq_l2_AVX_kernel(DOUBLE* x, int n) {
 DOUBLE hiprec_normsq_l2_AVX(DOUBLE* x, int n) {
     hiprec s = hiprec_normsq_l2_AVX_kernel(x, n);
     return s.hi + s.lo;
-}
-
-/**
- * ||x||_2, i.e. square root of dot product of array x with itself of length n with high precision.
- * "Fast and accurate computation of the Euclidean norm of a vector"
- * Siegfried M. Rump (2007)
- */
-DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
-    hiprec s = hiprec_normsq_l2_kernel(x, n);
-    return hiprec_sqrt(s.hi, s.lo);
 }
 
 /**

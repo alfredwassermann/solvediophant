@@ -91,20 +91,18 @@ typedef struct {
 }
 
 extern hiprec twoSum(DOUBLE a, DOUBLE b);
-extern void twoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo);
-extern void fastTwoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo);
-extern void twoSum2i(DOUBLE *a, DOUBLE *b);
+extern void   twoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo);
+extern void   fastTwoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo);
+extern void   twoSum2i(DOUBLE *a, DOUBLE *b);
 
 extern hiprec split(DOUBLE a);
 extern hiprec twoProd(DOUBLE a, DOUBLE b);
-extern void twoProd2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo);
+extern void   twoProd2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo);
 extern hiprec twoSquare(DOUBLE a);
-extern void twoSquare2(DOUBLE a, DOUBLE *x, DOUBLE *y);
+extern void   twoSquare2(DOUBLE a, DOUBLE *x, DOUBLE *y);
 
 extern DOUBLE hiprec_sqrt(DOUBLE T, DOUBLE t);
 
-extern DOUBLE sumNaive(DOUBLE* p, int n);
-extern DOUBLE sumNaiveAVX(DOUBLE *p, int n);
 extern DOUBLE hiprec_sum2(DOUBLE* p, int n);
 extern DOUBLE hiprec_SUM(DOUBLE* p, int n);
 extern DOUBLE hiprec_sum_AVX(DOUBLE* p, int n);

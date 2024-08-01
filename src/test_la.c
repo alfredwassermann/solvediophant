@@ -80,6 +80,40 @@ DOUBLE sumNaive(DOUBLE *p, int n)
     return s;
 }
 
+/**
+ * Naive summation using AVX
+ */
+DOUBLE sumNaiveAVX(DOUBLE *p, int n)
+{
+    long i = 0;
+    long n_4 = n & -4;
+    DOUBLE s;
+
+    __m256d sum = {0.0, 0.0, 0.0, 0.0};
+    while (i < n_4)
+    {
+        __m256d vp = _mm256_load_pd(&p[i]);
+        sum = _mm256_add_pd(vp, sum);
+        i += 4;
+    }
+
+    // sum = {a,b,c,d}
+    __m128d xmm = _mm256_extractf128_pd(sum, 1); // xmm = {c,d}
+    __m256d ymm = {xmm[0], xmm[1], 0, 0};        // ymm = {c,d,0,0}
+    sum = _mm256_hadd_pd(sum, ymm);              // sum = {a+b,c+d,c+d,0}
+    sum = _mm256_hadd_pd(sum, sum);              // sum = {a+b+c+d,a+b+c+d,c+d,c+d}
+
+    s = sum[0];
+
+    while (i < n)
+    {
+        s += p[i];
+        i++;
+    }
+
+    return s;
+}
+
 DOUBLE dotNaive(DOUBLE *x, DOUBLE *y, int n)
 {
     DOUBLE s;
