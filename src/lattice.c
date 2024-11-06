@@ -445,24 +445,34 @@ int decomp_alloc(lattice_t *lattice) {
     d->N = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE));
 
     // Use contiguous memory for BLAS
-    d->mu = (DOUBLE**)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE*));
-    d->mu[0] = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, cols * rows * sizeof(DOUBLE));
-    for (i = 1; i < cols; i++) {
-        d->mu[i] = (DOUBLE*)(d->mu[0] + i * rows);
+    if (1) {
+        d->mu = (DOUBLE **)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE *));
+        d->mu[0] = (DOUBLE *)aligned_alloc(ALLOC_CHUNK, cols * rows * sizeof(DOUBLE));
+        for (i = 1; i < cols; i++) {
+            d->mu[i] = (DOUBLE *)(d->mu[0] + i * rows);
+        }
+    } else {
+        // d->muMemory = aligned_alloc(ALLOC_CHUNK, cols * rows * sizeof(DOUBLE));
+        // d->mu = (DOUBLE **)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE));
+        // for (i = 0; i < cols; i++) {
+        //     d->mu[i] = &(d->muMemory[i * rows]);
+        // }
     }
-    // for (i = 0; i < cols; i++) {
-    //     d->mu[i] = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, rows * sizeof(DOUBLE));
-    // }
 
     m = (rows > cols) ? rows : cols;
-    d->bd = (DOUBLE**)aligned_alloc(ALLOC_CHUNK, m * sizeof(DOUBLE*));
-    d->bd[0] = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, rows * m * sizeof(DOUBLE));
-    for (i = 1; i < m; i++) {
-        d->bd[i] = (DOUBLE*)(d->bd[0] + i * rows);
+    if (1) {
+        d->bd = (DOUBLE **)aligned_alloc(ALLOC_CHUNK, m * sizeof(DOUBLE *));
+        d->bd[0] = (DOUBLE *)aligned_alloc(ALLOC_CHUNK, rows * m * sizeof(DOUBLE));
+        for (i = 1; i < m; i++) {
+            d->bd[i] = (DOUBLE *)(d->bd[0] + i * rows);
+        }
+    } else {
+        // d->bdMemory = aligned_alloc(ALLOC_CHUNK, rows * m * sizeof(DOUBLE));
+        // d->bd = (DOUBLE **)aligned_alloc(ALLOC_CHUNK, m * sizeof(DOUBLE));
+        // for (i = 0; i < m; i++) {
+        //     d->bd[i] = &(d->bdMemory[i * rows]);
+        // }
     }
-    // for (i = 0; i < m; i++) {
-    //     d->bd[i] = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, rows * sizeof(DOUBLE));
-    // }
 
     // R, H and h_beta are only pointers to already existing arrays
     d->R = d->mu;

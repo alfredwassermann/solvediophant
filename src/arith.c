@@ -532,8 +532,8 @@ DOUBLE hiprec_dot2_AVX(DOUBLE* x, DOUBLE* y, int n) {
         __m256d sigma4  = {0.0, 0.0, 0.0, 0.0};
 
         for (i = 0; i < n_16; i += 16) {
-            a = _mm256_loadu_pd(x + i);
-            b = _mm256_loadu_pd(y + i);
+            a = _mm256_loadu_pd(x + i + 0);
+            b = _mm256_loadu_pd(y + i + 0);
             TWOPROD_AVX(a, b, hi, lo);
             TWOSUM_AVX(sum_hi1, hi, sum_hi1, q, h, z);
             lo = _mm256_add_pd(lo, q);

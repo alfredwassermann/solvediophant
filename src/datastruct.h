@@ -89,10 +89,12 @@ typedef struct {
     DOUBLE *c;
     DOUBLE **bd;
     DOUBLE **mu, **mu_trans;
+    // DOUBLE *bdMemory, *muMemory;
 
     DOUBLE *h_beta;
     DOUBLE **H;
     DOUBLE **R;
+    
 
     DOUBLE Fd, Fq, Fqeps;
     DOUBLE tmp;
@@ -110,7 +112,7 @@ typedef struct {
     int *first_nonzero;
     int *first_nonzero_in_column;
     int *firstp;
-} decomp_t;
+} decomp_t; //  __attribute__ ((aligned (32))) ;
 
 /**
  * @name lattice_t

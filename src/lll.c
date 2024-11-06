@@ -495,6 +495,7 @@ DOUBLE householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int
         for (i = 0; i < k; ++i) {
             // w = < R[k], H[i] >
             if (HAS_AVX2) {
+                // fprintf(stderr, "%d %d, %d\n", i, k, z - i);
                 w = hiprec_dot2_AVX(&(R[k][i]), &(H[i][i]), z - i);
             } else {
                 w = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);

@@ -105,5 +105,4 @@ extern bool HAS_AVX2;
 #define EXIT_MAX_LOOPS 10
 #define EXIT_MAX_SIGALRM 11
 
-
 #endif
