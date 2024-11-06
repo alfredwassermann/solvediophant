@@ -384,12 +384,19 @@ void insert_vector_long(lattice_t *lattice, long *u, int start, int end, int z) 
 }
 
 void allocate_bkz_enum(bkz_enum_t *bkz_enum, int s) {
-    bkz_enum->c = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
-    bkz_enum->y = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
-    bkz_enum->d = (long*)calloc(s+1,sizeof(long));
-    bkz_enum->v = (long*)calloc(s+1,sizeof(long));
-    bkz_enum->delta = (long*)calloc(s+1,sizeof(long));
-    bkz_enum->u_loc = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    // bkz_enum->c = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    // bkz_enum->y = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    // bkz_enum->u_loc = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+
+    // Float
+    bkz_enum->c = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (s + 1) * sizeof(DOUBLE));
+    bkz_enum->y = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (s + 1) * sizeof(DOUBLE));
+    bkz_enum->u_loc = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (s + 1) * sizeof(DOUBLE));
+
+    // Integer
+    bkz_enum->d = (long*)calloc(s + 1, sizeof(long));
+    bkz_enum->v = (long*)calloc(s + 1, sizeof(long));
+    bkz_enum->delta = (long*)calloc(s + 1,sizeof(long));
 }
 
 void free_bkz_enum(bkz_enum_t *bkz_enum) {

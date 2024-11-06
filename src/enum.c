@@ -111,7 +111,7 @@ void allocateEnum_data(enum_level_t** enum_data, DOUBLE **fipo, int columns, int
         k = (k > MAX_DUAL_BOUNDS) ? MAX_DUAL_BOUNDS : k;
         (*enum_data)[i].nodes = (enum_node_t*)calloc(k, sizeof(enum_node_t));
         for (j = 0; j < k; j++) {
-            (*enum_data)[i].nodes[j].w = (DOUBLE*)calloc(rows, sizeof(DOUBLE));
+            (*enum_data)[i].nodes[j].w = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, rows * sizeof(DOUBLE));
         }
         (*enum_data)[i].num = 0;
         (*enum_data)[i].pos = 0;
@@ -595,14 +595,14 @@ void init_dualbounds(lattice_t *lattice, DOUBLE ***fipo) {
     int cols = lattice->num_cols;
     int rows = lattice->num_rows;
 
-    (*fipo) = (DOUBLE**)calloc((int)(cols + 1), sizeof(DOUBLE*));
+    (*fipo) = (DOUBLE**)aligned_alloc(ALLOC_CHUNK, (cols + 1) * sizeof(DOUBLE*));
     for (i = 0; i <= cols; i++) {
-        (*fipo)[i] = (DOUBLE*)calloc((int)(cols + 1), sizeof(DOUBLE));
+        (*fipo)[i] = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (cols + 1) * sizeof(DOUBLE));
     }
 
-    muinv = (DOUBLE**)calloc((int)cols, sizeof(DOUBLE*));
+    muinv = (DOUBLE**)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE*));
     for(i = 0; i < cols; ++i) {
-        muinv[i] = (DOUBLE*)calloc((int)rows, sizeof(DOUBLE));
+        muinv[i] = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, rows * sizeof(DOUBLE));
     }
 
     /* determine inverse of mu */
@@ -674,10 +674,10 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
         return 0;
     }
 
-    /* allocate the memory for enumeration */
-    lattice->decomp.bd_1norm = (DOUBLE*)calloc(lattice->num_cols + 1, sizeof(DOUBLE));
-    us = (DOUBLE*)calloc(lattice->num_cols + 1, sizeof(DOUBLE));
+    lattice->decomp.bit_size = get_bit_size(lattice);
 
+    /* Allocate the memory for enumeration */
+    // Integer
     lattice->decomp.first_nonzero = (int*)calloc(lattice->num_rows, sizeof(int));
     lattice->decomp.first_nonzero_in_column = (int*)calloc(lattice->num_cols + lattice->num_rows + 1, sizeof(int));
     if (lattice->decomp.first_nonzero_in_column == NULL) {
@@ -685,12 +685,13 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
     }
     lattice->decomp.firstp = (int*)calloc(lattice->num_cols + 1, sizeof(int));
 
-    lattice->decomp.mu_trans = (DOUBLE**)calloc(lattice->num_cols + 1, sizeof(DOUBLE*));
+    // Float
+    lattice->decomp.bd_1norm = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (lattice->num_cols + 1) * sizeof(DOUBLE));
+    us = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (lattice->num_cols + 1) * sizeof(DOUBLE));
+    lattice->decomp.mu_trans = (DOUBLE**)aligned_alloc(ALLOC_CHUNK, (lattice->num_cols + 1) * sizeof(DOUBLE*));
     for (i = 0; i <= lattice->num_cols; i++) {
-        lattice->decomp.mu_trans[i]=(DOUBLE*)calloc(lattice->num_cols + 1, sizeof(DOUBLE));
+        lattice->decomp.mu_trans[i]=(DOUBLE*)aligned_alloc(ALLOC_CHUNK, (lattice->num_cols + 1) * sizeof(DOUBLE));
     }
-
-    lattice->decomp.bit_size = get_bit_size(lattice);
 
     /* count nonzero entries in the last rows(s) */
     if (lattice->free_RHS) {
@@ -781,7 +782,6 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
     }
     #endif
 
-    /* New strategy */
     allocateEnum_data(&enum_data, fipo, lattice->num_cols, lattice->num_rows);
 
     /* initialize first-nonzero arrays */
@@ -953,8 +953,7 @@ DOUBLE compute_w(DOUBLE *w, DOUBLE *w1, DOUBLE **bd, DOUBLE alpha, int level, in
         // cblas_dcopy(rows, w1, 1, w, 1);
         // cblas_daxpy(rows, alpha, bd[level], 1, w, 1);
         // return cblas_dasum(rows, w, 1);
-        // Seems to be slightly slower
-        // return hiprec_daxpy_dasum_AVX(alpha, bd[level], w1, w, rows);
+        // return hiprec_daxpy_dasum_AVX(alpha, bd[level], w1, w, rows); // Seems to be slightly slower
         return daxpy_dasum_AVX(alpha, bd[level], w1, w, rows);
 
     #else

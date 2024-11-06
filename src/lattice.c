@@ -425,22 +425,44 @@ int decomp_alloc(lattice_t *lattice) {
 
     if ((rows < 1) || (cols < 1)) return 0;
 
-    d->c = (DOUBLE*)calloc(cols, sizeof(DOUBLE));
-    d->N = (DOUBLE*)calloc(cols, sizeof(DOUBLE));
+    // d->c = (DOUBLE*)calloc(cols, sizeof(DOUBLE));
+    // d->N = (DOUBLE*)calloc(cols, sizeof(DOUBLE));
+
+    // // Use contiguous memory for BLAS
+    // d->mu = (DOUBLE**)calloc(cols, sizeof(DOUBLE*));
+    // d->mu[0] = (DOUBLE*)calloc(cols * rows, sizeof(DOUBLE));
+    // for (i = 1; i < cols; i++) {
+    //     d->mu[i] = (DOUBLE*)(d->mu[0] + i * rows);
+    // }
+
+    // m = (rows > cols) ? rows : cols;
+    // d->bd = (DOUBLE**)calloc(m, sizeof(DOUBLE*));
+    // d->bd[0] = (DOUBLE*)calloc(rows * m, sizeof(DOUBLE));
+    // for (i = 1; i < m; i++) {
+    //     d->bd[i] = (DOUBLE*)(d->bd[0] + i * rows);
+    // }
+    d->c = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE));
+    d->N = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE));
 
     // Use contiguous memory for BLAS
-    d->mu = (DOUBLE**)calloc(cols, sizeof(DOUBLE*));
-    d->mu[0] = (DOUBLE*)calloc(cols * rows, sizeof(DOUBLE));
+    d->mu = (DOUBLE**)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE*));
+    d->mu[0] = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, cols * rows * sizeof(DOUBLE));
     for (i = 1; i < cols; i++) {
         d->mu[i] = (DOUBLE*)(d->mu[0] + i * rows);
     }
+    // for (i = 0; i < cols; i++) {
+    //     d->mu[i] = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, rows * sizeof(DOUBLE));
+    // }
 
     m = (rows > cols) ? rows : cols;
-    d->bd = (DOUBLE**)calloc(m, sizeof(DOUBLE*));
-    d->bd[0] = (DOUBLE*)calloc(rows * m, sizeof(DOUBLE));
+    d->bd = (DOUBLE**)aligned_alloc(ALLOC_CHUNK, m * sizeof(DOUBLE*));
+    d->bd[0] = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, rows * m * sizeof(DOUBLE));
     for (i = 1; i < m; i++) {
         d->bd[i] = (DOUBLE*)(d->bd[0] + i * rows);
     }
+    // for (i = 0; i < m; i++) {
+    //     d->bd[i] = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, rows * sizeof(DOUBLE));
+    // }
 
     // R, H and h_beta are only pointers to already existing arrays
     d->R = d->mu;

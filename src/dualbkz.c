@@ -290,7 +290,8 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     v = bkz_enum->v;
     delta = bkz_enum->delta;
     u_loc = bkz_enum->u_loc;
-    a = (DOUBLE*)calloc(s + 1, sizeof(DOUBLE));
+    // a = (DOUBLE*)calloc(s + 1, sizeof(DOUBLE));
+    a = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (s + 1) * sizeof(DOUBLE));
 
     len = end_block + 1 - start_block;
     for (i = start_block; i <= end_block; i++) {
