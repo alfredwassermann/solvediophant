@@ -418,7 +418,7 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
 }
 
 int decomp_alloc(lattice_t *lattice) {
-    int i, m;
+    int i, j, m;
     int cols = lattice->num_cols;
     int rows = lattice->num_rows;
     decomp_t *d = &(lattice->decomp);
@@ -443,35 +443,23 @@ int decomp_alloc(lattice_t *lattice) {
     // }
     d->c = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE));
     d->N = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE));
+    for (j = 0; j < cols; j++) { d->c[j] = 0.0; }
+    for (j = 0; j < cols; j++) { d->N[j] = 0.0; }
 
     // Use contiguous memory for BLAS
-    if (1) {
-        d->mu = (DOUBLE **)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE *));
-        d->mu[0] = (DOUBLE *)aligned_alloc(ALLOC_CHUNK, cols * rows * sizeof(DOUBLE));
-        for (i = 1; i < cols; i++) {
-            d->mu[i] = (DOUBLE *)(d->mu[0] + i * rows);
-        }
-    } else {
-        // d->muMemory = aligned_alloc(ALLOC_CHUNK, cols * rows * sizeof(DOUBLE));
-        // d->mu = (DOUBLE **)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE));
-        // for (i = 0; i < cols; i++) {
-        //     d->mu[i] = &(d->muMemory[i * rows]);
-        // }
+    d->muMemory = aligned_alloc(ALLOC_CHUNK, cols * rows * sizeof(DOUBLE));
+    d->mu = (DOUBLE **)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE));
+    for (i = 0; i < cols; i++) {
+        d->mu[i] = &(d->muMemory[i * rows]);
+        for (j = 0; j < rows; j++) { d->mu[i][j] = 0.0; }
     }
 
     m = (rows > cols) ? rows : cols;
-    if (1) {
-        d->bd = (DOUBLE **)aligned_alloc(ALLOC_CHUNK, m * sizeof(DOUBLE *));
-        d->bd[0] = (DOUBLE *)aligned_alloc(ALLOC_CHUNK, rows * m * sizeof(DOUBLE));
-        for (i = 1; i < m; i++) {
-            d->bd[i] = (DOUBLE *)(d->bd[0] + i * rows);
-        }
-    } else {
-        // d->bdMemory = aligned_alloc(ALLOC_CHUNK, rows * m * sizeof(DOUBLE));
-        // d->bd = (DOUBLE **)aligned_alloc(ALLOC_CHUNK, m * sizeof(DOUBLE));
-        // for (i = 0; i < m; i++) {
-        //     d->bd[i] = &(d->bdMemory[i * rows]);
-        // }
+    d->bdMemory = aligned_alloc(ALLOC_CHUNK, rows * m * sizeof(DOUBLE));
+    d->bd = (DOUBLE **)aligned_alloc(ALLOC_CHUNK, m * sizeof(DOUBLE));
+    for (i = 0; i < m; i++) {
+        d->bd[i] = &(d->bdMemory[i * rows]);
+        for (j = 0; j < rows; j++) { d->bd[i][j] = 0.0; }
     }
 
     // R, H and h_beta are only pointers to already existing arrays

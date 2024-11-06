@@ -392,6 +392,9 @@ void allocate_bkz_enum(bkz_enum_t *bkz_enum, int s) {
     bkz_enum->c = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (s + 1) * sizeof(DOUBLE));
     bkz_enum->y = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (s + 1) * sizeof(DOUBLE));
     bkz_enum->u_loc = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (s + 1) * sizeof(DOUBLE));
+    for (int j = 0; j < s + 1; j++) { bkz_enum->c[j] = 0.0; }
+    for (int j = 0; j < s + 1; j++) { bkz_enum->y[j] = 0.0; }
+    for (int j = 0; j < s + 1; j++) { bkz_enum->u_loc[j] = 0.0; }
 
     // Integer
     bkz_enum->d = (long*)calloc(s + 1, sizeof(long));

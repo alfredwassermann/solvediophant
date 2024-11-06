@@ -105,13 +105,14 @@ void allocateEnum_data(enum_level_t** enum_data, DOUBLE **fipo, int columns, int
     int i, j;
     long k;
 
-    (*enum_data) = (enum_level_t*)calloc(columns + 1, sizeof(enum_level_t));
+    (*enum_data) = (enum_level_t*)aligned_alloc(ALLOC_CHUNK, (columns + 1) * sizeof(enum_level_t));
     for (i = 0; i <= columns; i++) {
         k = 2 * ((long)(fipo[0][i]) + 1);
         k = (k > MAX_DUAL_BOUNDS) ? MAX_DUAL_BOUNDS : k;
-        (*enum_data)[i].nodes = (enum_node_t*)calloc(k, sizeof(enum_node_t));
+        (*enum_data)[i].nodes = (enum_node_t*)aligned_alloc(ALLOC_CHUNK, k * sizeof(enum_node_t));
         for (j = 0; j < k; j++) {
             (*enum_data)[i].nodes[j].w = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, rows * sizeof(DOUBLE));
+            for (int l = 0; l < rows; l++) { (*enum_data)[i].nodes[j].w[l] = 0.0; }
         }
         (*enum_data)[i].num = 0;
         (*enum_data)[i].pos = 0;
@@ -184,9 +185,9 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
 
     // {
     //     long lo_bound_loc, up_bound_loc;
-    //     lo_bound_loc = (long)ceil(-lattice->decomp.bd_1norm[level] - y); 
+    //     lo_bound_loc = (long)ceil(-lattice->decomp.bd_1norm[level] - y);
     //     up_bound_loc =  (long)floor(lattice->decomp.bd_1norm[level] - y);
-    //     fprintf(stderr, "%d bounds on u: %ld %ld\n", 
+    //     fprintf(stderr, "%d bounds on u: %ld %ld\n",
     //         level,
     //         lo_bound_loc,
     //         up_bound_loc
@@ -595,14 +596,22 @@ void init_dualbounds(lattice_t *lattice, DOUBLE ***fipo) {
     int cols = lattice->num_cols;
     int rows = lattice->num_rows;
 
-    (*fipo) = (DOUBLE**)aligned_alloc(ALLOC_CHUNK, (cols + 1) * sizeof(DOUBLE*));
-    for (i = 0; i <= cols; i++) {
-        (*fipo)[i] = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (cols + 1) * sizeof(DOUBLE));
-    }
+    // (*fipo) = (DOUBLE**)aligned_alloc(ALLOC_CHUNK, (cols + 1) * sizeof(DOUBLE*));
+    // for (i = 0; i <= cols; i++) {
+    //     (*fipo)[i] = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (cols + 1) * sizeof(DOUBLE));
+    // }
+    // muinv = (DOUBLE**)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE*));
+    // for(i = 0; i < cols; ++i) {
+    //     muinv[i] = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, rows * sizeof(DOUBLE));
+    // }
 
-    muinv = (DOUBLE**)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE*));
+    (*fipo) = (DOUBLE**)calloc(cols + 1, sizeof(DOUBLE*));
+    for (i = 0; i <= cols; i++) {
+        (*fipo)[i] = (DOUBLE*)calloc(cols + 1, sizeof(DOUBLE));
+    }
+    muinv = (DOUBLE**)calloc(cols, sizeof(DOUBLE*));
     for(i = 0; i < cols; ++i) {
-        muinv[i] = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, rows * sizeof(DOUBLE));
+        muinv[i] = (DOUBLE*)calloc(rows, sizeof(DOUBLE));
     }
 
     /* determine inverse of mu */
@@ -687,10 +696,15 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
 
     // Float
     lattice->decomp.bd_1norm = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (lattice->num_cols + 1) * sizeof(DOUBLE));
+    for (int j = 0; j < lattice->num_cols + 1; j++) { lattice->decomp.bd_1norm[j] = 0.0; }
+
     us = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (lattice->num_cols + 1) * sizeof(DOUBLE));
+    for (int j = 0; j < lattice->num_cols + 1; j++) { us[j] = 0.0; }
+
     lattice->decomp.mu_trans = (DOUBLE**)aligned_alloc(ALLOC_CHUNK, (lattice->num_cols + 1) * sizeof(DOUBLE*));
     for (i = 0; i <= lattice->num_cols; i++) {
         lattice->decomp.mu_trans[i]=(DOUBLE*)aligned_alloc(ALLOC_CHUNK, (lattice->num_cols + 1) * sizeof(DOUBLE));
+        for (int j = 0; j < lattice->num_cols + 1; j++) { lattice->decomp.mu_trans[i][j] = 0.0; }
     }
 
     /* count nonzero entries in the last rows(s) */
@@ -929,44 +943,50 @@ DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max) {
 }
 
 DOUBLE compute_w2(DOUBLE *w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
-    #if BLAS
-        // cblas_daxpy(rows, alpha, bd[level], 1, w, 1);
-        // return cblas_dasum(rows, w, 1);
-        // return hiprec_daxpy_dasum_AVX(alpha, bd[level], w, w, rows);
+    if (HAS_AVX2) {
         return daxpy_dasum_AVX(alpha, bd[level], w, w, rows);
+    } else {
+        #if BLAS
+            cblas_daxpy(rows, alpha, bd[level], 1, w, 1);
+            return cblas_dasum(rows, w, 1);
+            // return hiprec_daxpy_dasum_AVX(alpha, bd[level], w, w, rows);
+            // return daxpy_dasum_AVX(alpha, bd[level], w, w, rows);
+        #else
+            int i;
+            register DOUBLE norm1 = 0.0;
+            DOUBLE *b = &(bd[level][0]);
 
-    #else
-        int i;
-        register DOUBLE norm1 = 0.0;
-        DOUBLE *b = &(bd[level][0]);
-
-        for (i = rows - 1; i >= 0; --i) {
-            w[i] += alpha * b[i];
-            norm1 += fabs(w[i]);
-        }
-        return norm1;
-    #endif
+            for (i = rows - 1; i >= 0; --i) {
+                w[i] += alpha * b[i];
+                norm1 += fabs(w[i]);
+            }
+            return norm1;
+        #endif
+    }
 }
 
 DOUBLE compute_w(DOUBLE *w, DOUBLE *w1, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
-    #if BLAS
-        // cblas_dcopy(rows, w1, 1, w, 1);
-        // cblas_daxpy(rows, alpha, bd[level], 1, w, 1);
-        // return cblas_dasum(rows, w, 1);
-        // return hiprec_daxpy_dasum_AVX(alpha, bd[level], w1, w, rows); // Seems to be slightly slower
+    if (HAS_AVX2) {
         return daxpy_dasum_AVX(alpha, bd[level], w1, w, rows);
+    } else {
+        #if BLAS
+            cblas_dcopy(rows, w1, 1, w, 1);
+            cblas_daxpy(rows, alpha, bd[level], 1, w, 1);
+            return cblas_dasum(rows, w, 1);
+            // return hiprec_daxpy_dasum_AVX(alpha, bd[level], w1, w, rows); // Seems to be slightly slower
+            // return daxpy_dasum_AVX(alpha, bd[level], w1, w, rows);
+        #else
+            register int i;
+            register DOUBLE norm1 = 0.0;
+            DOUBLE *b = &(bd[level][0]);
 
-    #else
-        register int i;
-        register DOUBLE norm1 = 0.0;
-        DOUBLE *b = &(bd[level][0]);
-
-        for (i = 0; i < rows; ++i) {
-            w[i] = w1[i] + alpha * b[i];
-            norm1 += fabs(w[i]);
-        }
-        return norm1;
-     #endif
+            for (i = 0; i < rows; ++i) {
+                w[i] = w1[i] + alpha * b[i];
+                norm1 += fabs(w[i]);
+            }
+            return norm1;
+        #endif
+    }
 }
 
 void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c) {

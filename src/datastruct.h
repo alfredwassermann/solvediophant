@@ -89,7 +89,7 @@ typedef struct {
     DOUBLE *c;
     DOUBLE **bd;
     DOUBLE **mu, **mu_trans;
-    // DOUBLE *bdMemory, *muMemory;
+    DOUBLE *bdMemory, *muMemory;
 
     DOUBLE *h_beta;
     DOUBLE **H;
