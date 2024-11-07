@@ -98,26 +98,45 @@ typedef struct {
     int pos;
     int num;
     int is_leave_count;
+    int k;
     enum_node_t* nodes;
 } enum_level_t;
 
-void allocateEnum_data(enum_level_t** enum_data, DOUBLE **fipo, int columns, int rows) {
+void alloc_enum_data(enum_level_t** enum_data, DOUBLE **fipo, int cols, int rows) {
     int i, j;
     long k;
+    size_t len;
 
-    (*enum_data) = (enum_level_t*)aligned_alloc(ALLOC_CHUNK, (columns + 1) * sizeof(enum_level_t));
-    for (i = 0; i <= columns; i++) {
+    (*enum_data) = (enum_level_t*)malloc((cols + 1) * sizeof(enum_level_t));
+    for (i = 0; i <= cols; i++) {
         k = 2 * ((long)(fipo[0][i]) + 1);
         k = (k > MAX_DUAL_BOUNDS) ? MAX_DUAL_BOUNDS : k;
-        (*enum_data)[i].nodes = (enum_node_t*)aligned_alloc(ALLOC_CHUNK, k * sizeof(enum_node_t));
+
+        (*enum_data)[i].nodes = (enum_node_t*)malloc(k * sizeof(enum_node_t));
+
+        len = DO_ALIGN(rows * sizeof(DOUBLE));
         for (j = 0; j < k; j++) {
-            (*enum_data)[i].nodes[j].w = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, rows * sizeof(DOUBLE));
+            (*enum_data)[i].nodes[j].w = (DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
             for (int l = 0; l < rows; l++) { (*enum_data)[i].nodes[j].w[l] = 0.0; }
         }
+        (*enum_data)[i].k = k;
         (*enum_data)[i].num = 0;
         (*enum_data)[i].pos = 0;
         (*enum_data)[i].is_leave_count = 0;
     }
+}
+
+void free_enum_data(enum_level_t *enum_data, int cols) {
+    int i, j, k;
+
+    for (i = 0; i <= cols; i++) {
+        k = enum_data[i].k;
+        for (j = 0; j < k; j++) {
+            free(enum_data[i].nodes[j].w);
+        }
+        free(enum_data[i].nodes);
+    }
+    free(enum_data);
 }
 
 /**
@@ -596,15 +615,6 @@ void init_dualbounds(lattice_t *lattice, DOUBLE ***fipo) {
     int cols = lattice->num_cols;
     int rows = lattice->num_rows;
 
-    // (*fipo) = (DOUBLE**)aligned_alloc(ALLOC_CHUNK, (cols + 1) * sizeof(DOUBLE*));
-    // for (i = 0; i <= cols; i++) {
-    //     (*fipo)[i] = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (cols + 1) * sizeof(DOUBLE));
-    // }
-    // muinv = (DOUBLE**)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE*));
-    // for(i = 0; i < cols; ++i) {
-    //     muinv[i] = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, rows * sizeof(DOUBLE));
-    // }
-
     (*fipo) = (DOUBLE**)calloc(cols + 1, sizeof(DOUBLE*));
     for (i = 0; i <= cols; i++) {
         (*fipo)[i] = (DOUBLE*)calloc(cols + 1, sizeof(DOUBLE));
@@ -657,6 +667,11 @@ void init_dualbounds(lattice_t *lattice, DOUBLE ***fipo) {
         fprintf(stderr, "\n\n");
         fflush(stderr);
     #endif
+
+    for (i = 0; i < cols; i++) {
+        free(muinv[i]);
+    }
+    free(muinv);
 }
 
 DOUBLE exhaustive_enumeration(lattice_t *lattice) {
@@ -666,6 +681,7 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
     int level;
     int i, j, l, k;
     int result;
+    size_t len;
 
     enum_level_t* enum_data;
     DOUBLE *us;
@@ -695,17 +711,23 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
     lattice->decomp.firstp = (int*)calloc(lattice->num_cols + 1, sizeof(int));
 
     // Float
-    lattice->decomp.bd_1norm = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (lattice->num_cols + 1) * sizeof(DOUBLE));
+    len = DO_ALIGN((lattice->num_cols + 1) * sizeof(DOUBLE));
+    lattice->decomp.bd_1norm = (DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
     for (int j = 0; j < lattice->num_cols + 1; j++) { lattice->decomp.bd_1norm[j] = 0.0; }
 
-    us = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (lattice->num_cols + 1) * sizeof(DOUBLE));
+    len = DO_ALIGN((lattice->num_cols + 1) * sizeof(DOUBLE));
+    us = (DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
     for (int j = 0; j < lattice->num_cols + 1; j++) { us[j] = 0.0; }
 
-    lattice->decomp.mu_trans = (DOUBLE**)aligned_alloc(ALLOC_CHUNK, (lattice->num_cols + 1) * sizeof(DOUBLE*));
+    len = DO_ALIGN((lattice->num_cols + 1) * sizeof(DOUBLE*));
+    lattice->decomp.mu_trans = (DOUBLE**)aligned_alloc(ALIGN_SIZE, len);
+    len = DO_ALIGN((lattice->num_cols + 1) * sizeof(DOUBLE));
     for (i = 0; i <= lattice->num_cols; i++) {
-        lattice->decomp.mu_trans[i]=(DOUBLE*)aligned_alloc(ALLOC_CHUNK, (lattice->num_cols + 1) * sizeof(DOUBLE));
+        lattice->decomp.mu_trans[i]=(DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
         for (int j = 0; j < lattice->num_cols + 1; j++) { lattice->decomp.mu_trans[i][j] = 0.0; }
     }
+    /* End of memory allocation*/
+
 
     /* count nonzero entries in the last rows(s) */
     if (lattice->free_RHS) {
@@ -796,7 +818,7 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
     }
     #endif
 
-    allocateEnum_data(&enum_data, fipo, lattice->num_cols, lattice->num_rows);
+    alloc_enum_data(&enum_data, fipo, lattice->num_cols, lattice->num_rows);
 
     /* initialize first-nonzero arrays */
     for (l = 0; l < lattice->num_rows; l++) {
@@ -894,16 +916,29 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
     /* fflush(stdout); */
     fflush(stderr);
 
-    /* free allocated memory for enumeration */
-    // free(us);
+    /* Free allocated memory for enumeration */
+    // Integer
+    free(lattice->decomp.first_nonzero); 
+    free(lattice->decomp.first_nonzero_in_column);
+    free(lattice->decomp.firstp);
+
+    // Float
+    free(lattice->decomp.bd_1norm);
+    free(us);
+    for (i = 0; i <= lattice->num_cols; i++) { free(lattice->decomp.mu_trans[i]); }
+    free(lattice->decomp.mu_trans);
+
+    for (i = 0; i <= lattice->num_cols; i++) {
+        free(fipo[i]);
+    }
+    free(fipo);
+    free_enum_data(enum_data, lattice->num_cols);
+
     // free(cs);
     // free(bd_1norm);
     // free(y);
     // free(delta);
     // free(d);
-    // free(first_nonzero);
-    // free(first_nonzero_in_column);
-    // free(firstp);
     //
     // free(eta);
     // free(v);
@@ -911,15 +946,9 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
     // free(w);
     // free(original_lattice->num_cols);
 
-    // free(fipo);
-    // for (l = 0; l < lattice->num_cols; l++) free(muinv[l]);
-    // free(muinv);
-    //
     // for (l = 0; l <= lattice->num_cols; l++) free(dual_basis[l]);
     // free(dual_basis);
     // free(dual_bound);
-
-    // lllfree(mu, c, N, bd, lattice->num_cols);
     // for (l = 0; l < lattice->num_cols; l++) free(mu_trans[l]);
     // free(mu_trans);
 
@@ -1262,7 +1291,7 @@ int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *u
         }
 
         i = 0;
-        end = (lattice->cut_after == -1) ? lattice->no_original_cols : lattice->cut_after;
+        end = (lattice->cut_after == -1) ? lattice->num_cols_org : lattice->cut_after;
         for (j = 0; j < end; j++) {
             if (lattice->original_cols[j] == 0) {
                 mpz_set_si(solution.u, 0);

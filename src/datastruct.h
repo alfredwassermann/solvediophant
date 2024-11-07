@@ -131,8 +131,8 @@ typedef struct {
     int cut_after;
 
     mpz_t **basis;
-    long **basis_long;
     mpz_t *swap;
+    long **basis_long;
     long *swap_long;
 
     mpz_t matrix_factor;
@@ -145,7 +145,8 @@ typedef struct {
     mpz_t max_up;
 
     int *original_cols;
-    int no_original_cols;
+    int num_cols_org;
+    int num_rows_org;
 
     long nom;
     long denom;

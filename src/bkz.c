@@ -132,7 +132,7 @@ DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
         lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, WORDLEN_MPZ, solutiontest);
     }
 
-    allocate_bkz_enum(&bkz_enum, s);
+    alloc_bkz_enum(&bkz_enum, s);
 
     start_block = cnt = -1;
     tour_cnt = 0;
@@ -383,15 +383,16 @@ void insert_vector_long(lattice_t *lattice, long *u, int start, int end, int z) 
     #endif
 }
 
-void allocate_bkz_enum(bkz_enum_t *bkz_enum, int s) {
+void alloc_bkz_enum(bkz_enum_t *bkz_enum, int s) {
     // bkz_enum->c = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
     // bkz_enum->y = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
     // bkz_enum->u_loc = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
 
     // Float
-    bkz_enum->c = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (s + 1) * sizeof(DOUBLE));
-    bkz_enum->y = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (s + 1) * sizeof(DOUBLE));
-    bkz_enum->u_loc = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (s + 1) * sizeof(DOUBLE));
+    size_t len = DO_ALIGN((s + 1) * sizeof(DOUBLE));
+    bkz_enum->c = (DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
+    bkz_enum->y = (DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
+    bkz_enum->u_loc = (DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
     for (int j = 0; j < s + 1; j++) { bkz_enum->c[j] = 0.0; }
     for (int j = 0; j < s + 1; j++) { bkz_enum->y[j] = 0.0; }
     for (int j = 0; j < s + 1; j++) { bkz_enum->u_loc[j] = 0.0; }
@@ -405,10 +406,10 @@ void allocate_bkz_enum(bkz_enum_t *bkz_enum, int s) {
 void free_bkz_enum(bkz_enum_t *bkz_enum) {
     free(bkz_enum->c);
     free(bkz_enum->y);
+    free(bkz_enum->u_loc);
     free(bkz_enum->d);
     free(bkz_enum->v);
     free(bkz_enum->delta);
-    free(bkz_enum->u_loc);
 }
 
 /**

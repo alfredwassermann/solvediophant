@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * Allocate memnory for input matrix
  */
-void lgs_allocate_mem(lgs_t *LGS) {
+void alloc_lgs(lgs_t *LGS) {
     int i, j;
 
     LGS->matrix = (mpz_t**)calloc(LGS->num_rows, sizeof(mpz_t*));
@@ -53,7 +53,7 @@ void lgs_allocate_mem(lgs_t *LGS) {
        mpz_init(LGS->rhs[i]);
 }
 
-void lgs_free_mem(lgs_t *LGS) {
+void free_lgs(lgs_t *LGS) {
     int i, j;
 
     for (j = 0; j < LGS->num_rows; j++) {
@@ -73,6 +73,7 @@ void lgs_free_mem(lgs_t *LGS) {
         }
         free(LGS->upperbounds);
     }
+    free(LGS->original_cols);
 }
 
 /**
@@ -370,12 +371,12 @@ int check_rows(lgs_t *LGS) {
     int cols = LGS->num_cols;
     int rows = LGS->num_rows;
     mpz_t g;
-    mpz_init(g);
 
     if (cols == 0) {
         return 1;
     }
     fprintf(stderr, ">> preprocess: find rows whose entries are too small\n");
+    mpz_init(g);
     for (j = 0; j < rows; j++) {
         mpz_set_ui(g, 0);
         if (LGS->upperbounds != NULL) {
@@ -393,9 +394,11 @@ int check_rows(lgs_t *LGS) {
         }
         if (mpz_cmp(LGS->rhs[j], g) > 0) {
             fprintf(stderr, "RHS too large! contradiction in row %d\n", j);
+            mpz_clear(g);
             return 0;
         }
     }
+    mpz_clear(g);
     return 1;
 }
 

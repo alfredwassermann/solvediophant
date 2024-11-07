@@ -61,8 +61,9 @@ extern long gcd(long n1, long n2);
 extern DOUBLE dot_mpz(mpz_t *v, mpz_t *w, int z);
 extern DOUBLE dot_double(DOUBLE *v, DOUBLE *w , int n);
 
-extern int decomp_alloc(lattice_t *lattice);
-extern int decomp_free(lattice_t *lattice); //DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs, int s);
+extern int alloc_decomp(lattice_t *lattice);
+extern int free_decomp(decomp_t decomp); //DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs, int s);
+extern void free_lattice(lattice_t *lattice);
 extern double orthogonality_defect(lattice_t *lattice, DOUBLE **R, int s, int z);
 extern double log_potential(DOUBLE **R, int s, int z);
 

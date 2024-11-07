@@ -38,7 +38,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // #define FALSE 0
 #define IS_USED 0
 
-#define ALLOC_CHUNK 32
+#define ALIGN_SIZE 32
+// Rounding up to the next multiple of ALIGN_SIZE
+#define DO_ALIGN(x) ((x) + (-(x) & (ALIGN_SIZE - 1)))
+// #define DO_ALIGN(x) (x)
 
 #define WORDLEN_LONG 1
 #define WORDLEN_MPZ 2

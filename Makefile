@@ -1,3 +1,4 @@
+# CC=clang
 CC=gcc
 BIN=bin
 SRC=src
@@ -5,14 +6,18 @@ PDF=pdf
 
 # CFLAGS= -O3 -Wall -g -pg
 
-CFLAGS= -O3                    \
-    -DUSE_AVX                  \
-	-fno-math-errno            \
-	-ftree-vectorize           \
-	-mavx -mavx2               \
-    -msse3 -mssse3 -msse4.1    \
-    -march=haswell             \
-	-Wall
+CFLAGS= -O3                  \
+  -DUSE_AVX                  \
+  -fno-math-errno            \
+  -ftree-vectorize           \
+  -mavx -mavx2               \
+  -msse3 -mssse3 -msse4.1    \
+  -march=haswell             \
+  -Wall
+
+# Find memory leaks
+#  -fsanitize=address         \
+# Other approaches
     # -funroll-all-loops         \
     # --param max-unroll-times=2 \
 	# -flto                      \

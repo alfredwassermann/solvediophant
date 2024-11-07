@@ -87,7 +87,7 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
     for (i = 0; i < s; i++) {
         u[i] = 0;
     }
-    allocate_bkz_enum(&bkz_enum, s);
+    alloc_bkz_enum(&bkz_enum, s);
 
     while (1) {
         fprintf(stderr, "Start tour #no %d\n", cnt);
@@ -201,9 +201,9 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
     for (i = 0; i < s; i++) {
         u[i] = 0;
     }
-    allocate_bkz_enum(&bkz_enum, s);
+    alloc_bkz_enum(&bkz_enum, s);
 
-    //decomp_alloc(&R, &h_beta, &N, &H, s, z);
+    //alloc_decomp(&R, &h_beta, &N, &H, s, z);
     lllH(lattice, R, h_beta, H, 0, 0, s, z, delta, POT_LLL, bit_size, WORDLEN_MPZ, solutiontest);
 
     cnt = -1;
@@ -291,7 +291,7 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     delta = bkz_enum->delta;
     u_loc = bkz_enum->u_loc;
     // a = (DOUBLE*)calloc(s + 1, sizeof(DOUBLE));
-    a = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, (s + 1) * sizeof(DOUBLE));
+    a = (DOUBLE*)aligned_alloc(ALIGN_SIZE, DO_ALIGN((s + 1) * sizeof(DOUBLE)));
 
     len = end_block + 1 - start_block;
     for (i = start_block; i <= end_block; i++) {

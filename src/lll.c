@@ -109,7 +109,8 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     #if VERBOSE > 1
         int counter = 0;
     #endif
-    // fprintf(stderr, "-------------------------- Do LLLH %d -------------------------------------------------------------\n", word_len);
+    // fprintf(stderr, "-------------------------- Do LLLH word_len=%d -------------------------------------------------------------\n", word_len);
+
 
     if (word_len == WORDLEN_MPZ) {
         lattice->work_on_long = false;
@@ -495,7 +496,6 @@ DOUBLE householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int
         for (i = 0; i < k; ++i) {
             // w = < R[k], H[i] >
             if (HAS_AVX2) {
-                // fprintf(stderr, "%d %d, %d\n", i, k, z - i);
                 w = hiprec_dot2_AVX(&(R[k][i]), &(H[i][i]), z - i);
             } else {
                 w = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);

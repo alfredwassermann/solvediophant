@@ -51,8 +51,8 @@ typedef struct {
 
 #define ZLENGTH 16000
 
-extern void lgs_allocate_mem(lgs_t *LGS);
-extern void lgs_free_mem(lgs_t *LGS);
+extern void alloc_lgs(lgs_t *LGS);
+extern void free_lgs(lgs_t *LGS);
 extern void read_upper_bounds(FILE *txt, char *zeile, lgs_t *LGS);
 extern void read_selected_cols(FILE *txt, lgs_t *LGS);
 extern void read_linear_system(FILE *txt, lgs_t *LGS);

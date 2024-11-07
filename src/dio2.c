@@ -78,7 +78,7 @@ mpz_t lastlines_factor;
 
 long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *restart_filename) {
 
-    int i, j;
+    int i;
     int block_size;
     DOUBLE lD = 0.0;
     DOUBLE lDnew = 0.0;
@@ -106,6 +106,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 
     /*
      * Generate lattice from LGS and do scaling.
+     * Allocate memory for lattice struct.
      */
     lgs_to_lattice(LGS, lattice);
     #if 0
@@ -311,24 +312,16 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         print_num_solutions(num_solutions);
 
     /**
-     * free multiprecision memory
+     * Free lattice memory
      */
-    for (j = 0; j < lattice->num_cols/* + ADDITIONAL_COLS*/; j++) {
-        for (i = 0; i < lattice->num_rows; i++) {
-            mpz_clear(lattice->basis[j][i]);
-        }
-        free(lattice->basis[j]);
-        free(lattice->basis_long[j]);
-    }
-    free(lattice->basis);
-    free(lattice->basis_long);
+    free_lattice(lattice);
 
-    for (i = 0; i < lattice->num_rows; i++) {
-        mpz_clear(lattice->swap[i]);
-    }
-    free(lattice->swap);
-    mpz_clear(lattice->matrix_factor);
-    mpz_clear(lattice->max_norm);
+    // for (i = 0; i < lattice->num_rows; i++) {
+    //     mpz_clear(lattice->swap[i]);
+    // }
+    // free(lattice->swap);
+    // mpz_clear(lattice->matrix_factor);
+    // mpz_clear(lattice->max_norm);
 
     mpz_clear(lastlines_factor);
     mpz_clear(solution.u);
@@ -353,7 +346,6 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 int cutlattice(lattice_t *lattice) {
     int j, i, flag;
     int all_zero;
-    int m;
 
     /**
      * Delete unnecessary columns
@@ -418,7 +410,7 @@ int cutlattice(lattice_t *lattice) {
     for (i = 1; i < lattice->num_cols; i++) {
         lattice->decomp.mu[i] = (DOUBLE*)(lattice->decomp.mu[0] + i * lattice->num_rows);
     }
-    m = (lattice->num_rows > lattice->num_cols) ? lattice->num_rows : lattice->num_cols;
+    int m = (lattice->num_rows > lattice->num_cols) ? lattice->num_rows : lattice->num_cols;
     for (i = 1; i < m; i++) {
         lattice->decomp.bd[i] = (DOUBLE*)(lattice->decomp.bd[0] + i * lattice->num_rows);
     }
@@ -464,7 +456,7 @@ int solutiontest(lattice_t *lattice, int position) {
     /* write a solution with blanks */
     i = low;
 
-    end = (lattice->cut_after == -1) ? lattice->no_original_cols : lattice->cut_after;
+    end = (lattice->cut_after == -1) ? lattice->num_cols_org : lattice->cut_after;
 
     for (j = 0; j < end; j++) {
         if (lattice->original_cols[j] == 0) {
@@ -568,7 +560,7 @@ int solutiontest_long(lattice_t *lattice, int position) {
 
     /* write a solution with blanks */
     i = low;
-    end = (lattice->cut_after == -1) ? lattice->no_original_cols : lattice->cut_after;
+    end = (lattice->cut_after == -1) ? lattice->num_cols_org : lattice->cut_after;
     for (j = 0; j < end; j++) {
         if (lattice->original_cols[j] == 0) {
             mpz_set_si(solution.u,0);

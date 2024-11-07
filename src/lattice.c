@@ -225,27 +225,59 @@ DOUBLE dot_double(DOUBLE *v, DOUBLE *w , int n) {
         // #endif
 }
 
-void allocate_basis (lattice_t *lattice) {
+void alloc_basis (lattice_t *lattice) {
     int i, j;
 
     // Allocate memory for the gmp basis and the long basis
-    lattice->basis = (mpz_t**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(mpz_t*));
+    lattice->basis = (mpz_t**)malloc((lattice->num_cols + ADDITIONAL_COLS) * sizeof(mpz_t*));
     lattice->basis_long = (long**)calloc(lattice->num_cols + ADDITIONAL_COLS, sizeof(long*));
+
     for (j = 0; j < lattice->num_cols + ADDITIONAL_COLS; j++) {
-        lattice->basis_long[j] = (long*)calloc((unsigned int)lattice->num_rows, sizeof(long));
-        lattice->basis[j] = (mpz_t*)calloc((unsigned int)lattice->num_rows + 1, sizeof(mpz_t));
-        for (i = 0; i < lattice->num_rows; i++) {
+        lattice->basis[j] = (mpz_t*)malloc(((unsigned int)lattice->num_rows + 1) * sizeof(mpz_t));
+        for (i = 0; i < lattice->num_rows + 1; i++) {
             mpz_init(lattice->basis[j][i]);
         }
+        lattice->basis_long[j] = (long*)calloc((unsigned int)lattice->num_rows, sizeof(long));
     }
 
     // Allocate memory for swap vector
-    lattice->swap = (mpz_t*)calloc(lattice->num_rows + 1, sizeof(mpz_t));
-    lattice->swap_long = (long*)calloc(lattice->num_rows + 1, sizeof(long));
-    for (i = 0; i < lattice->num_rows; i++) {
+    lattice->swap = (mpz_t*)calloc((unsigned int)(lattice->num_rows + 1), sizeof(mpz_t));
+    lattice->swap_long = (long*)calloc((unsigned int)(lattice->num_rows + 1), sizeof(long));
+    for (i = 0; i < lattice->num_rows + 1; i++) {
         mpz_init(lattice->swap[i]);
     }
+}
 
+void free_lattice(lattice_t *lattice) {
+    int i, j;
+
+    // TODO: this is not exactly the allocated memory
+    for (j = 0; j < lattice->num_cols + ADDITIONAL_COLS; j++) {
+        for (i = 0; i < lattice->num_rows_org + 1; i++) { mpz_clear(lattice->basis[j][i]); }
+        free(lattice->basis[j]);
+    }
+    free(lattice->basis);
+
+    for (j = 0; j < lattice->num_cols + ADDITIONAL_COLS; j++) {
+        free(lattice->basis_long[j]);
+    }
+    free(lattice->basis_long);
+
+    for (i = 0; i < lattice->num_rows_org + 1; i++) { mpz_clear(lattice->swap[i]); }
+    free(lattice->swap);
+    free(lattice->swap_long);
+
+    mpz_clear(lattice->matrix_factor);
+    mpz_clear(lattice->max_norm);
+    mpz_clear(lattice->max_norm_initial);
+    mpz_clear(lattice->max_up);
+    mpz_clear(lattice->upperbounds_max);
+    mpz_clear(lattice->LLL_params.scalelastlinefactor);
+
+    for (i = 0; i < lattice->num_cols_org; i++) { mpz_clear(lattice->upperbounds[i]); }
+    free(lattice->upperbounds);
+    free(lattice->original_cols);
+    free_decomp(lattice->decomp);
 }
 
 void handle_upperbounds(lgs_t *LGS, lattice_t *lattice) {
@@ -285,18 +317,18 @@ void handle_preselection(lgs_t *LGS, lattice_t *lattice) {
     int i;
     // Handle preselected columns
     if (LGS->original_cols != NULL) {
-        lattice->no_original_cols = LGS->num_original_cols;
+        lattice->num_cols_org = LGS->num_original_cols;
     } else {
-        lattice->no_original_cols = LGS->num_cols;
+        lattice->num_cols_org = LGS->num_cols;
     }
 
     lattice->original_cols = (int*)calloc(LGS->num_original_cols, sizeof(int));
     if (LGS->original_cols != NULL) {
-        for (i = 0; i < lattice->no_original_cols; i++) {
+        for (i = 0; i < lattice->num_cols_org; i++) {
             lattice->original_cols[i] = LGS->original_cols[i];
         }
     } else {
-        for (i = 0; i < lattice->no_original_cols; i++) {
+        for (i = 0; i < lattice->num_cols_org; i++) {
             lattice->original_cols[i] = 1;
         }
         fprintf(stderr, "No preselected columns \n");
@@ -313,8 +345,16 @@ void init_diagonal_part(lgs_t *LGS, lattice_t *lattice) {
 
     // Append the other (diagonal) parts of lattice
     for (j = lattice->lgs_rows; j < lattice->num_rows; j++) {
-        mpz_mul_si(lattice->basis[j - lattice->lgs_rows][j], lattice->max_norm, lattice->denom);
-        mpz_mul_si(lattice->basis[lattice->num_cols - 1][j], lattice->max_norm, lattice->nom);
+        mpz_mul_si(
+            lattice->basis[j - lattice->lgs_rows][j],
+            lattice->max_norm,
+            lattice->denom
+        );
+        mpz_mul_si(
+            lattice->basis[lattice->num_cols - 1][j],
+            lattice->max_norm,
+            lattice->nom
+        );
     }
     mpz_set(lattice->basis[lattice->lgs_cols + lattice->free_RHS][lattice->num_rows - 1], lattice->max_norm);
 
@@ -322,7 +362,9 @@ void init_diagonal_part(lgs_t *LGS, lattice_t *lattice) {
         mpz_set_si(lattice->basis[lattice->lgs_cols][lattice->num_rows - 2], 1);
         mpz_set_si(lattice->basis[lattice->lgs_cols + 1][lattice->num_rows - 2], 0);
     }
-    mpz_set(lattice->basis[lattice->lgs_cols + lattice->free_RHS][lattice->num_rows - 1], lattice->max_norm);
+    mpz_set(
+        lattice->basis[lattice->lgs_cols + lattice->free_RHS][lattice->num_rows - 1], lattice->max_norm
+    );
 
     // Multiply the diagonal entries and
     // the last columns to ensure the upper bounds on the variables
@@ -337,10 +379,12 @@ void init_diagonal_part(lgs_t *LGS, lattice_t *lattice) {
                 mpz_mul(upfac, lattice->upperbounds_max, lattice->upperbounds_max);
                 mpz_mul_si(upfac, upfac, 10000);
             }
-            mult_by(lattice->basis, j, j + lattice->lgs_rows, upfac);
             mult_by(lattice->basis,
-                        lattice->lgs_cols + lattice->free_RHS, j + lattice->lgs_rows,
-                        lattice->upperbounds_max);
+                    j, j + lattice->lgs_rows,
+                    upfac);
+            mult_by(lattice->basis,
+                    lattice->lgs_cols + lattice->free_RHS, j + lattice->lgs_rows,
+                    lattice->upperbounds_max);
         }
         mpz_set(lattice->max_up, lattice->upperbounds_max);
         mpz_mul(lattice->max_norm, lattice->max_norm, lattice->max_up);
@@ -352,9 +396,10 @@ void init_diagonal_part(lgs_t *LGS, lattice_t *lattice) {
         }
 
         mult_by(lattice->basis,
-                    lattice->lgs_cols + lattice->free_RHS, lattice->num_rows - 1,
-                    lattice->max_up);
+                lattice->lgs_cols + lattice->free_RHS, lattice->num_rows - 1,
+                lattice->max_up);
     }
+    mpz_clear(upfac);
 }
 
 void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
@@ -370,6 +415,8 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
     lattice->lgs_rows = lgs_rows;
     lattice->lgs_cols = lgs_cols;
     lattice->lgs_rank = LGS->rank;
+    lattice->num_rows_org = lattice->num_rows;
+    lattice->num_cols_org = lattice->num_cols;
 
     if (lattice->free_RHS) {
         lattice->num_rows++;
@@ -379,7 +426,7 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
         fprintf(stderr,"The RHS is fixed !\n");
     }
 
-    allocate_basis(lattice);
+    alloc_basis(lattice);
     lattice->work_on_long = false;
 
     // Copy the linear system to the basis.
@@ -414,53 +461,49 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
     lattice->denom = 2;
     init_diagonal_part(LGS, lattice);
 
-    decomp_alloc(lattice);
+    alloc_decomp(lattice);
 }
 
-int decomp_alloc(lattice_t *lattice) {
-    int i, j, m;
+DOUBLE** alloc_double_matrix(size_t cols, size_t rows) {
+    int i;
+
+    // **m is a list of pointers m[0], ..., m[cols-1]
+    // m[0] is a 1-dim array containing the whole matrix
+    // m[1], ..., m[cols-1] point to the start
+    // of each column.
+    // This allows to use blas_ddot2 on non-contiguous arrays
+    DOUBLE **m = (DOUBLE**)aligned_alloc(ALIGN_SIZE, DO_ALIGN(cols * sizeof(DOUBLE*)));
+    m[0] = (DOUBLE*)aligned_alloc(ALIGN_SIZE, DO_ALIGN(cols * rows * sizeof(DOUBLE)));
+    for (i = 0; i < cols * rows; i++) {
+        m[0][i] = 0.0;
+    }
+    for (i = 1; i < cols; i++) {
+        m[i] = (DOUBLE*)(m[0] + i * rows);
+    }
+
+    return m;
+}
+
+int alloc_decomp(lattice_t *lattice) {
+    int j, m;
+    size_t len;
     int cols = lattice->num_cols;
     int rows = lattice->num_rows;
     decomp_t *d = &(lattice->decomp);
 
     if ((rows < 1) || (cols < 1)) return 0;
 
-    // d->c = (DOUBLE*)calloc(cols, sizeof(DOUBLE));
-    // d->N = (DOUBLE*)calloc(cols, sizeof(DOUBLE));
-
-    // // Use contiguous memory for BLAS
-    // d->mu = (DOUBLE**)calloc(cols, sizeof(DOUBLE*));
-    // d->mu[0] = (DOUBLE*)calloc(cols * rows, sizeof(DOUBLE));
-    // for (i = 1; i < cols; i++) {
-    //     d->mu[i] = (DOUBLE*)(d->mu[0] + i * rows);
-    // }
-
-    // m = (rows > cols) ? rows : cols;
-    // d->bd = (DOUBLE**)calloc(m, sizeof(DOUBLE*));
-    // d->bd[0] = (DOUBLE*)calloc(rows * m, sizeof(DOUBLE));
-    // for (i = 1; i < m; i++) {
-    //     d->bd[i] = (DOUBLE*)(d->bd[0] + i * rows);
-    // }
-    d->c = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE));
-    d->N = (DOUBLE*)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE));
+    len = DO_ALIGN(cols * sizeof(DOUBLE));
+    d->c = (DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
+    d->N = (DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
     for (j = 0; j < cols; j++) { d->c[j] = 0.0; }
     for (j = 0; j < cols; j++) { d->N[j] = 0.0; }
 
     // Use contiguous memory for BLAS
-    d->muMemory = aligned_alloc(ALLOC_CHUNK, cols * rows * sizeof(DOUBLE));
-    d->mu = (DOUBLE **)aligned_alloc(ALLOC_CHUNK, cols * sizeof(DOUBLE));
-    for (i = 0; i < cols; i++) {
-        d->mu[i] = &(d->muMemory[i * rows]);
-        for (j = 0; j < rows; j++) { d->mu[i][j] = 0.0; }
-    }
-
+    // Attention: the columns of these matrices have to be adapted in cutlattice
+    d->mu = alloc_double_matrix(cols, rows);
     m = (rows > cols) ? rows : cols;
-    d->bdMemory = aligned_alloc(ALLOC_CHUNK, rows * m * sizeof(DOUBLE));
-    d->bd = (DOUBLE **)aligned_alloc(ALLOC_CHUNK, m * sizeof(DOUBLE));
-    for (i = 0; i < m; i++) {
-        d->bd[i] = &(d->bdMemory[i * rows]);
-        for (j = 0; j < rows; j++) { d->bd[i][j] = 0.0; }
-    }
+    d->bd = alloc_double_matrix(m, rows);
 
     // R, H and h_beta are only pointers to already existing arrays
     d->R = d->mu;
@@ -470,14 +513,12 @@ int decomp_alloc(lattice_t *lattice) {
     return 1;
 }
 
-int decomp_free(lattice_t *lattice) {
-    decomp_t d = lattice->decomp;
-
+int free_decomp(decomp_t d) {
+    free(d.mu[0]);  // This is enough, see alloc_matrix()
     free(d.bd[0]);
+    free(d.mu);
     free(d.bd);
 
-    free(d.mu[0]);
-    free(d.mu);
     free(d.N);
     free(d.c);
 

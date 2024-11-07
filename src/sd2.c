@@ -432,7 +432,7 @@ int main(int argc, char *argv[]) {
     /**
      * Allocate memory and read problem LGS from file
      */
-	lgs_allocate_mem(&LGS);
+	alloc_lgs(&LGS);
     read_linear_system(txt, &LGS);
     fclose(txt);
 
@@ -450,7 +450,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr,"total enumeration time: %s\n", timestring);
     /* fflush(stdout); */
 
-	lgs_free_mem(&LGS);
+	free_lgs(&LGS);
 
     return 0;
 }

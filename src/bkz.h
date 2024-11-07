@@ -55,7 +55,7 @@ typedef struct {
     DOUBLE *u_loc;
 } bkz_enum_t;
 
-extern void allocate_bkz_enum(bkz_enum_t *bkz_enum, int s);
+extern void alloc_bkz_enum(bkz_enum_t *bkz_enum, int s);
 extern void free_bkz_enum(bkz_enum_t *bkz_enum);
 
 extern DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
