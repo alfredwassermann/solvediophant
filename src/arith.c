@@ -970,7 +970,7 @@ DOUBLE daxpy_dasum_AVX1(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
 DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
     size_t i = 0;
     DOUBLE s = 0.0;
-    __m256d va, vx, vy, vp;
+    __m256d va, vp1, vp2, vp3, vp4;
 
     if (n <= 0) return 0.0;
 
@@ -993,33 +993,21 @@ DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
         }
 
         for (i = 0; i < n_16; i += 16) {
-            vx = _mm256_load_pd(x + i);
-            vy = _mm256_load_pd(y + i);
-            vp = _mm256_fmadd_pd(va, vx, vy);
-            _mm256_store_pd(res + i, vp);
-            vp = _mm256_andnot_pd(msk, vp); // fabs(vp)
-            sum1 = _mm256_add_pd(sum1, vp);
+            vp1 = _mm256_fmadd_pd(va, _mm256_load_pd(x + i), _mm256_load_pd(y + i));
+            _mm256_store_pd(res + i, vp1);
+            sum1 = _mm256_add_pd(sum1, _mm256_andnot_pd(msk, vp1)); // vp = _mm256_andnot_pd(msk, vp); // fabs(vp)
 
-            vx = _mm256_load_pd(x + i + 4);
-            vy = _mm256_load_pd(y + i + 4);
-            vp = _mm256_fmadd_pd(va, vx, vy);
-            _mm256_store_pd(res + i + 4, vp);
-            vp = _mm256_andnot_pd(msk, vp); // fabs(vp)
-            sum2 = _mm256_add_pd(sum2, vp);
+            vp2 = _mm256_fmadd_pd(va, _mm256_load_pd(x + i + 4), _mm256_load_pd(y + i + 4));
+            _mm256_store_pd(res + i + 4, vp2);
+            sum2 = _mm256_add_pd(sum2, _mm256_andnot_pd(msk, vp2));
 
-            vx = _mm256_load_pd(x + i + 8);
-            vy = _mm256_load_pd(y + i + 8);
-            vp = _mm256_fmadd_pd(va, vx, vy);
-            _mm256_store_pd(res + i + 8, vp);
-            vp = _mm256_andnot_pd(msk, vp); // fabs(vp)
-            sum3= _mm256_add_pd(sum3, vp);
+            vp3 = _mm256_fmadd_pd(va, _mm256_load_pd(x + i + 8), _mm256_load_pd(y + i + 8));
+            _mm256_store_pd(res + i + 8, vp3);
+            sum3= _mm256_add_pd(sum3, _mm256_andnot_pd(msk, vp3));
 
-            vx = _mm256_load_pd(x + i + 12);
-            vy = _mm256_load_pd(y + i + 12);
-            vp = _mm256_fmadd_pd(va, vx, vy);
-            _mm256_store_pd(res + i + 12, vp);
-            vp = _mm256_andnot_pd(msk, vp); // fabs(vp)
-            sum4 = _mm256_add_pd(sum4, vp);
+            vp4 = _mm256_fmadd_pd(va, _mm256_load_pd(x + i + 12), _mm256_load_pd(y + i + 12));
+            _mm256_store_pd(res + i + 12, vp4);
+            sum4 = _mm256_add_pd(sum4, _mm256_andnot_pd(msk, vp4));
         }
 
         sum1 = _mm256_add_pd(sum1, sum2);
