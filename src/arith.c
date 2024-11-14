@@ -964,7 +964,8 @@ DOUBLE daxpy_dasum_AVX1(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
 DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
     long i = 0;
     DOUBLE s = 0.0;
-    __m256d va, vx, vy, vp;
+    __m256d va; 
+    __m256d vx, vy, vp;
 
     if (n <= 0) return 0.0;
 

@@ -13,10 +13,16 @@ CFLAGS= -O3                  \
   -mavx -mavx2               \
   -msse3 -mssse3 -msse4.1    \
   -march=haswell             \
+  -g -fprofile-use -flto \
   -Wall
+
+# USE LTO
+#  -g -fprofile-generate -flto \
+#  -g -fprofile-use -flto \
 
 # Find memory leaks
 #  -fsanitize=address         \
+
 # Other approaches
     # -funroll-all-loops         \
     # --param max-unroll-times=2 \
