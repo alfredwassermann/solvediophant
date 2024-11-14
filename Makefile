@@ -4,8 +4,6 @@ BIN=bin
 SRC=src
 PDF=pdf
 
-# CFLAGS= -O3 -Wall -g -pg
-
 CFLAGS= -O3                  \
   -DUSE_AVX                  \
   -fno-math-errno            \
@@ -15,6 +13,8 @@ CFLAGS= -O3                  \
   -march=haswell             \
   -Wall
 
+
+# Profile:   -pg \
 # Find memory leaks
 #  -fsanitize=address         \
 
@@ -81,7 +81,7 @@ $(PDF)/%.pdf: $(SRC)/%.c
 $(BIN)/sd2: $(OBJFILES)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(PGO_LDFLAGS) \
 	-o $(BIN)/sd2 $(OBJFILES) \
-	$(BLASLIB) \
+	-static $(BLASLIB) \
 	-lgmp $(GMPLIB) $(GMPINC) -lm -lc
 
 .PHONY: pgo
