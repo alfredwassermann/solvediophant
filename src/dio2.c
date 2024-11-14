@@ -93,7 +93,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     mpz_init_set_ui(solution.upfac, 1);
 
     #if BLAS
-        fprintf(stderr, "Use OpenBLAS\n");
+        fprintf(stderr, "Use OpenBLAS: %s\n", openblas_get_config());
         openblas_set_num_threads(4);
     #endif
 
