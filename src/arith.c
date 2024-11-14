@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <math.h>
 #include <x86intrin.h>
+// #include <immintrin.h>
 
 #include "const.h"
 #include "arith.h"
