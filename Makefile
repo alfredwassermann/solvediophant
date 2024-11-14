@@ -13,49 +13,23 @@ CFLAGS= -O3                  \
   -mavx -mavx2               \
   -msse3 -mssse3 -msse4.1    \
   -march=haswell             \
-  -g -fprofile-use -flto \
   -Wall
-
-# USE LTO
-#  -g -fprofile-generate -flto \
-#  -g -fprofile-use -flto \
 
 # Find memory leaks
 #  -fsanitize=address         \
-
-# Other approaches
-    # -funroll-all-loops         \
-    # --param max-unroll-times=2 \
-	# -flto                      \
-    # -march=native -mtune=native -msse -msse2 -msse3 -mssse3 -m64 \
-    # -pipe                      \
-	# -finline-functions         \
-    # -fomit-frame-pointer       \
-	# -floop-interchange -floop-strip-mine -floop-block # gcc >=4.4 \
-# -O3 -ffast-math -fno-cx-limited-range -funroll-loops --param max-unroll-times=2 -march=native
-
-#CFLAGS= -O3 -Wall -funroll-all-loops
-	#	-fprofile-use \
-	#-ffinite-math-only -fno-trapping-math -fno-signaling-nans -fno-signed-zeros \
-	#-ftree-vectorizer-verbose=2
-	#-mveclibabi=svml
-	#-mfpmath=sse+387  # unstable
-	#-fprofile-generate -fprofile-use\
-
-#CFLAGS= -O3 -Wall
-#CFLAGS= -O3 -mcpu=i686 -march=i686 -fforce-addr -funroll-loops -frerun-cse-after-loop -frerun-loop-opt -malign-functions=4
-#CFLAGS= -g -Wall
 
 VIMFLAGS=-c 'set printoptions=number:y,left:2pc,right:2pc' -c 'set printfont=Courier:h8'
 
 ###################################
 # USE BLAS library
 #
+#
 # ------ First option: do not use BLAS at all.
 # Uncomment these:
 # BLAS=NOBLAS
 # BLASINC=.
 # BLASLIB=
+#
 # ------  Second option: use OpenBLAS as installed in ubuntu.
 # Uncomment BLAS, BLASINC and BLASLIB:
 # Modern machine:
@@ -65,6 +39,7 @@ VIMFLAGS=-c 'set printoptions=number:y,left:2pc,right:2pc' -c 'set printfont=Cou
 #BLAS=USE_BLAS_OLD
 #BLASINC=/usr/lib/x86_64-linux-gnu/
 #BLASLIB=-L/usr/lib/x86_64-linux-gnu/ -lopenblas -lpthread
+#
 #  ------ Third option: use OpenBLAS installed and compiled in a folder.
 # Uncomment these:
 BLAS=USE_BLAS_DEV
@@ -74,7 +49,7 @@ BLASLIB=-L../OpenBLAS/ -lopenblas -lpthread
 
 ###################################
 # Use of the GMP long integer library
-#  ------ First option: standard install in ubuntu
+#  ------ First option: system install in linux
 GMPLIB=
 GMPINC=
 #  ------ Second option: use a dedicated folder containing GMP
@@ -88,13 +63,13 @@ GMPINC=
 GSA_OUT=FALSE
 ###################################
 
-OBJFILES=$(SRC)/bkz.o   $(SRC)/dio2.o   $(SRC)/dualbkz.o   $(SRC)/enum.o   $(SRC)/lattice.o   $(SRC)/lgs.o   $(SRC)/lll.o   $(SRC)/sd2.o $(SRC)/arith.o
+OBJFILES=$(SRC)/bkz.o   $(SRC)/dio2.o   $(SRC)/dualbkz.o   $(SRC)/enum.o   $(SRC)/lattice.o   $(SRC)/lgs.o   $(SRC)/lll.o   $(SRC)/sd2.o   $(SRC)/arith.o
 PDFFILES=$(PDF)/bkz.pdf $(PDF)/dio2.pdf $(PDF)/dualbkz.pdf $(PDF)/enum.pdf $(PDF)/lattice.pdf $(PDF)/lgs.pdf $(PDF)/lll.pdf $(PDF)/sd2.pdf $(PDF)/arith.pdf
 
 all: $(BIN)/sd2 tags $(PDFFILES) $(BIN)/test_la
 
 $(SRC)/%.o: $(SRC)/%.c $(SRC)/%.h $(SRC)/datastruct.h $(SRC)/const.h
-	$(CC) $(CFLAGS) -D$(GSA_OUT) -D$(BLAS) -I$(BLASINC) -c $< $(GMPINC) -o $@
+	$(CC) $(CFLAGS) $(PGO_CFLAGS) -D$(GSA_OUT) -D$(BLAS) -I$(BLASINC) -c $< $(GMPINC) -o $@
 	@echo "Compiled "$<" successfully!"
 
 $(PDF)/%.pdf: $(SRC)/%.c
@@ -104,9 +79,16 @@ $(PDF)/%.pdf: $(SRC)/%.c
 	@echo "Converted "$<" to LaTeX successfully!"
 
 $(BIN)/sd2: $(OBJFILES)
-	$(CC) $(CFLAGS) -o $(BIN)/sd2 $(OBJFILES) \
-	-static $(BLASLIB) \
+	$(CC) $(CFLAGS) $(LDFLAGS) $(PGO_LDFLAGS) \
+	-o $(BIN)/sd2 $(OBJFILES) \
+	$(BLASLIB) \
 	-lgmp $(GMPLIB) $(GMPINC) -lm -lc
+
+.PHONY: pgo
+# Do profile generated optimization
+# This is recommended for the final executable
+pgo:
+	./profiledmake.sh
 
 $(BIN)/test_la: $(SRC)/test_la.o $(SRC)/arith.o
 	$(CC) $(CFLAGS) -o $(BIN)/test_la $(SRC)/test_la.o $(SRC)/arith.o -lm -lc
