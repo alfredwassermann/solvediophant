@@ -476,6 +476,9 @@ DOUBLE** alloc_double_matrix(size_t cols, size_t rows) {
     // This allows to use blas_ddot2 on non-contiguous arrays
     DOUBLE **m = (DOUBLE**)aligned_alloc(ALIGN_SIZE, DO_ALIGN(cols * sizeof(DOUBLE*)));
     m[0] = (DOUBLE*)aligned_alloc(ALIGN_SIZE, DO_ALIGN(cols * rows * sizeof(DOUBLE)));
+
+    // fprintf(stderr, ">>> DO_ALIGN: cols=%ld, aligned=%ld\n", cols, DO_ALIGN(cols * sizeof(DOUBLE)));
+    // fprintf(stderr, ">>> DO_ALIGN: cols*rows=%ld, aligned=%ld\n", cols * rows, DO_ALIGN(cols * rows * sizeof(DOUBLE)));
     for (i = 0; i < cols * rows; i++) {
         m[0][i] = 0.0;
     }

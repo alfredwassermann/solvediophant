@@ -935,7 +935,7 @@ DOUBLE daxpy_dasum_AVX1(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
 
         if (((long)x & 31) != 0 || ((long)y & 31) != 0) {
             // Address is not 32 bit aligned
-            fprintf(stderr, "Unaligned array in daxpy_dasum_AVX\n");
+            fprintf(stderr, "Unaligned array in daxpy_dasum_AVX1\n");
             exit(EXIT_MEMORY);
         }
 
@@ -987,27 +987,33 @@ DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
 
         va = _mm256_broadcast_sd(&a);
 
-        if (((long)x & 31) != 0 || ((long)y & 31) != 0) {
-            // Address is not 32 bit aligned
-            fprintf(stderr, "Unaligned array in daxpy_dasum_AVX\n");
-            exit(EXIT_MEMORY);
-        }
+        // if (((long)x & 31) != 0 || ((long)y & 31) != 0) {
+        //     // Address is not 32 bit aligned
+        //     fprintf(stderr, "Unaligned array in daxpy_dasum_AVX\n");
+        //     if (( (long)x & 31) != 0) {
+        //         fprintf(stderr, "x is unaligned array\n");
+        //     }
+        //     if (( (long)y & 31) != 0) {
+        //         fprintf(stderr, "y is unaligned array\n");
+        //     }
+        //     exit(EXIT_MEMORY);
+        // }
 
         for (i = 0; i < n_16; i += 16) {
-            vp1 = _mm256_fmadd_pd(va, _mm256_load_pd(x + i), _mm256_load_pd(y + i));
-            _mm256_store_pd(res + i, vp1);
+            vp1 = _mm256_fmadd_pd(va, _mm256_loadu_pd(x + i), _mm256_loadu_pd(y + i));
+            _mm256_storeu_pd(res + i, vp1);
             sum1 = _mm256_add_pd(sum1, _mm256_andnot_pd(msk, vp1)); // vp = _mm256_andnot_pd(msk, vp); // fabs(vp)
 
-            vp2 = _mm256_fmadd_pd(va, _mm256_load_pd(x + i + 4), _mm256_load_pd(y + i + 4));
-            _mm256_store_pd(res + i + 4, vp2);
+            vp2 = _mm256_fmadd_pd(va, _mm256_loadu_pd(x + i + 4), _mm256_loadu_pd(y + i + 4));
+            _mm256_storeu_pd(res + i + 4, vp2);
             sum2 = _mm256_add_pd(sum2, _mm256_andnot_pd(msk, vp2));
 
-            vp3 = _mm256_fmadd_pd(va, _mm256_load_pd(x + i + 8), _mm256_load_pd(y + i + 8));
-            _mm256_store_pd(res + i + 8, vp3);
+            vp3 = _mm256_fmadd_pd(va, _mm256_loadu_pd(x + i + 8), _mm256_loadu_pd(y + i + 8));
+            _mm256_storeu_pd(res + i + 8, vp3);
             sum3= _mm256_add_pd(sum3, _mm256_andnot_pd(msk, vp3));
 
-            vp4 = _mm256_fmadd_pd(va, _mm256_load_pd(x + i + 12), _mm256_load_pd(y + i + 12));
-            _mm256_store_pd(res + i + 12, vp4);
+            vp4 = _mm256_fmadd_pd(va, _mm256_loadu_pd(x + i + 12), _mm256_loadu_pd(y + i + 12));
+            _mm256_storeu_pd(res + i + 12, vp4);
             sum4 = _mm256_add_pd(sum4, _mm256_andnot_pd(msk, vp4));
         }
 
@@ -1059,7 +1065,7 @@ DOUBLE daxpy_dasum_AVX8(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
         va = _mm256_broadcast_sd(&a);
         if (((long)x & 31) != 0 || ((long)y & 31) != 0) {
             // Address is not 32 bit aligned
-            fprintf(stderr, "Unaligned array in daxpy_dasum_AVX\n");
+            fprintf(stderr, "Unaligned array in daxpy_dasum_AVX8\n");
             exit(EXIT_MEMORY);
         }
 
