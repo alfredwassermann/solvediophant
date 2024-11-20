@@ -443,20 +443,24 @@ int preprocess(lgs_t *LGS) {
     #if 1
     fprintf(stderr, ">> preprocess: remove columns with entries that are too large\n");
     mpz_init(sum_neg);
-
     for (j = 0; j < rows; j++) {
         cols = LGS->num_cols;
 
+        // sum_neg will be the absolute value of the sum of the negative entries in a row
         mpz_set_ui(sum_neg, 0);
         for (k = 0; k < cols; k++) {
             if (mpz_sgn(LGS->matrix[j][k]) < 0) {
-                mpz_submul(sum_neg, LGS->matrix[j][k], LGS->upperbounds[k]);
+                if (LGS->upperbounds != NULL) {
+                    mpz_submul(sum_neg, LGS->matrix[j][k], LGS->upperbounds[k]);
+                } else {
+                    mpz_submul_ui(sum_neg, LGS->matrix[j][k], 1);
+                }
             }
         }
-        mpz_add(sum_neg, sum_neg, LGS->rhs[j]);
+        mpz_add(sum_neg, sum_neg, LGS->rhs[j]); // |sum negative values| + rhs
 
         for (i = cols - 1; i >= 0; i--) {
-            if (mpz_cmp(LGS->matrix[j][i], sum_neg) > 0) {
+            if (mpz_cmp(LGS->matrix[j][i], sum_neg) > 0) { // matrix[j][i] > sum_neg
                 remove_column(LGS, i);
 
                 found_a_column++;
@@ -467,6 +471,7 @@ int preprocess(lgs_t *LGS) {
             }
         }
     }
+
     if (found_a_column > 0) {
         fprintf(stderr, "\n");
     }
