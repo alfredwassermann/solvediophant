@@ -49,6 +49,7 @@ extern DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOU
 extern DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE quality, int reduction_type);
 
 extern void print_NTL_lattice(lattice_t *lattice);
+extern void print_kernel(lattice_t *lattice);
 
 extern void print_lattice_sig(int sig);
 extern void dump_lattice_sig(int sig);

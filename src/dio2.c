@@ -302,6 +302,13 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         return 0;
     }
 
+    if (lattice->LLL_params.kernel) {
+        fprintf(stderr, "Print kernel of the system to stdout\n");
+        print_kernel(lattice);
+        return 0;
+    }
+
+
     /**
      * explicit enumeration
      */
@@ -788,6 +795,47 @@ void print_NTL_lattice(lattice_t *lattice) {
         printf("]\n");
         fflush(stdout);
     }
+
+    return;
+}
+
+/**
+ * Output the kernel of the system of equations to stdout.
+ * It is required that there are no upper bounds, i.e.
+ * the appended matrix has 2s in the diagonal.
+ */
+void print_kernel(lattice_t *lattice) {
+    int i, j,
+        rank = 0;
+    mpz_t q;
+
+    for (i = 0; i < lattice->num_cols; i++) {
+        if (mpz_cmp_si(lattice->basis[i][lattice->num_rows - 1], 0) == 0) {
+            rank++;
+        }
+    }
+
+    if (rank != lattice->num_cols - 1) {
+        fprintf(stderr, "Kernel computation failed, please increase parameter -scalelastline\n");
+        exit(1);
+    }
+
+    fprintf(stderr, "%d x %d\n", rank, lattice->num_rows - 1);
+    printf("%d %d %d\n", rank, lattice->num_rows - 1, 1);
+
+    mpz_init(q);
+    for (i = 0; i < lattice->num_cols; i++) {
+        if (mpz_cmp_si(lattice->basis[i][lattice->num_rows - 1], 0) != 0) {
+            continue;
+        }
+        for (j = 0; j < lattice->num_rows - 1; j++) {
+            mpz_divexact_ui(q, lattice->basis[i][j], 2);
+            printf("%ld ", mpz_get_si(q));
+        }
+        printf(" 0\n");
+    }
+    fflush(stdout);
+    mpz_clear(q);
 
     return;
 }

@@ -203,6 +203,7 @@ int main(int argc, char *argv[]) {
     mpz_set_si(lattice.max_norm, -1);
     lattice.LLL_params.silent = SILENT = 0;
     lattice.LLL_params.print_ntl = 0;
+    lattice.LLL_params.kernel = 0;
     PRINT_REQUIRED = 0;
     DUMP_REQUIRED = 0;
 
@@ -216,6 +217,9 @@ int main(int argc, char *argv[]) {
 
         } else if (get_param(argc, argv, i, "-printntl", suffix) != 0) {
             lattice.LLL_params.print_ntl = 1;
+
+        } else if (get_param(argc, argv, i, "-kernel", suffix) != 0) {
+            lattice.LLL_params.kernel = 1;
 
         } else if (get_param(argc, argv, i, "-iterate", suffix) != 0) {
             lattice.LLL_params.iterate_no  = (int)strtol(suffix, &endptr, 10);
