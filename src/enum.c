@@ -693,6 +693,11 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
                 lattice->num_cols, lattice->lgs_cols - lattice->lgs_rank + 1 + lattice->free_RHS);
     fflush(stderr);
 
+    if (lattice->lgs_cols - lattice->lgs_rank + 1 + lattice->free_RHS == 0) {
+        fprintf(stderr, "System not solvable.\n");
+        return 0;
+    }
+
     if (lattice->num_cols < lattice->lgs_cols - lattice->lgs_rank + 1 + lattice->free_RHS) {
         fprintf(stderr,"LLL didn't succeed in computing a basis of the kernel.\n");
         fprintf(stderr,"Please increase c0 (the first parameter)!\n");
