@@ -468,6 +468,7 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
 
 DOUBLE** alloc_double_matrix(size_t cols, size_t rows) {
     int i;
+    size_t rows_aligned, rows_size;
 
     // **m is a list of pointers m[0], ..., m[cols-1]
     // m[0] is a 1-dim array containing the whole matrix
@@ -475,17 +476,18 @@ DOUBLE** alloc_double_matrix(size_t cols, size_t rows) {
     // of each column.
     // This allows to use blas_ddot2 on non-contiguous arrays
     DOUBLE **m = (DOUBLE**)aligned_alloc(ALIGN_SIZE, DO_ALIGN(cols * sizeof(DOUBLE*)));
-    m[0] = (DOUBLE*)aligned_alloc(ALIGN_SIZE, DO_ALIGN(cols * rows * sizeof(DOUBLE)));
 
-    // fprintf(stderr, ">>> DO_ALIGN: cols=%ld, aligned=%ld\n", cols, DO_ALIGN(cols * sizeof(DOUBLE)));
-    // fprintf(stderr, ">>> DO_ALIGN: cols*rows=%ld, aligned=%ld\n", cols * rows, DO_ALIGN(cols * rows * sizeof(DOUBLE)));
-    for (i = 0; i < cols * rows; i++) {
+    // Changes here have to be done in cutlattice(), too
+    rows_size = DO_ALIGN(rows * sizeof(DOUBLE));
+    rows_aligned = rows_size / sizeof(DOUBLE);
+    m[0] = (DOUBLE*)aligned_alloc(ALIGN_SIZE, cols * rows_size);
+
+    for (i = 0; i < cols * rows_aligned; i++) {
         m[0][i] = 0.0;
     }
     for (i = 1; i < cols; i++) {
-        m[i] = (DOUBLE*)(m[0] + i * rows);
+        m[i] = (DOUBLE*)(m[0] + i * rows_aligned);
     }
-
     return m;
 }
 

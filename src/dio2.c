@@ -353,6 +353,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 int cutlattice(lattice_t *lattice) {
     int j, i, flag;
     int all_zero;
+    size_t rows_aligned;
 
     /**
      * Delete unnecessary columns
@@ -414,12 +415,13 @@ int cutlattice(lattice_t *lattice) {
 
     // New start positions for the vectors in mu and bd.
     // This is necessary for BLAS access to it.
+    rows_aligned = DO_ALIGN(lattice->num_rows * sizeof(DOUBLE)) / sizeof(DOUBLE);
     for (i = 1; i < lattice->num_cols; i++) {
-        lattice->decomp.mu[i] = (DOUBLE*)(lattice->decomp.mu[0] + i * lattice->num_rows);
+        lattice->decomp.mu[i] = (DOUBLE*)(lattice->decomp.mu[0] + i * rows_aligned);
     }
     int m = (lattice->num_rows > lattice->num_cols) ? lattice->num_rows : lattice->num_cols;
     for (i = 1; i < m; i++) {
-        lattice->decomp.bd[i] = (DOUBLE*)(lattice->decomp.bd[0] + i * lattice->num_rows);
+        lattice->decomp.bd[i] = (DOUBLE*)(lattice->decomp.bd[0] + i * rows_aligned);
     }
 
     return 1;
