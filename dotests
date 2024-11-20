@@ -12,6 +12,7 @@ NC='\033[0m'
 ############### Test files ###############################
 FILESQUICK="KM_Id7_t2_k3.in,30
 KM_Id9_t2_k3.txt,840
+alignment.txt,12770
 in_sd.txt,25
 in_sd2.txt,3
 mendelsohn.txt,1829
