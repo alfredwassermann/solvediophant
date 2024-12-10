@@ -923,7 +923,7 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
 
     /* Free allocated memory for enumeration */
     // Integer
-    free(lattice->decomp.first_nonzero); 
+    free(lattice->decomp.first_nonzero);
     free(lattice->decomp.first_nonzero_in_column);
     free(lattice->decomp.firstp);
 
@@ -977,6 +977,11 @@ DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max) {
 }
 
 DOUBLE compute_w2(DOUBLE *w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
+    #if defined(USE_AVX512)
+    if (HAS_AVX512) {
+        return daxpy_dasum_AVX512(alpha, bd[level], w, w, rows);
+    } else
+    #endif
     if (HAS_AVX2) {
         return daxpy_dasum_AVX(alpha, bd[level], w, w, rows);
     } else {
@@ -1000,6 +1005,11 @@ DOUBLE compute_w2(DOUBLE *w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
 }
 
 DOUBLE compute_w(DOUBLE *w, DOUBLE *w1, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
+    #if defined(USE_AVX512)
+    if (HAS_AVX512) {
+        return daxpy_dasum_AVX512(alpha, bd[level], w1, w, rows);
+    } else
+    #endif
     if (HAS_AVX2) {
         return daxpy_dasum_AVX(alpha, bd[level], w1, w, rows);
     } else {

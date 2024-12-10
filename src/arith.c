@@ -966,7 +966,7 @@ DOUBLE daxpy_dasum_AVX1(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
 
 /**
  * Combine daxpy and dasum in one loop, feeding 4 pipes.
- * Seems to be the fastest one.
+ * Seems to be the fastest one. Use AVX2.
  */
 DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
     size_t i = 0;
@@ -1036,6 +1036,82 @@ DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
 
     return s;
 }
+
+/**
+ * Combine daxpy and dasum in one loop, feeding 4 pipes.
+ * Seems to be the fastest one. Use AVX2.
+ */
+#if defined(USE_AVX512)
+DOUBLE daxpy_dasum_AVX512(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
+    size_t i = 0;
+    DOUBLE s = 0.0;
+    __m512d va, vp1, vp2, vp3, vp4;
+
+    if (n <= 0) return 0.0;
+
+    size_t n_32 = n & -32;
+
+    if (n_32 >= 32) {
+        __m512d msk = {-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0}; // Used for fabs()
+
+        __m512d sum1 = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        __m512d sum2 = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        __m512d sum3 = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        __m512d sum4 = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+        // va = _mm512_broadcast_pd(&a);
+        va = _mm512_set1_pd(a);
+
+        if (((long)x & 31) != 0 || ((long)y & 31) != 0) {
+            // Address is not 32 bit aligned
+            fprintf(stderr, "Unaligned array in daxpy_dasum_AVX512\n");
+            if (( (long)x & 31) != 0) {
+                fprintf(stderr, "x is unaligned array %ld\n", (size_t)x);
+            }
+            if (( (long)y & 31) != 0) {
+                fprintf(stderr, "y is unaligned array\n");
+            }
+            exit(EXIT_MEMORY);
+        }
+
+        for (i = 0; i < n_32; i += 32) {
+            vp1 = _mm512_fmadd_pd(va, _mm512_load_pd(x + i), _mm512_load_pd(y + i));
+            _mm512_store_pd(res + i, vp1);
+            sum1 = _mm512_add_pd(sum1, _mm512_andnot_pd(msk, vp1));     // vp = _mm512_andnot_pd(msk, vp); // fabs(vp)
+
+            vp2 = _mm512_fmadd_pd(va, _mm512_load_pd(x + i + 4), _mm512_load_pd(y + i + 4));
+            _mm512_store_pd(res + i + 4, vp2);
+            sum2 = _mm512_add_pd(sum2, _mm512_andnot_pd(msk, vp2));
+
+            vp3 = _mm512_fmadd_pd(va, _mm512_load_pd(x + i + 8), _mm512_load_pd(y + i + 8));
+            _mm512_store_pd(res + i + 8, vp3);
+            sum3= _mm512_add_pd(sum3, _mm512_andnot_pd(msk, vp3));
+
+            vp4 = _mm512_fmadd_pd(va, _mm512_load_pd(x + i + 12), _mm512_load_pd(y + i + 12));
+            _mm512_store_pd(res + i + 12, vp4);
+            sum4 = _mm512_add_pd(sum4, _mm512_andnot_pd(msk, vp4));
+        }
+
+        sum1 = _mm512_add_pd(sum1, sum2);
+        sum3 = _mm512_add_pd(sum3, sum4);
+        sum1 = _mm512_add_pd(sum1, sum3);
+
+        // Add up the horizontal sum
+        s = sum1[0];
+        for (i = 1; i < 8; i++) {
+            s += sum1[i];
+        }
+    }
+
+    // Handle the trailing entries
+    for (i = n_32; i < n; i++) {
+        res[i] = fma(a, x[i], y[i]);
+        s += fabs(res[i]);
+    }
+
+    return s;
+}
+#endif
 
 /**
  * Combine daxpy and dasum in one loop, feeding 8 pipes.

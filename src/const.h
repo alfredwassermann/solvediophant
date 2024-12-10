@@ -82,6 +82,7 @@ extern int SILENT;
 extern int PRINT_REQUIRED;
 extern int DUMP_REQUIRED;
 extern bool HAS_AVX2;
+extern bool HAS_AVX512;
 
 #define ROUND(r) ceil(r-0.5)
 #define SQRT sqrt

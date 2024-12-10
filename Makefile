@@ -13,6 +13,9 @@ CFLAGS= -O3                  \
   -march=haswell             \
   -Wall
 
+#  -mavx512f -mavx512dq       \
+#  -DUSE_AVX512               \
+
 
 # Profile:   -pg \
 # Find memory leaks

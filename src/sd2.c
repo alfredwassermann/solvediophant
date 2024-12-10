@@ -125,6 +125,7 @@ int SILENT;
 int PRINT_REQUIRED;
 int DUMP_REQUIRED;
 bool HAS_AVX2;
+bool HAS_AVX512;
 
 /**
  * Main program
@@ -169,11 +170,20 @@ int main(int argc, char *argv[]) {
 
     strcpy(sol_filename, "solutions");
 
+    if (__builtin_cpu_supports("avx512f")) {
+        #if USE_AVX
+            fprintf(stderr, "CPU supports AVX512\n");
+            HAS_AVX512 = true;
+        #else
+            fprintf(stderr, "AVX512 not enabled during compilation\n");
+            HAS_AVX512 = false;
+        #endif
+    }
     if (__builtin_cpu_supports("avx2")) {
         #if USE_AVX
             fprintf(stderr, "CPU supports AVX2\n");
             HAS_AVX2 = true;
-        #else 
+        #else
             fprintf(stderr, "AVX2 not enabled during compilation\n");
             HAS_AVX2 = false;
         #endif
