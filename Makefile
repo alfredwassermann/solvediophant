@@ -8,14 +8,12 @@ CFLAGS= -O3                  \
   -DUSE_AVX                  \
   -fno-math-errno            \
   -ftree-vectorize           \
-  -mavx -mavx2               \
   -msse3 -mssse3 -msse4.1    \
-  -march=haswell             \
   -Wall
 
-#  -mavx512f -mavx512dq       \
-#  -DUSE_AVX512               \
-
+HASWELL_CFLAGS= -mavx -mavx2 -march=haswell
+ICELAKE_CFLAGS= -mavx512f -mavx512dq -march=icelake
+SAPPHIRERAPIDS_CFLAGS= -mavx512f -mavx512dq -march=sapphirerapids
 
 # Profile:   -pg \
 # Find memory leaks
@@ -62,7 +60,6 @@ GMPINC=
 
 ###################################
 # Print files gsa.out and gsa1.out
-# Otherwise comment out
 GSA_OUT=FALSE
 ###################################
 
@@ -72,8 +69,14 @@ PDFFILES=$(PDF)/bkz.pdf $(PDF)/dio2.pdf $(PDF)/dualbkz.pdf $(PDF)/enum.pdf $(PDF
 all: $(BIN)/sd2 tags $(PDFFILES) $(BIN)/test_la
 
 $(SRC)/%.o: $(SRC)/%.c $(SRC)/%.h $(SRC)/datastruct.h $(SRC)/const.h
-	$(CC) $(CFLAGS) $(PGO_CFLAGS) -D$(GSA_OUT) -D$(BLAS) -I$(BLASINC) -c $< $(GMPINC) -o $@
+	$(CC) $(CFLAGS) $(HASWELL_CFLAGS) $(PGO_CFLAGS) -D$(GSA_OUT) -D$(BLAS) -I$(BLASINC) -c $< $(GMPINC) -o $@
 	@echo "Compiled "$<" successfully!"
+
+$(BIN)/sd2: $(OBJFILES)
+	$(CC) $(CFLAGS) $(HASWELL_CFLAGS) $(LDFLAGS) $(PGO_LDFLAGS) \
+		-o $(BIN)/sd2 $(OBJFILES) \
+		-static $(BLASLIB) \
+		-lgmp $(GMPLIB) $(GMPINC) -lm -lc
 
 $(PDF)/%.pdf: $(SRC)/%.c
 	vim $(VIMFLAGS) -c 'hardcopy > $*.ps' -c quit $<
@@ -81,20 +84,18 @@ $(PDF)/%.pdf: $(SRC)/%.c
 	rm $*.ps
 	@echo "Converted "$<" to LaTeX successfully!"
 
-$(BIN)/sd2: $(OBJFILES)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(PGO_LDFLAGS) \
-	-o $(BIN)/sd2 $(OBJFILES) \
-	-static $(BLASLIB) \
-	-lgmp $(GMPLIB) $(GMPINC) -lm -lc
-
 .PHONY: pgo
 # Do profile generated optimization
 # This is recommended for the final executable
 pgo:
 	./profiledmake.sh
 
+$(SRC)/test_la.o: $(SRC)/test_la.c
+	$(CC) $(CFLAGS) $(HASWELL_CFLAGS) $(PGO_CFLAGS) -D$(GSA_OUT) -D$(BLAS) -I$(BLASINC) -c $< $(GMPINC) -o $@
+	@echo "Compiled "$<" successfully!"
+
 $(BIN)/test_la: $(SRC)/test_la.o $(SRC)/arith.o
-	$(CC) $(CFLAGS) -o $(BIN)/test_la $(SRC)/test_la.o $(SRC)/arith.o -lm -lc
+	$(CC) $(CFLAGS) $(HASWELL_CFLAGS) -o $(BIN)/test_la $(SRC)/test_la.o $(SRC)/arith.o -lm -lc
 
 tags: $(SRC) Makefile
 	ctags $</*.c $</*.h
