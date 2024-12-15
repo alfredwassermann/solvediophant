@@ -207,24 +207,6 @@ DOUBLE dot_mpz (mpz_t *v, mpz_t *w, int z) {
     return mpz_get_d(sum);
 }
 
-DOUBLE dot_double(DOUBLE *v, DOUBLE *w , int n) {
-
-    if (HAS_AVX2) {
-        return hiprec_dot2_AVX(v, w, n);
-    } else {
-        return hiprec_dot2(v, w, n);
-    }
-        // #if BLAS
-        //     return cblas_ddot(n, v, 1, w, 1);
-        // #else
-        //     DOUBLE r;
-        //     int i;
-        //     r = 0.0;
-        //     for (i = n - 1; i >= 0; i--) r += v[i] * w[i];
-        //     return r;
-        // #endif
-}
-
 void alloc_basis (lattice_t *lattice) {
     int i, j;
 

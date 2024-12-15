@@ -38,6 +38,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "const.h"
 #include "arith.h"
 
+bool HAS_AVX2;
+bool HAS_AVX512;
+
 DOUBLE *getArray(int len, int type) {
     DOUBLE *p;
     int i, sgn;

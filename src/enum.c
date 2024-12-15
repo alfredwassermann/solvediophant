@@ -1046,7 +1046,7 @@ void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE 
             for (l = 0; l < rows; l++) bd[i][l] -= mu[i][j]*bd[j][l];
         }
 
-        c[i] = dot_double(bd[i], bd[i], rows);
+        c[i] = hiprec_dot(bd[i], bd[i], rows);
         #if VERBOSE > 0
             fprintf(stderr, "%lf ",(double)c[i]);
         #endif

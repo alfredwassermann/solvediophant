@@ -59,7 +59,6 @@ extern void load_lattice(lattice_t *lattice, char *fname);
 extern long gcd(long n1, long n2);
 
 extern DOUBLE dot_mpz(mpz_t *v, mpz_t *w, int z);
-extern DOUBLE dot_double(DOUBLE *v, DOUBLE *w , int n);
 
 extern int alloc_decomp(lattice_t *lattice);
 extern int free_decomp(decomp_t decomp); //DOUBLE **mu, DOUBLE *c, DOUBLE *N, DOUBLE **bs, int s);

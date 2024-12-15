@@ -1228,3 +1228,30 @@ DOUBLE daxpy_dasum_AVX8(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
 
     return s;
 }
+
+DOUBLE hiprec_dot(DOUBLE *v, DOUBLE *w , int n) {
+
+    if (HAS_AVX2) {
+        return hiprec_dot2_AVX(v, w, n);
+    } else {
+        return hiprec_dot2(v, w, n);
+    }
+}
+
+DOUBLE double_dot(DOUBLE *v, DOUBLE *w , int n) {
+
+    if (HAS_AVX2) {
+        return hiprec_dot2_AVX(v, w, n);
+    } else {
+        return hiprec_dot2(v, w, n);
+    }
+    // #if BLAS
+    //     return cblas_ddot(n, v, 1, w, 1);
+    // #else
+    //     DOUBLE r;
+    //     int i;
+    //     r = 0.0;
+    //     for (i = n - 1; i >= 0; i--) r += v[i] * w[i];
+    //     return r;
+    // #endif
+}
