@@ -38,6 +38,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "const.h"
 #include "arith.h"
 
+#if defined(USE_BLAS)
+    #define BLAS 1
+    #include <cblas-openblas.h>
+#elif defined(USE_BLAS_DEV)
+    #define BLAS 1
+    #include "common.h"
+    #include "cblas.h"
+#elif defined(USE_BLAS_OLD)
+    #define BLAS 1
+    #include <cblas.h>
+#else
+    #define BLAS 0
+#endif
+
 /**
 * Ogita, Rump, Oishi: Accurate sum and dot product (2005)
 */
@@ -1037,6 +1051,60 @@ DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
     return s;
 }
 
+DOUBLE double_dot_AVX(DOUBLE* x, DOUBLE* y, int n) {
+    int i = 0;
+    DOUBLE s = 0.0;
+    __m256d a, b;
+
+    if (n <= 0) return 0.0;
+
+    long n_16 = n & -16;
+
+    if (n_16 >= 16) {
+        __m256d sum1 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sum2 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sum3 = {0.0, 0.0, 0.0, 0.0};
+        __m256d sum4 = {0.0, 0.0, 0.0, 0.0};
+
+        for (i = 0; i < n_16; i += 16) {
+            a = _mm256_loadu_pd(x + i);
+            b = _mm256_loadu_pd(y + i);
+            sum1 = _mm256_fmadd_pd(a, b, sum1);
+
+            a = _mm256_loadu_pd(x + i + 4);
+            b = _mm256_loadu_pd(y + i + 4);
+            sum2 = _mm256_fmadd_pd(a, b, sum2);
+
+            a = _mm256_loadu_pd(x + i + 8);
+            b = _mm256_loadu_pd(y + i + 8);
+            sum3 = _mm256_fmadd_pd(a, b, sum3);
+
+            a = _mm256_loadu_pd(x + i + 12);
+            b = _mm256_loadu_pd(y + i + 12);
+            sum4 = _mm256_fmadd_pd(a, b, sum4);
+        }
+
+        sum1 = _mm256_add_pd(sum1, sum2);
+        sum3 = _mm256_add_pd(sum3, sum4);
+        sum1 = _mm256_add_pd(sum1, sum3);
+
+        // Add up the horizontal sum
+        s = sum1[0];
+        for (i = 1; i < 4; i++) {
+            s += sum1[i];
+        }
+    }
+
+    // Add the trailing entries
+    {
+        for (i = n_16; i < n; i++) {
+            s += x[i] * y[i];
+        }
+    }
+
+    return s;
+}
+
 /**
  * Combine daxpy and dasum in one loop, feeding 4 pipes.
  * Seems to be the fastest one. Use AVX2.
@@ -1230,7 +1298,6 @@ DOUBLE daxpy_dasum_AVX8(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
 }
 
 DOUBLE hiprec_dot(DOUBLE *v, DOUBLE *w , int n) {
-
     if (HAS_AVX2) {
         return hiprec_dot2_AVX(v, w, n);
     } else {
@@ -1239,19 +1306,17 @@ DOUBLE hiprec_dot(DOUBLE *v, DOUBLE *w , int n) {
 }
 
 DOUBLE double_dot(DOUBLE *v, DOUBLE *w , int n) {
-
     if (HAS_AVX2) {
-        return hiprec_dot2_AVX(v, w, n);
+        return double_dot_AVX(v, w, n);
     } else {
-        return hiprec_dot2(v, w, n);
+        #if BLAS
+            return cblas_ddot(n, v, 1, w, 1);
+        #else
+            DOUBLE r;
+            int i;
+            r = 0.0;
+            for (i = n - 1; i >= 0; i--) r += v[i] * w[i];
+            return r;
+        #endif
     }
-    // #if BLAS
-    //     return cblas_ddot(n, v, 1, w, 1);
-    // #else
-    //     DOUBLE r;
-    //     int i;
-    //     r = 0.0;
-    //     for (i = n - 1; i >= 0; i--) r += v[i] * w[i];
-    //     return r;
-    // #endif
 }
