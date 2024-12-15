@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gmp.h>
 
 #include "const.h"
+#include "arith.h"
 #include "lgs.h"
 #include "datastruct.h"
 #include "lattice.h"
@@ -276,7 +277,7 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     DOUBLE *u_loc;
     DOUBLE c_min;
 
-    int i, j;
+    int i;
     int t, t_min;
     int found_improvement = 0;
 
@@ -339,14 +340,7 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                 if (t < end_block) {
                     // forward
                     t++;
-
-    #if BLAS
-                    y[t] = cblas_ddot(t - t_min, &(a[t_min]), 1, &(R[t][t_min]), 1);
-    #else
-                    for (j = t_min, y[t] = 0.0; j < t; j++) {
-                        y[t] += a[j] * R[t][j];
-                    }
-    #endif
+                    y[t] = double_dot(&(a[t_min]), &(R[t][t_min]), t - t_min);
                     y[t] /= R[t][t];
 
                     u_loc[t] = v[t] = (long)(ROUND(y[t]));

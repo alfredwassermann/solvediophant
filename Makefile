@@ -95,7 +95,7 @@ $(SRC)/test_la.o: $(SRC)/test_la.c
 	@echo "Compiled "$<" successfully!"
 
 $(BIN)/test_la: $(SRC)/test_la.o $(SRC)/arith.o
-	$(CC) $(CFLAGS) $(HASWELL_CFLAGS) -o $(BIN)/test_la $(SRC)/test_la.o $(SRC)/arith.o -lm -lc
+	$(CC) $(CFLAGS) $(HASWELL_CFLAGS) -o $(BIN)/test_la $(SRC)/test_la.o $(SRC)/arith.o -static $(BLASLIB) -lm -lc
 
 tags: $(SRC) Makefile
 	ctags $</*.c $</*.h

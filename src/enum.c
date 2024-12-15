@@ -961,19 +961,7 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
 }
 
 DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max) {
-    #if BLAS
-        return cblas_ddot(level_max - level, &(us[level+1]), 1, &(mu_trans[level][level+1]), 1);
-    #else
-        int i;
-        DOUBLE sum;
-        i = level_max;
-        sum = 0.0;
-        while (i >= level + 1) {
-            sum += mu_trans[level][i]*us[i];
-            i--;
-        }
-        return sum;
-    #endif
+    return double_dot(&(us[level+1]), &(mu_trans[level][level+1]), level_max - level);
 }
 
 DOUBLE compute_w2(DOUBLE *w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
