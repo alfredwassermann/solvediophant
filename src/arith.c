@@ -1051,6 +1051,28 @@ DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
     return s;
 }
 
+void daxpy_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, int n) {
+    size_t i = 0;
+    if (n <= 0) return;
+
+    size_t n_16 = n & -16;
+    if (n_16 >= 16) {
+        __m256d va = _mm256_broadcast_sd(&a);
+
+        for (size_t i = 0; i < n_16; i += 16) {
+            _mm256_storeu_pd(y + i,      _mm256_fmadd_pd(va, _mm256_loadu_pd(x + i),      _mm256_loadu_pd(y + i)));
+            _mm256_storeu_pd(y + i + 4,  _mm256_fmadd_pd(va, _mm256_loadu_pd(x + i + 4),  _mm256_loadu_pd(y + i + 4)));
+            _mm256_storeu_pd(y + i + 8,  _mm256_fmadd_pd(va, _mm256_loadu_pd(x + i + 8),  _mm256_loadu_pd(y + i + 8)));
+            _mm256_storeu_pd(y + i + 12, _mm256_fmadd_pd(va, _mm256_loadu_pd(x + i + 12), _mm256_loadu_pd(y + i + 12)));
+        }
+    }
+
+    // Handle the trailing entries
+    for (i = n_16; i < n; i++) {
+        y[i] = fma(a, x[i], y[i]);
+    }
+}
+
 DOUBLE double_dot_AVX(DOUBLE* x, DOUBLE* y, int n) {
     int i = 0;
     DOUBLE s = 0.0;
@@ -1103,6 +1125,35 @@ DOUBLE double_dot_AVX(DOUBLE* x, DOUBLE* y, int n) {
     }
 
     return s;
+}
+
+void double_copy_AVX(DOUBLE* to, DOUBLE* from, int n) {
+    int i;
+    if (n <= 0) return;
+    long n_16 = n & -16;
+
+    if (n_16 >= 16) {
+        __m256d f1, f2, f3, f4;
+
+        for (i = 0; i < n_16; i += 16) {
+            f1 = _mm256_loadu_pd(from + i);
+            f2 = _mm256_loadu_pd(from + i + 4);
+            f3 = _mm256_loadu_pd(from + i + 8);
+            f4 = _mm256_loadu_pd(from + i + 12);
+
+            _mm256_storeu_pd(to + i, f1);
+            _mm256_storeu_pd(to + i + 4, f2);
+            _mm256_storeu_pd(to + i + 8, f3);
+            _mm256_storeu_pd(to + i + 12, f4);
+        }
+    }
+
+    // Do the trailing entries
+    {
+        for (i = n_16; i < n; i++) {
+            to[i] = from[i];
+        }
+    }
 }
 
 /**
@@ -1320,3 +1371,32 @@ DOUBLE double_dot(DOUBLE *v, DOUBLE *w , int n) {
         #endif
     }
 }
+
+void double_copy(DOUBLE *to, DOUBLE *from , int n) {
+    if (HAS_AVX2) {
+        double_copy_AVX(to, from, n);
+    } else {
+        #if BLAS
+            cblas_dcopy(n, from, 1, to, 1);
+        #else
+            for (int i = 0; i < n; ++i) {
+                to[i] = from[i];
+            }
+        #endif
+    }
+}
+
+void daxpy(DOUBLE a, DOUBLE *x, DOUBLE *y, int n) {
+    if (HAS_AVX2) {
+        daxpy_AVX(a, x, y, n);
+    } else {
+        #if BLAS
+            cblas_daxpy(n, a, x, 1, y, 1);
+        #else
+            for (int j = 0; j < n; ++j) {
+                x[j] += a * y[j];
+            }
+        #endif
+    }
+}
+

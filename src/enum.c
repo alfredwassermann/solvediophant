@@ -1005,8 +1005,6 @@ DOUBLE compute_w(DOUBLE *w, DOUBLE *w1, DOUBLE **bd, DOUBLE alpha, int level, in
             cblas_dcopy(rows, w1, 1, w, 1);
             cblas_daxpy(rows, alpha, bd[level], 1, w, 1);
             return cblas_dasum(rows, w, 1);
-            // return hiprec_daxpy_dasum_AVX(alpha, bd[level], w1, w, rows); // Seems to be slightly slower
-            // return daxpy_dasum_AVX(alpha, bd[level], w1, w, rows);
         #else
             register int i;
             register DOUBLE norm1 = 0.0;

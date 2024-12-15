@@ -758,7 +758,6 @@ void set_linear_pruning_const(DOUBLE *alpha, len, ) {
         }
         alpha = (alpha < 1.0) ? alpha : 1.0;
     }
-
 }
 */
 

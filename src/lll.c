@@ -357,13 +357,6 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 } else {
                     r_new = hiprec_normsq_l2(&(R[k][j]), k - j + 1);
                 }
-                    // #if BLAS
-                    //     r_new = cblas_ddot(k - j + 1, &(R[k][j]), 1, &(R[k][j]), 1);
-                    // #else
-                    //     for (i = k, r_new = 0.0; i >= j; --i) {
-                    //         r_new += R[k][i] * R[k][i];
-                    //     }
-                    // #endif
                 pot *= r_new / (R[j][j] * R[j][j]);
 
                 if (pot < pot_min) {
@@ -502,13 +495,7 @@ DOUBLE householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int
             }
             w_beta = w * beta[i];
 
-            #if BLAS
-                cblas_daxpy(z - i, -w_beta, &(H[i][i]), 1, &(R[k][i]), 1);
-            #else
-                for (int j = i; j < z; ++j) {
-                    R[k][j] -= w_beta * H[i][j];
-                }
-            #endif
+            daxpy(-w_beta, &(H[i][i]), &(R[k][i]), z - i);
         }
     #else
         for (i = 0; i < k; ++i) {
@@ -523,13 +510,10 @@ DOUBLE householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int
 
     // H[k][k] = 1.0;   // Golub, van Loan
     H[k][k] = R[k][k];  // Higham, p.356
-    #if BLAS
-        cblas_dcopy(z - k - 1, &(R[k][k + 1]), 1, &(H[k][k + 1]), 1);
-    #else
-        for (i = k + 1; i < z; ++i) {
-            H[k][i] = R[k][i];
-        }
-    #endif
+    //     for (i = k + 1; i < z; ++i) {
+    //         H[k][i] = R[k][i];
+    //     }
+    double_copy(&(H[k][k + 1]), &(R[k][k + 1]), z - k - 1);
 
     // Golub, van Loan approach:
     // It ensures that R[k][k] becomes >= 0
@@ -626,12 +610,7 @@ void size_reduction(mpz_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, int 
     for (i = 0; i < z; ++i) {
         mpz_submul(b[k][i], b[j][i], musvl);
     }
-
-    #if BLAS
-        cblas_daxpy(j + 1, -mus, R[j], 1, R[k], 1);
-    #else
-        for (i = 0; i <= j; i++) R[k][i] -= R[j][i] * mus;
-    #endif
+    daxpy(-mus, R[j], R[k], j + 1);
 }
 
 void size_reduction_long(long **b, DOUBLE  **R, long musl, double mus, int k, int j, int z) {
@@ -640,12 +619,7 @@ void size_reduction_long(long **b, DOUBLE  **R, long musl, double mus, int k, in
     for (i = 0; i < z; ++i) {
         b[k][i] -= musl * b[j][i];
     }
-
-    #if BLAS
-        cblas_daxpy(j + 1, -mus, R[j], 1, R[k], 1);
-    #else
-        for (i = 0; i <= j; i++) R[k][i] -= R[j][i] * mus;
-    #endif
+    daxpy(-mus, R[j], R[k], j + 1);
 }
 
 void check_precision(mpz_t *b, DOUBLE *R, int z, int k) {

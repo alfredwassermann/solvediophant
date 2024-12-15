@@ -117,6 +117,8 @@ extern DOUBLE hiprec_dot2(DOUBLE* x, DOUBLE* y, int n);
 extern DOUBLE hiprec_dot2_AVX(DOUBLE* x, DOUBLE* y, int n);
 extern DOUBLE hiprec_dot(DOUBLE *v, DOUBLE *w , int n);
 extern DOUBLE double_dot(DOUBLE *v, DOUBLE *w , int n);
+extern void double_copy(DOUBLE *to, DOUBLE *from , int n);
+extern void daxpy(DOUBLE a, DOUBLE *x, DOUBLE *y, int n);
 
 extern DOUBLE hiprec_dotK(DOUBLE* x, DOUBLE* y, int n, int K);
 extern DOUBLE hiprec_dot2_row(DOUBLE* x, int dx, DOUBLE* y, int dy, int n);
@@ -129,6 +131,8 @@ extern DOUBLE hiprec_normK_l2(DOUBLE* x, int n, int K);
 
 extern DOUBLE hiprec_daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n);
 extern DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n);
+extern void double_copy_AVX(DOUBLE* to, DOUBLE* from, int n);
+extern void daxpy_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, int n);
 
 #if defined(USE_AVX512)
     extern DOUBLE daxpy_dasum_AVX512(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n);
