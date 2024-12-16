@@ -27,9 +27,9 @@ VIMFLAGS=-c 'set printoptions=number:y,left:2pc,right:2pc' -c 'set printfont=Cou
 #
 # ------ First option: do not use BLAS at all.
 # Uncomment these:
-# BLAS=NOBLAS
-# BLASINC=.
-# BLASLIB=
+BLAS=NOBLAS
+BLASINC=.
+BLASLIB=
 #
 # ------  Second option: use OpenBLAS as installed in ubuntu.
 # Uncomment BLAS, BLASINC and BLASLIB:
@@ -43,9 +43,9 @@ VIMFLAGS=-c 'set printoptions=number:y,left:2pc,right:2pc' -c 'set printfont=Cou
 #
 #  ------ Third option: use OpenBLAS installed and compiled in a folder.
 # Uncomment these:
-BLAS=USE_BLAS_DEV
-BLASINC=../OpenBLAS/
-BLASLIB=-L../OpenBLAS/ -lopenblas -lpthread
+#BLAS=USE_BLAS_DEV
+#BLASINC=../OpenBLAS/
+#BLASLIB=-L../OpenBLAS/ -lopenblas -lpthread
 ###################################
 
 ###################################
