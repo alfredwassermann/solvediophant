@@ -1372,6 +1372,44 @@ DOUBLE double_dot(DOUBLE *v, DOUBLE *w , int n) {
     }
 }
 
+DOUBLE double_dot_inc(int n, DOUBLE *v, int inc_v, DOUBLE *w , int inc_w) {
+    int i = 0;
+    int iv = 0, iw = 0;
+    DOUBLE s = 0.0;
+
+    if (n <= 0) return s;
+
+    DOUBLE tmp1 = 0.0;
+    DOUBLE tmp2 = 0.0;
+
+    int n1 = n & -4;
+
+    while (i < n1) {
+        DOUBLE m1 = w[iw]             * v[iv] ;
+        DOUBLE m2 = w[iw + inc_w]     * v[iv + inc_v];
+        DOUBLE m3 = w[iw + 2 * inc_w] * v[iv + 2 * inc_v];
+        DOUBLE m4 = w[iw + 3 * inc_w] * v[iv + 3 * inc_v];
+
+        iv += inc_v * 4;
+        iw += inc_w * 4;
+
+        tmp1 += m1 + m3;
+        tmp2 += m2 + m4;
+
+        i += 4;
+    }
+
+    while(i < n) {
+        tmp1 += w[iw] * v[iv] ;
+        iv  += inc_v;
+        iw  += inc_w;
+        i++ ;
+    }
+    s = tmp1 + tmp2;
+    return s;
+}
+
+
 void double_copy(DOUBLE *to, DOUBLE *from , int n) {
     if (HAS_AVX2) {
         double_copy_AVX(to, from, n);

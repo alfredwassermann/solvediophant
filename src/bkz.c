@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gmp.h>
 
 #include "const.h"
+#include "arith.h"
 #include "lgs.h"
 #include "datastruct.h"
 #include "lattice.h"
@@ -498,14 +499,15 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
             if (t > start_block) {
                 // forward
                 t--;
-                #if BLAS
-                    y[t] = cblas_ddot(t_max - t, &(u_loc[t+1]), 1, &(R[t+1][t]), lattice->num_rows);
-                #else
-                    y[t] = 0.0;
-                    for (int j = t + 1; j <= t_max; j++) {
-                        y[t] += u_loc[j] * R[j][t];
-                    }
-                #endif
+                y[t] = double_dot_inc(t_max - t, &(u_loc[t+1]), 1, &(R[t+1][t]), lattice->num_rows);
+                // #if BLAS
+                //     y[t] = cblas_ddot(t_max - t, &(u_loc[t+1]), 1, &(R[t+1][t]), lattice->num_rows);
+                // #else
+                //     y[t] = 0.0;
+                //     for (int j = t + 1; j <= t_max; j++) {
+                //         y[t] += u_loc[j] * R[j][t];
+                //     }
+                // #endif
                 y[t] /= R[t][t];
                 u_loc[t] = v[t] = (long)(ROUND(-y[t]));
                 delta[t] = 0;
@@ -665,14 +667,16 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
             }
 
                         lds_k[t] = lds_k[t + 1];
-                        #if BLAS
-                            y[t] = cblas_ddot(t_max - t, &(u_loc[t+1]), 1, &(R[t+1][t]), lattice->num_rows);
-                        #else
-                            y[t] = 0.0;
-                            for (int j = t + 1; j <= t_max; j++) {
-                                y[t] += u_loc[j] * R[j][t];
-                            }
-                        #endif
+                        y[t] = double_dot_inc(t_max - t, &(u_loc[t+1]), 1, &(R[t+1][t]), lattice->num_rows);
+                        // #if BLAS
+                        //     y[t] = cblas_ddot(t_max - t, &(u_loc[t+1]), 1, &(R[t+1][t]), lattice->num_rows);
+                        // #else
+                        //     y[t] = 0.0;
+                        //     for (int j = t + 1; j <= t_max; j++) {
+                        //         y[t] += u_loc[j] * R[j][t];
+                        //     }
+                        // #endif
+
                         y[t] /= R[t][t];
                         u_loc[t] = v[t] = (long)(ROUND(-y[t]));
                         delta[t] = 0;

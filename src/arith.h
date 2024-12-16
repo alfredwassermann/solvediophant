@@ -119,6 +119,7 @@ extern DOUBLE hiprec_dot(DOUBLE *v, DOUBLE *w , int n);
 extern DOUBLE double_dot(DOUBLE *v, DOUBLE *w , int n);
 extern void double_copy(DOUBLE *to, DOUBLE *from , int n);
 extern void daxpy(DOUBLE a, DOUBLE *x, DOUBLE *y, int n);
+extern DOUBLE double_dot_inc(int n, DOUBLE *v, int inc_v, DOUBLE *w , int inc_w);
 
 extern DOUBLE hiprec_dotK(DOUBLE* x, DOUBLE* y, int n, int K);
 extern DOUBLE hiprec_dot2_row(DOUBLE* x, int dx, DOUBLE* y, int dy, int n);
