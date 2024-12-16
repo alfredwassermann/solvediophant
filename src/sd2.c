@@ -178,8 +178,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "AVX512 not enabled during compilation\n");
             HAS_AVX512 = false;
         #endif
-    }
-    if (__builtin_cpu_supports("avx2")) {
+    } else if (__builtin_cpu_supports("avx2")) {
         #if USE_AVX
             fprintf(stderr, "CPU supports AVX2\n");
             HAS_AVX2 = true;

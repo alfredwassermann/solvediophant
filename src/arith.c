@@ -513,17 +513,21 @@ DOUBLE hiprec_norm_l1_AVX(DOUBLE* p, int n) {
  * Dot product of arrays x and y of length n with high precision.
  */
 DOUBLE hiprec_dot2(DOUBLE* x, DOUBLE* y, int n) {
-    DOUBLE S, h, s, r, sigma;
-    int i;
-    if (n <= 0) return 0.0;
+    if (HAS_AVX2) {
+        return hiprec_dot2_AVX(x, y, n);
+    } else {
+        DOUBLE S, h, s, r, sigma;
+        int i;
+        if (n <= 0) return 0.0;
 
-    twoProd2fma(x[0], y[0], &S, &sigma);
-    for (i = 1; i < n; i++) {
-        twoProd2fma(x[i], y[i], &h, &r);
-        twoSum2(S, h, &S, &s);
-        sigma += (s + r);
+        twoProd2fma(x[0], y[0], &S, &sigma);
+        for (i = 1; i < n; i++) {
+            twoProd2fma(x[i], y[i], &h, &r);
+            twoSum2(S, h, &S, &s);
+            sigma += (s + r);
+        }
+        return S + sigma;
     }
-    return S + sigma;
 }
 
 /**
@@ -683,8 +687,12 @@ hiprec hiprec_normsq_l2_kernel(DOUBLE* x, int n) {
  * dot product of array x with itself of length n with high precision.
  */
 DOUBLE hiprec_normsq_l2(DOUBLE* x, int n) {
-    hiprec s = hiprec_normsq_l2_kernel(x, n);
-    return s.hi + s.lo;
+    if (HAS_AVX2) {
+        return hiprec_normsq_l2_AVX(x, n);
+    } else {
+        hiprec s = hiprec_normsq_l2_kernel(x, n);
+        return s.hi + s.lo;
+    }
 }
 
 /**
@@ -693,8 +701,12 @@ DOUBLE hiprec_normsq_l2(DOUBLE* x, int n) {
  * Siegfried M. Rump (2007)
  */
 DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
-    hiprec s = hiprec_normsq_l2_kernel(x, n);
-    return hiprec_sqrt(s.hi, s.lo);
+    if (HAS_AVX2) {
+        return hiprec_norm_l2_AVX(x, n);
+    } else {
+        hiprec s = hiprec_normsq_l2_kernel(x, n);
+        return hiprec_sqrt(s.hi, s.lo);
+    }
 }
 
 /**

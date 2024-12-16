@@ -299,12 +299,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             we shift b_k to the last column of the
             matrix and restart lllH with s = s-1.
         */
-        if (HAS_AVX2) {
-            norm = hiprec_norm_l2_AVX(R[k], k + 1);
-        } else {
-            norm = hiprec_norm_l2(R[k], k + 1);
-        }
-
+        norm = hiprec_norm_l2(R[k], k + 1);
 
         if (norm != norm || norm < norm_bound) {  // nan or < 0.5, or < 0.5 * dome_factor to compute kernel.
             // if (norm != norm || norm < 0.5) {  // nan or < 0.5, or < 0.5 * c to compute kernel.
@@ -352,11 +347,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
             pot = 1.0;
             pot_min = delta;
             for (j = k - 1; j >= low; --j) {
-                if (HAS_AVX2) {
-                    r_new = hiprec_normsq_l2_AVX(&(R[k][j]), k - j + 1);
-                } else {
-                    r_new = hiprec_normsq_l2(&(R[k][j]), k - j + 1);
-                }
+                r_new = hiprec_normsq_l2(&(R[k][j]), k - j + 1);
                 pot *= r_new / (R[j][j] * R[j][j]);
 
                 if (pot < pot_min) {
@@ -410,11 +401,7 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 // Deep insert
                 //
                 i = low;
-                if (HAS_AVX2) {
-                    r_new = hiprec_normsq_l2_AVX(R[k], k + 1);
-                } else {
-                    r_new = hiprec_normsq_l2(R[k], k + 1);
-                }
+                r_new = hiprec_normsq_l2(R[k], k + 1);
                 // for (j = 0, r_new = 0.0; j <= k; ++j) {
                 //     r_new += R[k][j] * R[k][j];
                 // }
@@ -484,11 +471,7 @@ DOUBLE householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int
     #if TRUE
         for (i = 0; i < k; ++i) {
             // w = < R[k], H[i] >
-            if (HAS_AVX2) {
-                w = hiprec_dot2_AVX(&(R[k][i]), &(H[i][i]), z - i);
-            } else {
-                w = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
-            }
+            w = hiprec_dot2(&(R[k][i]), &(H[i][i]), z - i);
             w_beta = w * beta[i];
 
             daxpy(-w_beta, &(H[i][i]), &(R[k][i]), z - i);
@@ -534,11 +517,8 @@ DOUBLE householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int
     // }
 
     // More stable suggestion from Higham:
-    if (HAS_AVX2) {
-        mu = hiprec_norm_l2_AVX(&(R[k][k]), z - k);
-    } else {
-        mu = hiprec_norm_l2(&(R[k][k]), z - k);
-    }
+    mu = hiprec_norm_l2(&(R[k][k]), z - k);
+
     if (R[k][k] < -eps) {
         mu = -mu;
     }
