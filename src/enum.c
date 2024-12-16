@@ -771,7 +771,7 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
     /* set the simple pruning bounds */
     lattice->decomp.Fq = (DOUBLE)mpz_get_d(lattice->max_norm);
     lattice->decomp.Fd = (lattice->num_rows * lattice->decomp.Fq * lattice->decomp.Fq) * (1.0 + EPSILON);
-    lattice->decomp.Fqeps = (1.0 + EPSILON) * lattice->decomp.Fq;        // Used in prune()
+    lattice->decomp.Fqeps = (1.0 + EPSILON) * lattice->decomp.Fq;        // Used with result of compute_w
     #if VERBOSE > 0
         fprintf(stderr, "Fq: %f\n", (double)lattice->decomp.Fq);
         fprintf(stderr, "Fd: %f\n", (double)lattice->decomp.Fd);
@@ -976,8 +976,6 @@ DOUBLE compute_w2(DOUBLE *w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
         #if BLAS
             cblas_daxpy(rows, alpha, bd[level], 1, w, 1);
             return cblas_dasum(rows, w, 1);
-            // return hiprec_daxpy_dasum_AVX(alpha, bd[level], w, w, rows);
-            // return daxpy_dasum_AVX(alpha, bd[level], w, w, rows);
         #else
             int i;
             register DOUBLE norm1 = 0.0;
@@ -1192,27 +1190,30 @@ int final_test(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
     return 1;
 }
 
-/* Pruning according to H\"olders inequality */
-int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps) {
-    #if BLAS
-        if (cs < Fqeps * cblas_dasum(rows, w, 1)) {
-            return 0;
-        }
-    #else
-        register DOUBLE reseite;
-        register int i;
+/*
+    Pruning according to H\"olders inequality
+    Unused, pruning is done in compute_w and compute_w2
+*/
+// int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps) {
+//     #if BLAS
+//         if (cs < Fqeps * cblas_dasum(rows, w, 1)) {
+//             return 0;
+//         }
+//     #else
+//         register DOUBLE reseite;
+//         register int i;
 
-        reseite = 0.0; /*|-cs/Fqeps;|*/ /* | * (1-eps) | */
-        i = rows - 1;
-        do {
-            reseite += fabs(w[i]);
-            i--;
-        } while (i >= 0);
-        if (cs < Fqeps * reseite) return 0;
-    #endif
+//         reseite = 0.0; /*|-cs/Fqeps;|*/ /* | * (1-eps) | */
+//         i = rows - 1;
+//         do {
+//             reseite += fabs(w[i]);
+//             i--;
+//         } while (i >= 0);
+//         if (cs < Fqeps * reseite) return 0;
+//     #endif
 
-    return 1;
-}
+//     return 1;
+// }
 
 int prune_only_zeros(lattice_t *lattice, DOUBLE *w, DOUBLE *w1,
         int level, int rows, DOUBLE Fq,

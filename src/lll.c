@@ -415,13 +415,9 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
                 } else {
                     r_new = hiprec_normsq_l2(R[k], k + 1);
                 }
-                    // #if BLAS
-                    //     r_new = cblas_ddot(k + 1, R[k], 1, R[k], 1);
-                    // #else
-                    //     for (j = 0, r_new = 0.0; j <= k; ++j) {
-                    //         r_new += R[k][j] * R[k][j];
-                    //     }
-                    // #endif
+                // for (j = 0, r_new = 0.0; j <= k; ++j) {
+                //     r_new += R[k][j] * R[k][j];
+                // }
                 deep_size = DEEPINSERT_CONST; // reduction_type;
             }
 

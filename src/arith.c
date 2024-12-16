@@ -929,56 +929,6 @@ DOUBLE hiprec_daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n
 }
 
 /**
- * Combine daxpy and dasum in one loop, simple loop.
- * Slower than 4 pipes.
- */
-DOUBLE daxpy_dasum_AVX1(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
-    size_t i = 0;
-    DOUBLE s = 0.0;
-    __m256d va, vx, vy, vp;
-
-    if (n <= 0) return 0.0;
-
-    size_t n_4 = n & -4;
-
-    if (n_4 >= 4) {
-        __m256d msk = {-0.0, -0.0, -0.0, -0.0}; // Used for fabs()
-        __m256d sum1 = {0.0, 0.0, 0.0, 0.0};
-
-        va = _mm256_broadcast_sd(&a);
-
-        if (((long)x & 31) != 0 || ((long)y & 31) != 0) {
-            // Address is not 32 bit aligned
-            fprintf(stderr, "Unaligned array in daxpy_dasum_AVX1\n");
-            exit(EXIT_MEMORY);
-        }
-
-        for (i = 0; i < n_4; i += 4) {
-            vx = _mm256_load_pd(x + i);
-            vy = _mm256_load_pd(y + i);
-            vp = _mm256_fmadd_pd(va, vx, vy);
-            _mm256_store_pd(res + i, vp);
-            vp = _mm256_andnot_pd(msk, vp); // fabs(vp)
-            sum1 = _mm256_add_pd(sum1, vp);
-        }
-
-        // Add up the horizontal sum
-        s = sum1[0];
-        for (i = 1; i < 4; i++) {
-            s += sum1[i];
-        }
-    }
-
-    // Handle the trailing entries
-    for (i = n_4; i < n; i++) {
-        res[i] = fma(a, x[i], y[i]);
-        s += fabs(res[i]);
-    }
-
-    return s;
-}
-
-/**
  * Combine daxpy and dasum in one loop, feeding 4 pipes.
  * Seems to be the fastest one. Use AVX2.
  */
@@ -1232,6 +1182,147 @@ DOUBLE daxpy_dasum_AVX512(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
 }
 #endif
 
+DOUBLE hiprec_dot(DOUBLE *v, DOUBLE *w , int n) {
+    if (HAS_AVX2) {
+        return hiprec_dot2_AVX(v, w, n);
+    } else {
+        return hiprec_dot2(v, w, n);
+    }
+}
+
+DOUBLE double_dot(DOUBLE *v, DOUBLE *w , int n) {
+    if (HAS_AVX2) {
+        return double_dot_AVX(v, w, n);
+    } else {
+        #if BLAS
+            return cblas_ddot(n, v, 1, w, 1);
+        #else
+            DOUBLE r;
+            int i;
+            r = 0.0;
+            for (i = n - 1; i >= 0; i--) r += v[i] * w[i];
+            return r;
+        #endif
+    }
+}
+
+DOUBLE double_dot_inc(int n, DOUBLE *v, int inc_v, DOUBLE *w , int inc_w) {
+    int i = 0;
+    int iv = 0, iw = 0;
+    DOUBLE s = 0.0;
+
+    if (n <= 0) return s;
+
+    DOUBLE tmp1 = 0.0;
+    DOUBLE tmp2 = 0.0;
+
+    int n1 = n & -4;
+
+    while (i < n1) {
+        DOUBLE m1 = w[iw]             * v[iv] ;
+        DOUBLE m2 = w[iw + inc_w]     * v[iv + inc_v];
+        DOUBLE m3 = w[iw + 2 * inc_w] * v[iv + 2 * inc_v];
+        DOUBLE m4 = w[iw + 3 * inc_w] * v[iv + 3 * inc_v];
+
+        iv += inc_v * 4;
+        iw += inc_w * 4;
+
+        tmp1 += m1 + m3;
+        tmp2 += m2 + m4;
+
+        i += 4;
+    }
+
+    while(i < n) {
+        tmp1 += w[iw] * v[iv] ;
+        iv  += inc_v;
+        iw  += inc_w;
+        i++ ;
+    }
+    s = tmp1 + tmp2;
+    return s;
+}
+
+void double_copy(DOUBLE *to, DOUBLE *from , int n) {
+    if (HAS_AVX2) {
+        double_copy_AVX(to, from, n);
+    } else {
+        #if BLAS
+            cblas_dcopy(n, from, 1, to, 1);
+        #else
+            for (int i = 0; i < n; ++i) {
+                to[i] = from[i];
+            }
+        #endif
+    }
+}
+
+void daxpy(DOUBLE a, DOUBLE *x, DOUBLE *y, int n) {
+    if (HAS_AVX2) {
+        daxpy_AVX(a, x, y, n);
+    } else {
+        #if BLAS
+            cblas_daxpy(n, a, x, 1, y, 1);
+        #else
+            for (int j = 0; j < n; ++j) {
+                x[j] += a * y[j];
+            }
+        #endif
+    }
+}
+
+/* -------------  Experiments with pipes --------------------- */
+
+/**
+ * Combine daxpy and dasum in one loop, simple loop.
+ * Slower than 4 pipes.
+ */
+DOUBLE daxpy_dasum_AVX1(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
+    size_t i = 0;
+    DOUBLE s = 0.0;
+    __m256d va, vx, vy, vp;
+
+    if (n <= 0) return 0.0;
+
+    size_t n_4 = n & -4;
+
+    if (n_4 >= 4) {
+        __m256d msk = {-0.0, -0.0, -0.0, -0.0}; // Used for fabs()
+        __m256d sum1 = {0.0, 0.0, 0.0, 0.0};
+
+        va = _mm256_broadcast_sd(&a);
+
+        if (((long)x & 31) != 0 || ((long)y & 31) != 0) {
+            // Address is not 32 bit aligned
+            fprintf(stderr, "Unaligned array in daxpy_dasum_AVX1\n");
+            exit(EXIT_MEMORY);
+        }
+
+        for (i = 0; i < n_4; i += 4) {
+            vx = _mm256_load_pd(x + i);
+            vy = _mm256_load_pd(y + i);
+            vp = _mm256_fmadd_pd(va, vx, vy);
+            _mm256_store_pd(res + i, vp);
+            vp = _mm256_andnot_pd(msk, vp); // fabs(vp)
+            sum1 = _mm256_add_pd(sum1, vp);
+        }
+
+        // Add up the horizontal sum
+        s = sum1[0];
+        for (i = 1; i < 4; i++) {
+            s += sum1[i];
+        }
+    }
+
+    // Handle the trailing entries
+    for (i = n_4; i < n; i++) {
+        res[i] = fma(a, x[i], y[i]);
+        s += fabs(res[i]);
+    }
+
+    return s;
+}
+
 /**
  * Combine daxpy and dasum in one loop, feeding 8 pipes.
  * Slower than 4 pipes.
@@ -1347,94 +1438,3 @@ DOUBLE daxpy_dasum_AVX8(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
 
     return s;
 }
-
-DOUBLE hiprec_dot(DOUBLE *v, DOUBLE *w , int n) {
-    if (HAS_AVX2) {
-        return hiprec_dot2_AVX(v, w, n);
-    } else {
-        return hiprec_dot2(v, w, n);
-    }
-}
-
-DOUBLE double_dot(DOUBLE *v, DOUBLE *w , int n) {
-    if (HAS_AVX2) {
-        return double_dot_AVX(v, w, n);
-    } else {
-        #if BLAS
-            return cblas_ddot(n, v, 1, w, 1);
-        #else
-            DOUBLE r;
-            int i;
-            r = 0.0;
-            for (i = n - 1; i >= 0; i--) r += v[i] * w[i];
-            return r;
-        #endif
-    }
-}
-
-DOUBLE double_dot_inc(int n, DOUBLE *v, int inc_v, DOUBLE *w , int inc_w) {
-    int i = 0;
-    int iv = 0, iw = 0;
-    DOUBLE s = 0.0;
-
-    if (n <= 0) return s;
-
-    DOUBLE tmp1 = 0.0;
-    DOUBLE tmp2 = 0.0;
-
-    int n1 = n & -4;
-
-    while (i < n1) {
-        DOUBLE m1 = w[iw]             * v[iv] ;
-        DOUBLE m2 = w[iw + inc_w]     * v[iv + inc_v];
-        DOUBLE m3 = w[iw + 2 * inc_w] * v[iv + 2 * inc_v];
-        DOUBLE m4 = w[iw + 3 * inc_w] * v[iv + 3 * inc_v];
-
-        iv += inc_v * 4;
-        iw += inc_w * 4;
-
-        tmp1 += m1 + m3;
-        tmp2 += m2 + m4;
-
-        i += 4;
-    }
-
-    while(i < n) {
-        tmp1 += w[iw] * v[iv] ;
-        iv  += inc_v;
-        iw  += inc_w;
-        i++ ;
-    }
-    s = tmp1 + tmp2;
-    return s;
-}
-
-
-void double_copy(DOUBLE *to, DOUBLE *from , int n) {
-    if (HAS_AVX2) {
-        double_copy_AVX(to, from, n);
-    } else {
-        #if BLAS
-            cblas_dcopy(n, from, 1, to, 1);
-        #else
-            for (int i = 0; i < n; ++i) {
-                to[i] = from[i];
-            }
-        #endif
-    }
-}
-
-void daxpy(DOUBLE a, DOUBLE *x, DOUBLE *y, int n) {
-    if (HAS_AVX2) {
-        daxpy_AVX(a, x, y, n);
-    } else {
-        #if BLAS
-            cblas_daxpy(n, a, x, 1, y, 1);
-        #else
-            for (int j = 0; j < n; ++j) {
-                x[j] += a * y[j];
-            }
-        #endif
-    }
-}
-

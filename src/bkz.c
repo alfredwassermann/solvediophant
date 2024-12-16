@@ -499,15 +499,13 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
             if (t > start_block) {
                 // forward
                 t--;
+
                 y[t] = double_dot_inc(t_max - t, &(u_loc[t+1]), 1, &(R[t+1][t]), lattice->num_rows);
-                // #if BLAS
-                //     y[t] = cblas_ddot(t_max - t, &(u_loc[t+1]), 1, &(R[t+1][t]), lattice->num_rows);
-                // #else
-                //     y[t] = 0.0;
-                //     for (int j = t + 1; j <= t_max; j++) {
-                //         y[t] += u_loc[j] * R[j][t];
-                //     }
-                // #endif
+                // y[t] = 0.0;
+                // for (int j = t + 1; j <= t_max; j++) {
+                //     y[t] += u_loc[j] * R[j][t];
+                // }
+
                 y[t] /= R[t][t];
                 u_loc[t] = v[t] = (long)(ROUND(-y[t]));
                 delta[t] = 0;
@@ -662,20 +660,17 @@ DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
                         // forward
                         t--;
 
-            if (t < 0 || t+1 > s) {
-                fprintf(stderr, "Z%d\n", t);
-            }
+                        if (t < 0 || t+1 > s) {
+                            fprintf(stderr, "Z%d\n", t);
+                        }
 
                         lds_k[t] = lds_k[t + 1];
+
                         y[t] = double_dot_inc(t_max - t, &(u_loc[t+1]), 1, &(R[t+1][t]), lattice->num_rows);
-                        // #if BLAS
-                        //     y[t] = cblas_ddot(t_max - t, &(u_loc[t+1]), 1, &(R[t+1][t]), lattice->num_rows);
-                        // #else
-                        //     y[t] = 0.0;
-                        //     for (int j = t + 1; j <= t_max; j++) {
-                        //         y[t] += u_loc[j] * R[j][t];
-                        //     }
-                        // #endif
+                        // y[t] = 0.0;
+                        // for (int j = t + 1; j <= t_max; j++) {
+                        //     y[t] += u_loc[j] * R[j][t];
+                        // }
 
                         y[t] /= R[t][t];
                         u_loc[t] = v[t] = (long)(ROUND(-y[t]));

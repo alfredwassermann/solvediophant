@@ -54,7 +54,7 @@ extern void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu, 
 extern void givens(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c);
 extern void inverse(DOUBLE **mu, DOUBLE **muinv, int columns);
 extern int final_test(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice);
-extern int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps);
+// extern int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps);
 extern int prune_only_zeros(lattice_t *lattice, DOUBLE *w, DOUBLE *w1,
                 int level, int rows, DOUBLE Fq,
                 DOUBLE **bd, DOUBLE y, int columns);
