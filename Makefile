@@ -12,7 +12,7 @@ CFLAGS= -O3                  \
   -Wall
 
 HASWELL_CFLAGS= -mavx -mavx2 -march=haswell
-ICELAKE_CFLAGS= -mavx512f -mavx512dq -march=icelake
+# ICELAKE_CFLAGS= -mavx512f -mavx512dq -march=
 SAPPHIRERAPIDS_CFLAGS= -mavx512f -mavx512dq -march=sapphirerapids
 
 # Profile:   -pg \

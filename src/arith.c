@@ -1006,14 +1006,14 @@ DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
     */
 
     for (i = 0; i < n_16; i += 16) {
-        vp1 = _mm256_fmadd_pd(va, _mm256_load_pd(x), _mm256_load_pd(y));
-        vp2 = _mm256_fmadd_pd(va, _mm256_load_pd(x + 4), _mm256_load_pd(y + 4));
-        vp3 = _mm256_fmadd_pd(va, _mm256_load_pd(x + 8), _mm256_load_pd(y + 8));
+        vp1 = _mm256_fmadd_pd(va, _mm256_load_pd(x),      _mm256_load_pd(y));
+        vp2 = _mm256_fmadd_pd(va, _mm256_load_pd(x + 4),  _mm256_load_pd(y + 4));
+        vp3 = _mm256_fmadd_pd(va, _mm256_load_pd(x + 8),  _mm256_load_pd(y + 8));
         vp4 = _mm256_fmadd_pd(va, _mm256_load_pd(x + 12), _mm256_load_pd(y + 12));
 
         sum1 = _mm256_add_pd(sum1, _mm256_andnot_pd(msk, vp1));
         sum2 = _mm256_add_pd(sum2, _mm256_andnot_pd(msk, vp2));
-        sum3= _mm256_add_pd(sum3, _mm256_andnot_pd(msk, vp3));
+        sum3 = _mm256_add_pd(sum3, _mm256_andnot_pd(msk, vp3));
         sum4 = _mm256_add_pd(sum4, _mm256_andnot_pd(msk, vp4));
 
         _mm256_store_pd(res, vp1);
