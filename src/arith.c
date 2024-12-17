@@ -554,14 +554,14 @@ DOUBLE hiprec_dot2_AVX(DOUBLE* x, DOUBLE* y, int n) {
     size_t n_16 = n & -16;
     size_t n_4 = n & -4;
 
-        __m256d sum_hi1 = {0.0, 0.0, 0.0, 0.0};
-        __m256d sigma1  = {0.0, 0.0, 0.0, 0.0};
-        __m256d sum_hi2 = {0.0, 0.0, 0.0, 0.0};
-        __m256d sigma2  = {0.0, 0.0, 0.0, 0.0};
-        __m256d sum_hi3 = {0.0, 0.0, 0.0, 0.0};
-        __m256d sigma3  = {0.0, 0.0, 0.0, 0.0};
-        __m256d sum_hi4 = {0.0, 0.0, 0.0, 0.0};
-        __m256d sigma4  = {0.0, 0.0, 0.0, 0.0};
+    __m256d sum_hi1 = {0.0, 0.0, 0.0, 0.0};
+    __m256d sigma1  = {0.0, 0.0, 0.0, 0.0};
+    __m256d sum_hi2 = {0.0, 0.0, 0.0, 0.0};
+    __m256d sigma2  = {0.0, 0.0, 0.0, 0.0};
+    __m256d sum_hi3 = {0.0, 0.0, 0.0, 0.0};
+    __m256d sigma3  = {0.0, 0.0, 0.0, 0.0};
+    __m256d sum_hi4 = {0.0, 0.0, 0.0, 0.0};
+    __m256d sigma4  = {0.0, 0.0, 0.0, 0.0};
 
     for (i = 0; i < n_16; i += 16) {
         a = _mm256_loadu_pd(x + i);
@@ -991,6 +991,7 @@ DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
 
     va = _mm256_broadcast_sd(&a);
 
+    /*
     if (((long)x & 31) != 0 || ((long)y & 31) != 0) {
         // Address is not 32 bit aligned
         fprintf(stderr, "Unaligned array in daxpy_dasum_AVX\n");
@@ -1002,23 +1003,27 @@ DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
         }
         exit(EXIT_MEMORY);
     }
+    */
 
     for (i = 0; i < n_16; i += 16) {
-        vp1 = _mm256_fmadd_pd(va, _mm256_load_pd(x + i), _mm256_load_pd(y + i));
-        _mm256_store_pd(res + i, vp1);
-        sum1 = _mm256_add_pd(sum1, _mm256_andnot_pd(msk, vp1)); // vp = _mm256_andnot_pd(msk, vp); // fabs(vp)
+        vp1 = _mm256_fmadd_pd(va, _mm256_load_pd(x), _mm256_load_pd(y));
+        vp2 = _mm256_fmadd_pd(va, _mm256_load_pd(x + 4), _mm256_load_pd(y + 4));
+        vp3 = _mm256_fmadd_pd(va, _mm256_load_pd(x + 8), _mm256_load_pd(y + 8));
+        vp4 = _mm256_fmadd_pd(va, _mm256_load_pd(x + 12), _mm256_load_pd(y + 12));
 
-        vp2 = _mm256_fmadd_pd(va, _mm256_load_pd(x + i + 4), _mm256_load_pd(y + i + 4));
-        _mm256_store_pd(res + i + 4, vp2);
+        sum1 = _mm256_add_pd(sum1, _mm256_andnot_pd(msk, vp1));
         sum2 = _mm256_add_pd(sum2, _mm256_andnot_pd(msk, vp2));
-
-        vp3 = _mm256_fmadd_pd(va, _mm256_load_pd(x + i + 8), _mm256_load_pd(y + i + 8));
-        _mm256_store_pd(res + i + 8, vp3);
         sum3= _mm256_add_pd(sum3, _mm256_andnot_pd(msk, vp3));
-
-        vp4 = _mm256_fmadd_pd(va, _mm256_load_pd(x + i + 12), _mm256_load_pd(y + i + 12));
-        _mm256_store_pd(res + i + 12, vp4);
         sum4 = _mm256_add_pd(sum4, _mm256_andnot_pd(msk, vp4));
+
+        _mm256_store_pd(res, vp1);
+        _mm256_store_pd(res + 4, vp2);
+        _mm256_store_pd(res + 8, vp3);
+        _mm256_store_pd(res + 12, vp4);
+
+        res += 16;
+        x += 16;
+        y += 16;
     }
 
     sum1 = _mm256_add_pd(sum1, sum2);
@@ -1026,9 +1031,13 @@ DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
     sum1 = _mm256_add_pd(sum1, sum3);
 
     for (i = n_16; i < n_4; i += 4) {
-        vp1 = _mm256_fmadd_pd(va, _mm256_load_pd(x + i), _mm256_load_pd(y + i));
-        _mm256_store_pd(res + i, vp1);
+        vp1 = _mm256_fmadd_pd(va, _mm256_load_pd(x), _mm256_load_pd(y));
+        _mm256_store_pd(res, vp1);
         sum1 = _mm256_add_pd(sum1, _mm256_andnot_pd(msk, vp1));
+
+        res += 4;
+        x += 4;
+        y += 4;
     }
 
     // Add up the horizontal sum
@@ -1036,8 +1045,11 @@ DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
 
     // Handle the trailing entries
     for (i = n_4; i < n; i++) {
-        res[i] = fma(a, x[i], y[i]);
-        s += fabs(res[i]);
+        *res = fma(a, *x, *y);
+        s += fabs(*res);
+        x++;
+        y++;
+        res++;
     }
 
     return s;
@@ -1053,97 +1065,118 @@ void daxpy_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, int n) {
     __m256d va = _mm256_broadcast_sd(&a);
 
     for (i = 0; i < n_16; i += 16) {
-        _mm256_storeu_pd(y + i,      _mm256_fmadd_pd(va, _mm256_loadu_pd(x + i),      _mm256_loadu_pd(y + i)));
-        _mm256_storeu_pd(y + i + 4,  _mm256_fmadd_pd(va, _mm256_loadu_pd(x + i + 4),  _mm256_loadu_pd(y + i + 4)));
-        _mm256_storeu_pd(y + i + 8,  _mm256_fmadd_pd(va, _mm256_loadu_pd(x + i + 8),  _mm256_loadu_pd(y + i + 8)));
-        _mm256_storeu_pd(y + i + 12, _mm256_fmadd_pd(va, _mm256_loadu_pd(x + i + 12), _mm256_loadu_pd(y + i + 12)));
+        _mm256_storeu_pd(y,      _mm256_fmadd_pd(va, _mm256_loadu_pd(x),      _mm256_loadu_pd(y)));
+        _mm256_storeu_pd(y + 4,  _mm256_fmadd_pd(va, _mm256_loadu_pd(x + 4),  _mm256_loadu_pd(y + 4)));
+        _mm256_storeu_pd(y + 8,  _mm256_fmadd_pd(va, _mm256_loadu_pd(x + 8),  _mm256_loadu_pd(y + 8)));
+        _mm256_storeu_pd(y + 12, _mm256_fmadd_pd(va, _mm256_loadu_pd(x + 12), _mm256_loadu_pd(y + 12)));
+        x += 16;
+        y += 16;
     }
 
     for (i = n_16; i < n_4; i += 4) {
-        _mm256_storeu_pd(y + i,      _mm256_fmadd_pd(va, _mm256_loadu_pd(x + i),      _mm256_loadu_pd(y + i)));
+        _mm256_storeu_pd(y,      _mm256_fmadd_pd(va, _mm256_loadu_pd(x),      _mm256_loadu_pd(y)));
+        x += 4;
+        y += 4;
     }
 
     // Handle the trailing entries
     for (i = n_4; i < n; i++) {
-        y[i] = fma(a, x[i], y[i]);
+        *y = fma(a, *x, *y);
+        x++;
+        y++;
     }
 }
 
 DOUBLE double_dot_AVX(DOUBLE* x, DOUBLE* y, int n) {
-    int i = 0;
     DOUBLE s = 0.0;
     __m256d a, b;
 
     if (n <= 0) return 0.0;
 
-    long n_16 = n & -16;
+    size_t i = 0;
+    size_t n_16 = n & -16;
+    size_t n_4 = n & -4;
 
-    if (n_16 >= 16) {
-        __m256d sum1 = {0.0, 0.0, 0.0, 0.0};
-        __m256d sum2 = {0.0, 0.0, 0.0, 0.0};
-        __m256d sum3 = {0.0, 0.0, 0.0, 0.0};
-        __m256d sum4 = {0.0, 0.0, 0.0, 0.0};
+    __m256d sum1 = {0.0, 0.0, 0.0, 0.0};
+    __m256d sum2 = {0.0, 0.0, 0.0, 0.0};
+    __m256d sum3 = {0.0, 0.0, 0.0, 0.0};
+    __m256d sum4 = {0.0, 0.0, 0.0, 0.0};
 
-        for (i = 0; i < n_16; i += 16) {
-            a = _mm256_loadu_pd(x + i);
-            b = _mm256_loadu_pd(y + i);
-            sum1 = _mm256_fmadd_pd(a, b, sum1);
+    for (i = 0; i < n_16; i += 16) {
+        a = _mm256_loadu_pd(x);
+        b = _mm256_loadu_pd(y);
+        sum1 = _mm256_fmadd_pd(a, b, sum1);
 
-            a = _mm256_loadu_pd(x + i + 4);
-            b = _mm256_loadu_pd(y + i + 4);
-            sum2 = _mm256_fmadd_pd(a, b, sum2);
+        a = _mm256_loadu_pd(x + 4);
+        b = _mm256_loadu_pd(y + 4);
+        sum2 = _mm256_fmadd_pd(a, b, sum2);
 
-            a = _mm256_loadu_pd(x + i + 8);
-            b = _mm256_loadu_pd(y + i + 8);
-            sum3 = _mm256_fmadd_pd(a, b, sum3);
+        a = _mm256_loadu_pd(x + 8);
+        b = _mm256_loadu_pd(y + 8);
+        sum3 = _mm256_fmadd_pd(a, b, sum3);
 
-            a = _mm256_loadu_pd(x + i + 12);
-            b = _mm256_loadu_pd(y + i + 12);
-            sum4 = _mm256_fmadd_pd(a, b, sum4);
-        }
+        a = _mm256_loadu_pd(x + 12);
+        b = _mm256_loadu_pd(y + 12);
+        sum4 = _mm256_fmadd_pd(a, b, sum4);
 
-        sum1 = _mm256_add_pd(sum1, sum2);
-        sum3 = _mm256_add_pd(sum3, sum4);
-        sum1 = _mm256_add_pd(sum1, sum3);
-
-        // Add up the horizontal sum
-        s = sum1[0] + sum1[1] + sum1[2] + sum1[3];
+        x += 16;
+        y += 16;
     }
 
+    sum1 = _mm256_add_pd(sum1, sum2);
+    sum3 = _mm256_add_pd(sum3, sum4);
+    sum1 = _mm256_add_pd(sum1, sum3);
+
+    for (i = n_16; i < n_4; i += 4) {
+        a = _mm256_loadu_pd(x);
+        b = _mm256_loadu_pd(y);
+        sum1 = _mm256_fmadd_pd(a, b, sum1);
+        x += 4;
+        y += 4;
+    }
+
+    // Add up the horizontal sum
+    s = sum1[0] + sum1[1] + sum1[2] + sum1[3];
+
     // Add the trailing entries
-    {
-        for (i = n_16; i < n; i++) {
-            s += x[i] * y[i];
-        }
+    for (i = n_4; i < n; i++) {
+        s = fma(*x, *y, s);
+        x++;
+        y++;
     }
 
     return s;
 }
 
 void double_copy_AVX(DOUBLE* to, DOUBLE* from, int n) {
-    int i;
     if (n <= 0) return;
-    long n_16 = n & -16;
 
-    if (n_16 >= 16) {
-        __m256d f1, f2, f3, f4;
+    size_t i;
+    size_t n_16 = n & -16;
+    size_t n_4 = n & -4;
 
-        for (i = 0; i < n_16; i += 16) {
-            f1 = _mm256_loadu_pd(from + i);
-            f2 = _mm256_loadu_pd(from + i + 4);
-            f3 = _mm256_loadu_pd(from + i + 8);
-            f4 = _mm256_loadu_pd(from + i + 12);
+    __m256d f1, f2, f3, f4;
 
-            _mm256_storeu_pd(to + i, f1);
-            _mm256_storeu_pd(to + i + 4, f2);
-            _mm256_storeu_pd(to + i + 8, f3);
-            _mm256_storeu_pd(to + i + 12, f4);
-        }
+    for (i = 0; i < n_16; i += 16) {
+        f1 = _mm256_loadu_pd(from + i);
+        f2 = _mm256_loadu_pd(from + i + 4);
+        f3 = _mm256_loadu_pd(from + i + 8);
+        f4 = _mm256_loadu_pd(from + i + 12);
+
+        _mm256_storeu_pd(to + i, f1);
+        _mm256_storeu_pd(to + i + 4, f2);
+        _mm256_storeu_pd(to + i + 8, f3);
+        _mm256_storeu_pd(to + i + 12, f4);
+    }
+
+    for (i = n_16; i < n_4; i += 4) {
+        f1 = _mm256_loadu_pd(from + i);
+        _mm256_storeu_pd(to + i, f1);
     }
 
     // Do the trailing entries
     {
-        for (i = n_16; i < n; i++) {
+        for (i = n_4; i < n; i++) {
             to[i] = from[i];
         }
     }
