@@ -35,12 +35,6 @@ BLASLIB=
 # Uncomment BLAS, BLASINC and BLASLIB:
 # Modern machine:
 #BLAS=USE_BLAS
-# Old machine, needed for old UBT compute cluster:
-# Compile it at btmdxe
-#BLAS=USE_BLAS_OLD
-#BLASINC=/usr/lib/x86_64-linux-gnu/
-#BLASLIB=-L/usr/lib/x86_64-linux-gnu/ -lopenblas -lpthread
-#
 #  ------ Third option: use OpenBLAS installed and compiled in a folder.
 # Uncomment these:
 #BLAS=USE_BLAS_DEV

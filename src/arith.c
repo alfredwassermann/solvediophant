@@ -998,10 +998,7 @@ DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
         sum1 = _mm256_add_pd(sum1, sum3);
 
         // Add up the horizontal sum
-        s = sum1[0];
-        for (i = 1; i < 4; i++) {
-            s += sum1[i];
-        }
+        s = sum1[0] + sum1[1] + sum1[2] + sum1[3];
     }
 
     // Handle the trailing entries
@@ -1073,10 +1070,7 @@ DOUBLE double_dot_AVX(DOUBLE* x, DOUBLE* y, int n) {
         sum1 = _mm256_add_pd(sum1, sum3);
 
         // Add up the horizontal sum
-        s = sum1[0];
-        for (i = 1; i < 4; i++) {
-            s += sum1[i];
-        }
+        s = sum1[0] + sum1[1] + sum1[2] + sum1[3];
     }
 
     // Add the trailing entries
