@@ -155,19 +155,20 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
                 fprintf(stderr, "max norm ");
                 mpz_out_str(stderr, 10, lattice->max_norm);
                 fprintf(stderr, "\n");
-                exit(0);
+                // exit(0);
             #endif
 
             /*
              * Cut the lattice
              */
+            fprintf(stderr, "Before cutting\n");
             if (cutlattice(lattice)) {
                 fprintf(stderr, "First reduction successful\n"); fflush(stderr);
             } else {
                 fprintf(stderr, "First reduction not successful\n"); fflush(stderr);
                 return 0;
             }
-            #if False
+            #if IS_USED
                 fprintf(stderr, "After cutting\n");
                 print_lattice(lattice, stderr);
             #endif
@@ -396,6 +397,7 @@ int cutlattice(lattice_t *lattice) {
 
     /* Now the rows are deleted. */
     for (j = 0; j < lattice->num_cols; j++)  {
+       fprintf(stderr, "j=%d\n", j);
        if (lattice->num_boundedvars == 0) {
             for (i = lattice->lgs_rows; i < lattice->num_rows; i++)
                 put_to(lattice->basis, j, i - lattice->lgs_rows,

@@ -314,6 +314,8 @@ void remove_column(lgs_t *LGS, int col_num) {
         for (s = col_num + 1; s < LGS->num_boundedvars; s++) {
             mpz_set(LGS->upperbounds[s - 1], LGS->upperbounds[s]);
         }
+    }
+    if (LGS->num_boundedvars > 0) {
         LGS->num_boundedvars--;
     }
 
