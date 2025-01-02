@@ -397,7 +397,6 @@ int cutlattice(lattice_t *lattice) {
 
     /* Now the rows are deleted. */
     for (j = 0; j < lattice->num_cols; j++)  {
-       fprintf(stderr, "j=%d\n", j);
        if (lattice->num_boundedvars == 0) {
             for (i = lattice->lgs_rows; i < lattice->num_rows; i++)
                 put_to(lattice->basis, j, i - lattice->lgs_rows,
