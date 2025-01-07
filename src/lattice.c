@@ -258,12 +258,12 @@ void free_lattice(lattice_t *lattice) {
     mpz_clear(lattice->upperbounds_max);
     mpz_clear(lattice->LLL_params.scalelastlinefactor);
 
-    // if (lattice->upperbounds != NULL) {
-    //     for (i = 0; i < lattice->num_cols_org; i++) {
-    //         mpz_clear(lattice->upperbounds[i]);
-    //     }
-    //     free(lattice->upperbounds);
-    // }
+    if (lattice->upperbounds != NULL) {
+        for (i = 0; i < lattice->lgs_cols /*lattice->num_cols_org*/; i++) {
+            mpz_clear(lattice->upperbounds[i]);
+        }
+        free(lattice->upperbounds);
+    }
     free(lattice->original_cols);
 
     free_decomp(lattice->decomp);
