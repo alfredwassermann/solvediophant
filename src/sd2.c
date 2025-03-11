@@ -170,15 +170,17 @@ int main(int argc, char *argv[]) {
 
     strcpy(sol_filename, "solutions");
 
-    if (__builtin_cpu_supports("avx512f")) {
-        #if USE_AVX
-            fprintf(stderr, "CPU supports AVX512\n");
-            HAS_AVX2 = true; // HAS_AVX512
-        #else
-            fprintf(stderr, "AVX512 not enabled during compilation\n");
-            HAS_AVX2 = false; // HAS_AVX512
-        #endif
-    } else if (__builtin_cpu_supports("avx2")) {
+    // if (__builtin_cpu_supports("avx512f")) {
+    //     // At the time being, only AVX2 is supported
+    //     #if USE_AVX
+    //         fprintf(stderr, "CPU supports AVX512\n");
+    //         HAS_AVX512 = true;
+    //     #else
+    //         fprintf(stderr, "AVX512 not enabled during compilation\n");
+    //         HAS_AVX512 = false;
+    //     #endif
+    // } else 
+    if (__builtin_cpu_supports("avx2")) {
         #if USE_AVX
             fprintf(stderr, "CPU supports AVX2\n");
             HAS_AVX2 = true;
