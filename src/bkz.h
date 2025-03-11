@@ -47,32 +47,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Helper arrays for the function enumerate in bkz
  */
 typedef struct {
-    DOUBLE *c;
-    DOUBLE *y;
+    double *c;
+    double *y;
     long *delta;
     long *d;
     long *v;
-    DOUBLE *u_loc;
+    double *u_loc;
 } bkz_enum_t;
 
 extern void alloc_bkz_enum(bkz_enum_t *bkz_enum, int s);
 extern void free_bkz_enum(bkz_enum_t *bkz_enum);
 
-extern DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
+extern double bkz(lattice_t *lattice, int s, int z, double delta, int beta, double p,
     int enum_type, int max_tours,
     int (*solutiontest)(lattice_t *lattice, int k),
     int (*solutiontest_long)(lattice_t *lattice, int k));
 
-extern DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block,
-                DOUBLE improve_by, DOUBLE p, bkz_enum_t *bkz_enum);
-extern DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block,
-                DOUBLE improve_by, DOUBLE p, bkz_enum_t *bkz_enum);
+extern double enumerate(lattice_t *lattice, double **R, long *u, int s, int start_block, int end_block,
+                double improve_by, double p, bkz_enum_t *bkz_enum);
+extern double lds_enumerate(lattice_t *lattice, double **R, long *u, int s, int start_block, int end_block,
+                double improve_by, double p, bkz_enum_t *bkz_enum);
 
 extern void insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t hv);
 extern void insert_vector_long(lattice_t *lattice, long *u, int start, int end, int z);
 
-extern DOUBLE GH(DOUBLE **R, int low, int up);
-extern void hoerner(DOUBLE **R, int low, int up, double p, DOUBLE *eta);
-extern DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type, DOUBLE p);
+extern double GH(double **R, int low, int up);
+extern void hoerner(double **R, int low, int up, double p, double *eta);
+extern double set_prune_const(double **R, int low, int up, int prune_type, double p);
 
 #endif

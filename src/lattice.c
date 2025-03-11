@@ -195,7 +195,7 @@ int get_bit_size(lattice_t *lattice) {
 /**
  * LLL-subroutines
  */
-DOUBLE dot_mpz (mpz_t *v, mpz_t *w, int z) {
+double dot_mpz (mpz_t *v, mpz_t *w, int z) {
     int i;
     mpz_t sum;
 
@@ -453,7 +453,7 @@ void lgs_to_lattice(lgs_t *LGS, lattice_t *lattice) {
     alloc_decomp(lattice);
 }
 
-DOUBLE** alloc_double_matrix(size_t cols, size_t rows) {
+double** alloc_double_matrix(size_t cols, size_t rows) {
     int i;
     size_t rows_aligned, rows_size;
 
@@ -462,18 +462,18 @@ DOUBLE** alloc_double_matrix(size_t cols, size_t rows) {
     // m[1], ..., m[cols-1] point to the start
     // of each column.
     // This allows to use blas_ddot2 on non-contiguous arrays
-    DOUBLE **m = (DOUBLE**)aligned_alloc(ALIGN_SIZE, DO_ALIGN(cols * sizeof(DOUBLE*)));
+    double **m = (double**)aligned_alloc(ALIGN_SIZE, DO_ALIGN(cols * sizeof(double*)));
 
     // Changes here have to be done in cutlattice(), too
-    rows_size = DO_ALIGN(rows * sizeof(DOUBLE));
-    rows_aligned = rows_size / sizeof(DOUBLE);
-    m[0] = (DOUBLE*)aligned_alloc(ALIGN_SIZE, cols * rows_size);
+    rows_size = DO_ALIGN(rows * sizeof(double));
+    rows_aligned = rows_size / sizeof(double);
+    m[0] = (double*)aligned_alloc(ALIGN_SIZE, cols * rows_size);
 
     for (i = 0; i < cols * rows_aligned; i++) {
         m[0][i] = 0.0;
     }
     for (i = 1; i < cols; i++) {
-        m[i] = (DOUBLE*)(m[0] + i * rows_aligned);
+        m[i] = (double*)(m[0] + i * rows_aligned);
     }
     return m;
 }
@@ -487,9 +487,9 @@ int alloc_decomp(lattice_t *lattice) {
 
     if ((rows < 1) || (cols < 1)) return 0;
 
-    len = DO_ALIGN(cols * sizeof(DOUBLE));
-    d->c = (DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
-    d->N = (DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
+    len = DO_ALIGN(cols * sizeof(double));
+    d->c = (double*)aligned_alloc(ALIGN_SIZE, len);
+    d->N = (double*)aligned_alloc(ALIGN_SIZE, len);
     for (j = 0; j < cols; j++) { d->c[j] = 0.0; }
     for (j = 0; j < cols; j++) { d->N[j] = 0.0; }
 
@@ -519,7 +519,7 @@ int free_decomp(decomp_t d) {
     return 1;
 }
 
-double log_potential(DOUBLE **R, int s, int z) {
+double log_potential(double **R, int s, int z) {
     double d = 0.0;
     int i;
 
@@ -530,7 +530,7 @@ double log_potential(DOUBLE **R, int s, int z) {
     return d;
 }
 
-double orthogonality_defect(lattice_t *lattice, DOUBLE **R, int s, int z) {
+double orthogonality_defect(lattice_t *lattice, double **R, int s, int z) {
     double defect = 0.0;
     int i;
 
@@ -541,7 +541,7 @@ double orthogonality_defect(lattice_t *lattice, DOUBLE **R, int s, int z) {
     return defect;
 }
 
-void handle_signals(lattice_t *lattice, DOUBLE **R) {
+void handle_signals(lattice_t *lattice, double **R) {
     if (PRINT_REQUIRED && R != NULL) {
         //print_lattice(lattice, stderr);
         print_lattice_stat(lattice, R);
@@ -553,7 +553,7 @@ void handle_signals(lattice_t *lattice, DOUBLE **R) {
     }
 }
 
-void print_lattice_stat(lattice_t *lattice, DOUBLE **R) {
+void print_lattice_stat(lattice_t *lattice, double **R) {
     int i;
     fprintf(stderr, "--------------------------------\n");
     for (i = 0; i < lattice->num_cols; i++) {
@@ -608,18 +608,18 @@ void copy_lattice_to_mpz(lattice_t *lattice) {
     }
 }
 
-void print_gsa(DOUBLE **R, int n, int start) {
+void print_gsa(double **R, int n, int start) {
     int i, m;
     int res;
-    // DOUBLE b1;
+    // double b1;
     FILE* f = fopen("gsa.tmp", "w");
     FILE* f2 = fopen("gsa1.tmp", "w");
 
     m = n; //4 * n / 5;
-    DOUBLE sx = 0.0;
-    DOUBLE sx2 = 0.0;
-    DOUBLE sy = 0.0;
-    DOUBLE sxy = 0.0;
+    double sx = 0.0;
+    double sx2 = 0.0;
+    double sy = 0.0;
+    double sxy = 0.0;
     for (i = 0; i < m; i++) {
         sx += i;
         sy += log2(R[i][i] * R[i][i]);

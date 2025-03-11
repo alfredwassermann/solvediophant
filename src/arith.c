@@ -59,9 +59,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * Add two doubles and return the hiprec result.
  */
-hiprec twoSum(DOUBLE a, DOUBLE b) {
+hiprec twoSum(double a, double b) {
     hiprec ret;
-    DOUBLE z;
+    double z;
 
     ret.hi = a + b;
     z = ret.hi - a;
@@ -73,8 +73,8 @@ hiprec twoSum(DOUBLE a, DOUBLE b) {
 /**
  * Add two doubles and return the hiprec result in parameters hi and lo.
  */
-void twoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo) {
-    DOUBLE z;
+void twoSum2(double a, double b, double *hi, double *lo) {
+    double z;
 
     (*hi) = a + b;
     z = (*hi) - a;
@@ -84,7 +84,7 @@ void twoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo) {
 /**
  * Add two doubles a and b with |a| > |b| and return the hiprec result in parameters hi and lo.
  */
-void fastTwoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo) {
+void fastTwoSum2(double a, double b, double *hi, double *lo) {
     // FastTwoSum for |a| > |b|
     (*hi) = a + b;
     (*lo) = (a - (*hi)) + b;
@@ -93,9 +93,9 @@ void fastTwoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo) {
 /**
  * Add two doubles a and b return hi in a and lo in b.
  */
-void twoSum2i(DOUBLE *a, DOUBLE *b) {
+void twoSum2i(double *a, double *b) {
     /** In-place summation */
-    DOUBLE z, x;
+    double z, x;
 
     x = (*a) + (*b);
 
@@ -110,10 +110,10 @@ void twoSum2i(DOUBLE *a, DOUBLE *b) {
 /**
  * Split a double, see Dekker, and return hiprec
  */
-hiprec split(DOUBLE a) {
+hiprec split(double a) {
     hiprec ret;
-    const DOUBLE factor = 134217729;
-    DOUBLE c;
+    const double factor = 134217729;
+    double c;
 
     c = factor * a;
     ret.hi = (c - (c - a));
@@ -124,7 +124,7 @@ hiprec split(DOUBLE a) {
 /**
  * Multiply two numbers and return hiprec.
  */
-hiprec twoProd(DOUBLE a, DOUBLE b) {
+hiprec twoProd(double a, double b) {
     hiprec ret, a_e, b_e;
     ret.hi = a * b;
     a_e = split(a);
@@ -136,7 +136,7 @@ hiprec twoProd(DOUBLE a, DOUBLE b) {
 /**
  * Multiply two numbers and return hiprec result in parameters hi and lo.
  */
-void twoProd2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo) {
+void twoProd2(double a, double b, double *hi, double *lo) {
     hiprec a_e, b_e;
     (*hi) = a * b;
     a_e = split(a);
@@ -148,7 +148,7 @@ void twoProd2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo) {
  * Multiply two numbers and return hiprec result in parameters hi and lo,
  * use fma()
  */
-void twoProd2fma(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo) {
+void twoProd2fma(double a, double b, double *hi, double *lo) {
     (*hi) = a * b;
     (*lo) = fma(a, b, -(*hi));
 }
@@ -156,7 +156,7 @@ void twoProd2fma(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo) {
 /**
  * Multiply a * a and return hiprec result.
 */
-hiprec twoSquare(DOUBLE a) {
+hiprec twoSquare(double a) {
     hiprec ret, a_e;
     ret.hi = a * a;
     a_e = split(a);
@@ -167,7 +167,7 @@ hiprec twoSquare(DOUBLE a) {
 /**
  * Multiply a * a and return hiprec result in parameters hi and lo.
  */
-void twoSquare2(DOUBLE a, DOUBLE *hi, DOUBLE *lo) {
+void twoSquare2(double a, double *hi, double *lo) {
     hiprec a_e;
     (*hi) = a * a;
     a_e = split(a);
@@ -178,7 +178,7 @@ void twoSquare2(DOUBLE a, DOUBLE *hi, DOUBLE *lo) {
  * Multiply a * a and return hiprec result in parameters hi and lo,
  * use fma().
  */
-void twoSquare2fma(DOUBLE a, DOUBLE *hi, DOUBLE *lo) {
+void twoSquare2fma(double a, double *hi, double *lo) {
     (*hi) = a * a;
     (*lo) = fma(a, a, -(*hi));
 }
@@ -186,9 +186,9 @@ void twoSquare2fma(DOUBLE a, DOUBLE *hi, DOUBLE *lo) {
 /**
  *  Accurate square root of hiprec number (T, t).
  */
-DOUBLE hiprec_sqrt(DOUBLE T, DOUBLE t) {
-    DOUBLE P, p, H, h;
-    DOUBLE r;
+double hiprec_sqrt(double T, double t) {
+    double P, p, H, h;
+    double r;
 
     P = sqrt(T);
 
@@ -203,8 +203,8 @@ DOUBLE hiprec_sqrt(DOUBLE T, DOUBLE t) {
 /**
  * Sum entries of array p of length n with double precision.
  */
-DOUBLE hiprec_sum2(DOUBLE* p, int n) {
-    DOUBLE sigma;
+double hiprec_sum2(double* p, int n) {
+    double sigma;
     hiprec s;
     int i;
 
@@ -224,9 +224,9 @@ DOUBLE hiprec_sum2(DOUBLE* p, int n) {
 /**
  * Sum entries of array p of length n with double precision.
  */
-DOUBLE hiprec_SUM(DOUBLE* p, int n) {
-    DOUBLE sigma;
-    DOUBLE h, z;
+double hiprec_SUM(double* p, int n) {
+    double sigma;
+    double h, z;
     hiprec s;
     int i;
 
@@ -250,9 +250,9 @@ DOUBLE hiprec_SUM(DOUBLE* p, int n) {
  * since we do not always start to access an array at the beginning.
  * The individual entries of an array are not aligned by 32 bit.
  */
-DOUBLE hiprec_sum_AVX(DOUBLE* p, int n) {
+double hiprec_sum_AVX(double* p, int n) {
     hiprec s;
-    DOUBLE sigma_d;
+    double sigma_d;
     __m256d vp, lo, h, z;
 
     if (n <= 0) return 0.0;
@@ -327,9 +327,9 @@ DOUBLE hiprec_sum_AVX(DOUBLE* p, int n) {
 /**
  * Sum entries of array p of length n with K-fold precision.
  */
-DOUBLE hiprec_sumK(DOUBLE* p, int n, int K) {
-    DOUBLE s, alpha;
-    DOUBLE q[K];
+double hiprec_sumK(double* p, int n, int K) {
+    double s, alpha;
+    double q[K];
     int i, j, k;
 
     if (n <= 0) return 0.0;
@@ -371,8 +371,8 @@ DOUBLE hiprec_sumK(DOUBLE* p, int n, int K) {
 /**
  * Sum absolute values of entries of array p of length n with hiprec.
  */
-DOUBLE hiprec_norm_l1(DOUBLE* p, int n) {
-    DOUBLE sigma;
+double hiprec_norm_l1(double* p, int n) {
+    double sigma;
     hiprec s;
     int i;
 
@@ -392,9 +392,9 @@ DOUBLE hiprec_norm_l1(DOUBLE* p, int n) {
 /**
  * Sum absolute values of entries of array p of length n with K-fold precision.
  */
-DOUBLE hiprec_normK_l1(DOUBLE* p, int n, int K) {
-    DOUBLE s, alpha;
-    DOUBLE q[K - 1];
+double hiprec_normK_l1(double* p, int n, int K) {
+    double s, alpha;
+    double q[K - 1];
     int i, j, k;
 
     if (n <= 0 || K < 2) return 0.0;
@@ -436,9 +436,9 @@ DOUBLE hiprec_normK_l1(DOUBLE* p, int n, int K) {
 /**
  * Sum absolute values of entries of array p of length n with high precision using AVX.
  */
-DOUBLE hiprec_norm_l1_AVX(DOUBLE* p, int n) {
+double hiprec_norm_l1_AVX(double* p, int n) {
     hiprec s;
-    DOUBLE sigma_d;
+    double sigma_d;
     __m256d vp, lo, h, z;
 
     if (n <= 0) return 0.0;
@@ -519,11 +519,11 @@ DOUBLE hiprec_norm_l1_AVX(DOUBLE* p, int n) {
 /**
  * Dot product of arrays x and y of length n with high precision.
  */
-DOUBLE hiprec_dot2(DOUBLE* x, DOUBLE* y, int n) {
+double hiprec_dot2(double* x, double* y, int n) {
     if (HAS_AVX2) {
         return hiprec_dot2_AVX(x, y, n);
     } else {
-        DOUBLE S, h, s, r, sigma;
+        double S, h, s, r, sigma;
         int i;
         if (n <= 0) return 0.0;
 
@@ -540,9 +540,9 @@ DOUBLE hiprec_dot2(DOUBLE* x, DOUBLE* y, int n) {
 /**
  * Dot product of arrays x and y of length n with high precision using AVX.
  */
-DOUBLE hiprec_dot2_AVX(DOUBLE* x, DOUBLE* y, int n) {
+double hiprec_dot2_AVX(double* x, double* y, int n) {
     hiprec s;
-    DOUBLE sigma_d;
+    double sigma_d;
     __m256d a, b, hi, lo, q, h, z;
 
     if (n <= 0) return 0.0;
@@ -621,7 +621,7 @@ DOUBLE hiprec_dot2_AVX(DOUBLE* x, DOUBLE* y, int n) {
 
     // Add the trailing entries
     {
-        DOUBLE hi, lo;
+        double hi, lo;
         for (i = n_4; i < n; i++) {
             twoProd2fma(x[i], y[i], &hi, &lo);
             s = twoSum(s.hi, hi);
@@ -635,9 +635,9 @@ DOUBLE hiprec_dot2_AVX(DOUBLE* x, DOUBLE* y, int n) {
 /**
  * Dot product of arrays x and y of length n with K-fold precision.
 */
-DOUBLE hiprec_dotK(DOUBLE* x, DOUBLE* y, int n, int K) {
-    DOUBLE P, H;
-    DOUBLE r[2 * n];
+double hiprec_dotK(double* x, double* y, int n, int K) {
+    double P, H;
+    double r[2 * n];
     int i;
     if (n <= 0) return 0.0;
 
@@ -653,8 +653,8 @@ DOUBLE hiprec_dotK(DOUBLE* x, DOUBLE* y, int n, int K) {
 /**
  * Dot product of arrays x and y of length n and step widths dx and dy with double precision.
  */
-DOUBLE hiprec_dot2_row(DOUBLE* x, int dx, DOUBLE* y, int dy, int n) {
-    DOUBLE p, q, s, h, r;
+double hiprec_dot2_row(double* x, int dx, double* y, int dy, int n) {
+    double p, q, s, h, r;
     int i, jx, jy;
     if (n <= 0) return 0.0;
 
@@ -675,9 +675,9 @@ DOUBLE hiprec_dot2_row(DOUBLE* x, int dx, DOUBLE* y, int dy, int n) {
  * @returns hiprec
  *
  */
-hiprec hiprec_normsq_l2_kernel(DOUBLE* x, int n) {
-    DOUBLE P, p, H, h;
-    DOUBLE d;
+hiprec hiprec_normsq_l2_kernel(double* x, int n) {
+    double P, p, H, h;
+    double d;
     hiprec s;
     int i;
 
@@ -699,7 +699,7 @@ hiprec hiprec_normsq_l2_kernel(DOUBLE* x, int n) {
  * Square of ||x||_2, i.e.
  * dot product of array x with itself of length n with high precision.
  */
-DOUBLE hiprec_normsq_l2(DOUBLE* x, int n) {
+double hiprec_normsq_l2(double* x, int n) {
     if (HAS_AVX2) {
         return hiprec_normsq_l2_AVX(x, n);
     } else {
@@ -713,7 +713,7 @@ DOUBLE hiprec_normsq_l2(DOUBLE* x, int n) {
  * "Fast and accurate computation of the Euclidean norm of a vector"
  * Siegfried M. Rump (2007)
  */
-DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
+double hiprec_norm_l2(double* x, int n) {
     if (HAS_AVX2) {
         return hiprec_norm_l2_AVX(x, n);
     } else {
@@ -730,9 +730,9 @@ DOUBLE hiprec_norm_l2(DOUBLE* x, int n) {
  * @returns hiprec
  *
  */
-hiprec hiprec_normsq_l2_AVX_kernel(DOUBLE* x, int n) {
+hiprec hiprec_normsq_l2_AVX_kernel(double* x, int n) {
     hiprec s;
-    DOUBLE sigma_d;
+    double sigma_d;
     __m256d a, hi, lo, q, h, z;
 
     s.hi = 0.0;
@@ -813,7 +813,7 @@ hiprec hiprec_normsq_l2_AVX_kernel(DOUBLE* x, int n) {
 
     // Add the trailing entries
     {
-        DOUBLE hi, lo;
+        double hi, lo;
         for (i = n_4; i < n; i++) {
             twoSquare2fma(x[i], &hi, &lo);
             s = twoSum(s.hi, hi);
@@ -828,7 +828,7 @@ hiprec hiprec_normsq_l2_AVX_kernel(DOUBLE* x, int n) {
  * Square of ||x||_2, i.e.
  * dot product of array x with itself of length n with high precision using AVX.
  */
-DOUBLE hiprec_normsq_l2_AVX(DOUBLE* x, int n) {
+double hiprec_normsq_l2_AVX(double* x, int n) {
     hiprec s = hiprec_normsq_l2_AVX_kernel(x, n);
     return s.hi + s.lo;
 }
@@ -837,7 +837,7 @@ DOUBLE hiprec_normsq_l2_AVX(DOUBLE* x, int n) {
  * ||x||_2, i.e. square root of dot product of array x with itself of length n with high precision
  * using AVX.
  */
-DOUBLE hiprec_norm_l2_AVX(DOUBLE* x, int n) {
+double hiprec_norm_l2_AVX(double* x, int n) {
     if (n <= 0) {
         return 0.0;
     }
@@ -848,9 +848,9 @@ DOUBLE hiprec_norm_l2_AVX(DOUBLE* x, int n) {
 /**
  * ||x||_2, i.e. square root of dot product of array x with itself of length n with K-fold precision.
  */
-DOUBLE hiprec_normK_l2(DOUBLE* x, int n, int K) {
-    DOUBLE S, P;
-    DOUBLE r[2 * n];
+double hiprec_normK_l2(double* x, int n, int K) {
+    double S, P;
+    double r[2 * n];
     int i;
 
     if (n <= 0) return 0.0;
@@ -869,9 +869,9 @@ DOUBLE hiprec_normK_l2(DOUBLE* x, int n, int K) {
  * Combine daxpy and dasum in one loop, hiprec version.
  * Unused.
  */
-DOUBLE hiprec_daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
+double hiprec_daxpy_dasum_AVX(double a, double *x, double *y, double *res, int n) {
     hiprec s;
-    DOUBLE sigma_d;
+    double sigma_d;
     __m256d va, vx, vy, vp, lo, h, z;
 
     if (n <= 0) return 0.0;
@@ -972,9 +972,9 @@ DOUBLE hiprec_daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n
  * Combine daxpy and dasum in one loop, feeding 4 pipes.
  * Seems to be the fastest one. Use AVX2.
  */
-DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
+double daxpy_dasum_AVX(double a, double *x, double *y, double *res, int n) {
     size_t i = 0;
-    DOUBLE s = 0.0;
+    double s = 0.0;
     __m256d va, vp1, vp2, vp3, vp4;
 
     if (n <= 0) return 0.0;
@@ -1129,7 +1129,7 @@ float saxpy_sasum_AVX(float a, float *x, float *y, float *res, int n) {
     return s;
 }
 
-void daxpy_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, int n) {
+void daxpy_AVX(double a, double *x, double *y, int n) {
     if (n <= 0) return;
 
     size_t i = 0;
@@ -1161,8 +1161,8 @@ void daxpy_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, int n) {
     }
 }
 
-DOUBLE double_dot_AVX(DOUBLE* x, DOUBLE* y, int n) {
-    DOUBLE s = 0.0;
+double double_dot_AVX(double* x, double* y, int n) {
+    double s = 0.0;
     __m256d a, b;
 
     if (n <= 0) return 0.0;
@@ -1222,7 +1222,7 @@ DOUBLE double_dot_AVX(DOUBLE* x, DOUBLE* y, int n) {
     return s;
 }
 
-void double_copy_AVX(DOUBLE* to, DOUBLE* from, int n) {
+void double_copy_AVX(double* to, double* from, int n) {
     if (n <= 0) return;
 
     size_t i;
@@ -1261,9 +1261,9 @@ void double_copy_AVX(DOUBLE* to, DOUBLE* from, int n) {
  * Seems to be the fastest one. Use AVX2.
  */
 #if defined(USE_AVX512)
-DOUBLE daxpy_dasum_AVX512(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
+double daxpy_dasum_AVX512(double a, double *x, double *y, double *res, int n) {
     size_t i = 0;
-    DOUBLE s = 0.0;
+    double s = 0.0;
     __m512d va, vp1, vp2, vp3, vp4;
 
     if (n <= 0) return 0.0;
@@ -1332,7 +1332,7 @@ DOUBLE daxpy_dasum_AVX512(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
 }
 #endif
 
-DOUBLE hiprec_dot(DOUBLE *v, DOUBLE *w , int n) {
+double hiprec_dot(double *v, double *w , int n) {
     if (HAS_AVX2) {
         return hiprec_dot2_AVX(v, w, n);
     } else {
@@ -1340,14 +1340,14 @@ DOUBLE hiprec_dot(DOUBLE *v, DOUBLE *w , int n) {
     }
 }
 
-DOUBLE double_dot(DOUBLE *v, DOUBLE *w , int n) {
+double double_dot(double *v, double *w , int n) {
     if (HAS_AVX2) {
         return double_dot_AVX(v, w, n);
     } else {
         #if BLAS
             return cblas_ddot(n, v, 1, w, 1);
         #else
-            DOUBLE r;
+            double r;
             int i;
             r = 0.0;
             for (i = n - 1; i >= 0; i--) r += v[i] * w[i];
@@ -1356,23 +1356,23 @@ DOUBLE double_dot(DOUBLE *v, DOUBLE *w , int n) {
     }
 }
 
-DOUBLE double_dot_inc(int n, DOUBLE *v, int inc_v, DOUBLE *w , int inc_w) {
+double double_dot_inc(int n, double *v, int inc_v, double *w , int inc_w) {
     int i = 0;
     int iv = 0, iw = 0;
-    DOUBLE s = 0.0;
+    double s = 0.0;
 
     if (n <= 0) return s;
 
-    DOUBLE tmp1 = 0.0;
-    DOUBLE tmp2 = 0.0;
+    double tmp1 = 0.0;
+    double tmp2 = 0.0;
 
     int n1 = n & -4;
 
     while (i < n1) {
-        DOUBLE m1 = w[iw]             * v[iv] ;
-        DOUBLE m2 = w[iw + inc_w]     * v[iv + inc_v];
-        DOUBLE m3 = w[iw + 2 * inc_w] * v[iv + 2 * inc_v];
-        DOUBLE m4 = w[iw + 3 * inc_w] * v[iv + 3 * inc_v];
+        double m1 = w[iw]             * v[iv] ;
+        double m2 = w[iw + inc_w]     * v[iv + inc_v];
+        double m3 = w[iw + 2 * inc_w] * v[iv + 2 * inc_v];
+        double m4 = w[iw + 3 * inc_w] * v[iv + 3 * inc_v];
 
         iv += inc_v * 4;
         iw += inc_w * 4;
@@ -1393,7 +1393,7 @@ DOUBLE double_dot_inc(int n, DOUBLE *v, int inc_v, DOUBLE *w , int inc_w) {
     return s;
 }
 
-void double_copy(DOUBLE *to, DOUBLE *from , int n) {
+void double_copy(double *to, double *from , int n) {
     if (HAS_AVX2) {
         double_copy_AVX(to, from, n);
     } else {
@@ -1407,7 +1407,7 @@ void double_copy(DOUBLE *to, DOUBLE *from , int n) {
     }
 }
 
-void daxpy(DOUBLE a, DOUBLE *x, DOUBLE *y, int n) {
+void daxpy(double a, double *x, double *y, int n) {
     if (HAS_AVX2) {
         daxpy_AVX(a, x, y, n);
     } else {
@@ -1427,9 +1427,9 @@ void daxpy(DOUBLE a, DOUBLE *x, DOUBLE *y, int n) {
  * Combine daxpy and dasum in one loop, simple loop.
  * Slower than 4 pipes.
  */
-DOUBLE daxpy_dasum_AVX1(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
+double daxpy_dasum_AVX1(double a, double *x, double *y, double *res, int n) {
     size_t i = 0;
-    DOUBLE s = 0.0;
+    double s = 0.0;
     __m256d va, vx, vy, vp;
 
     if (n <= 0) return 0.0;
@@ -1475,9 +1475,9 @@ DOUBLE daxpy_dasum_AVX1(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
  * Combine daxpy and dasum in one loop, feeding 8 pipes.
  * Slower than 4 pipes.
  */
-DOUBLE daxpy_dasum_AVX8(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
+double daxpy_dasum_AVX8(double a, double *x, double *y, double *res, int n) {
     size_t i = 0;
-    DOUBLE s = 0.0;
+    double s = 0.0;
     __m256d va, vx, vy, vp;
 
     if (n <= 0) return 0.0;

@@ -86,7 +86,6 @@ extern bool HAS_AVX512;
 
 #define ROUND(r) ceil(r-0.5)
 #define SQRT sqrt
-#define DOUBLE double
 
 /**
  *Error codes for exit():

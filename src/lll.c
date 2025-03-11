@@ -57,10 +57,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * between the reduction types POT_LLL, CLASSIC_LLL or deep insert.
  *
  * @param {lattice_t} lattice
- * @param {DOUBLE**} R Matrix R of the QR decomposition of the matrix consisting of the
+ * @param {double**} R Matrix R of the QR decomposition of the matrix consisting of the
  *        lattice vectors from position [start...up[ (both inclusive)
- * @param {DOUBLE*} beta
- * @param {DOUBLE**} H Matrix containing Householder columns
+ * @param {double*} beta
+ * @param {double**} H Matrix containing Householder columns
  * @param {int} start Position of the basis vector in the array of lattice vectors
  *              at which the reduction will start. If less than "low", "low" will be taken.
  * @param {int} low Position of the first basis vector in the array of lattice vectors.
@@ -68,15 +68,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param {int} up First position of basis vector in the array of lattice vectors
  *              which will not be visited.
  * @param {int} z Number of "rows", i.e. length of the basis vectors.
- * @param {DOUBLE} delta Reduction quality (0.5 <= delta <= 1)
+ * @param {double} delta Reduction quality (0.5 <= delta <= 1)
  * @param {int} reduction_type reduction type: CLASSIC_LLL, POT_LLL, else: deep insert
  * @param {int} bit_size
  * @param {function*} solutiontest
  * @return int The lowest position of lattice vectors which the algorithm has visited.
  */
-int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
+int lllH(lattice_t *lattice, double **R, double *beta, double **H,
             int start, int low, int up, int z,
-            DOUBLE delta, int reduction_type,
+            double delta, int reduction_type,
             int bit_size, int word_len,
             int (*solutiontest)(lattice_t *lattice, int k)) {
 
@@ -84,19 +84,19 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
     long **bl = lattice->basis_long;
 
     int i, j, k;
-    DOUBLE norm;
-    DOUBLE theta, eta;
+    double norm;
+    double theta, eta;
 
-    DOUBLE mus;
+    double mus;
     mpz_t musvl;
     mpz_t *swapvl;
     long *swap;
 
-    DOUBLE r_new, r_act;
-    DOUBLE pot, pot_min;
-    DOUBLE Sjk, Djk, s, SS;
-    DOUBLE matrix_factor = 1.0;
-    DOUBLE norm_bound;
+    double r_new, r_act;
+    double pot, pot_min;
+    double Sjk, Djk, s, SS;
+    double matrix_factor = 1.0;
+    double norm_bound;
     int pot_idx;
     int insert_pos, lowest_pos;
     int deep_size;
@@ -151,14 +151,14 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
     if (word_len == WORDLEN_MPZ) {
         mpz_init(musvl);
-        matrix_factor = (DOUBLE)mpz_get_d(lattice->matrix_factor) * (DOUBLE)mpz_get_d(lattice->upperbounds_max);
+        matrix_factor = (double)mpz_get_d(lattice->matrix_factor) * (double)mpz_get_d(lattice->upperbounds_max);
     }
     if (reduction_type == KERNEL_LLL) {
         norm_bound = 0.5 * matrix_factor;
     } else {
         norm_bound = 0.5;
     }
-    // fprintf(stderr, "norm_bound = %lf %lf, %lf\n", norm_bound, (DOUBLE)mpz_get_d(lattice->matrix_factor), (DOUBLE)mpz_get_d(lattice->upperbounds_max));
+    // fprintf(stderr, "norm_bound = %lf %lf, %lf\n", norm_bound, (double)mpz_get_d(lattice->matrix_factor), (double)mpz_get_d(lattice->upperbounds_max));
 
     /* Test for trivial cases. */
     if ((z <= 1) || (up <= 1)) {
@@ -460,10 +460,10 @@ int lllH(lattice_t *lattice, DOUBLE **R, DOUBLE *beta, DOUBLE **H,
 
 }
 
-DOUBLE householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int z, int bit_size) {
+double householder_column_inner_hiprec(double **R, double **H, double *beta, int k, int z, int bit_size) {
     int i;
-    DOUBLE w, w_beta, mu;
-    DOUBLE eps = 1.0e-15; // 0.0000000001;
+    double w, w_beta, mu;
+    double eps = 1.0e-15; // 0.0000000001;
 
     // Apply Householder vectors H[0],..., H[k-1]
     // to R[k] = b[k]:
@@ -497,7 +497,7 @@ DOUBLE householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int
     // Golub, van Loan approach:
     // It ensures that R[k][k] becomes >= 0
     // Higham, p.356: this might cause stability problems
-    // DOUBLE sigma, sq;
+    // double sigma, sq;
     // sigma = hiprec_normsq_l2(&(R[k][k + 1]), z - k - 1);
     // if (sigma == 0.0) {
     //     beta[k] = 0.0;
@@ -561,10 +561,10 @@ DOUBLE householder_column_inner_hiprec(DOUBLE **R, DOUBLE **H, DOUBLE *beta, int
 /**
  * Returns norm of b_k^*
  */
-DOUBLE householder_column(mpz_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int z, int bit_size) {
+double householder_column(mpz_t **b, double **R, double **H, double *beta, int k, int z, int bit_size) {
     int j;
     for (j = 0; j < z; ++j) {
-        R[k][j] = (DOUBLE)mpz_get_d(b[k][j]);
+        R[k][j] = (double)mpz_get_d(b[k][j]);
     }
     return householder_column_inner_hiprec(R, H, beta, k, z, bit_size);
 }
@@ -572,15 +572,15 @@ DOUBLE householder_column(mpz_t **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k
 /**
  * Returns norm of b_k^*
  */
-DOUBLE householder_column_long(long **b, DOUBLE **R, DOUBLE **H, DOUBLE *beta, int k, int z, int bit_size) {
+double householder_column_long(long **b, double **R, double **H, double *beta, int k, int z, int bit_size) {
     int j;
     for (j = 0; j < z; ++j) {
-        R[k][j] = (DOUBLE)b[k][j];
+        R[k][j] = (double)b[k][j];
     }
     return householder_column_inner_hiprec(R, H, beta, k, z, bit_size);
 }
 
-void size_reduction(mpz_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, int j, int z) {
+void size_reduction(mpz_t **b, double  **R, mpz_t musvl, double mus, int k, int j, int z) {
     int i;
 
     for (i = 0; i < z; ++i) {
@@ -589,7 +589,7 @@ void size_reduction(mpz_t **b, DOUBLE  **R, mpz_t musvl, double mus, int k, int 
     daxpy(-mus, R[j], R[k], j + 1);
 }
 
-void size_reduction_long(long **b, DOUBLE  **R, long musl, double mus, int k, int j, int z) {
+void size_reduction_long(long **b, double  **R, long musl, double mus, int k, int j, int z) {
     int i;
 
     for (i = 0; i < z; ++i) {
@@ -598,10 +598,10 @@ void size_reduction_long(long **b, DOUBLE  **R, long musl, double mus, int k, in
     daxpy(-mus, R[j], R[k], j + 1);
 }
 
-void check_precision(mpz_t *b, DOUBLE *R, int z, int k) {
+void check_precision(mpz_t *b, double *R, int z, int k) {
     int j;
     mpz_t b_norm;
-    DOUBLE r_norm;
+    double r_norm;
 
     mpz_init(b_norm);
     for (j = 0; j < z; ++j) {

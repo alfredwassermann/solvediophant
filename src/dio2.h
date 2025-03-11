@@ -44,9 +44,9 @@ extern int cutlattice(lattice_t *lattice);
 extern int solutiontest(lattice_t *lattice, int position);
 extern int solutiontest_long(lattice_t *lattice, int position);
 
-extern void lll(lattice_t *lattice, int s, int z, DOUBLE quality, int reduction_type);
-extern DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE quality, int reduction_type);
-extern DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE quality, int reduction_type);
+extern void lll(lattice_t *lattice, int s, int z, double quality, int reduction_type);
+extern double iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, double quality, int reduction_type);
+extern double block_reduce(lattice_t *lattice, int s, int z, int block_size, double quality, int reduction_type);
 
 extern void print_NTL_lattice(lattice_t *lattice);
 extern void print_kernel(lattice_t *lattice);

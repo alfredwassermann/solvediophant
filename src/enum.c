@@ -80,7 +80,7 @@ long loops;
 
 /*|mpz_t *upb,*lowb;|*/
 long dual_bound_success;
-DOUBLE dum1, dum2;
+double dum1, dum2;
 
 long only_zeros_no, only_zeros_success, hoelder_no, hoelder_success;
 long hoelder2_success;
@@ -89,9 +89,9 @@ long cs_success;
 typedef struct {
     int num;
 
-    DOUBLE cs;
-    DOUBLE us;
-    DOUBLE* w;
+    double cs;
+    double us;
+    double* w;
 } enum_node_t;
 
 typedef struct {
@@ -102,7 +102,7 @@ typedef struct {
     enum_node_t* nodes;
 } enum_level_t;
 
-void alloc_enum_data(enum_level_t** enum_data, DOUBLE **fipo, int cols, int rows) {
+void alloc_enum_data(enum_level_t** enum_data, double **fipo, int cols, int rows) {
     int i, j;
     long k;
     size_t len;
@@ -114,9 +114,9 @@ void alloc_enum_data(enum_level_t** enum_data, DOUBLE **fipo, int cols, int rows
 
         (*enum_data)[i].nodes = (enum_node_t*)malloc(k * sizeof(enum_node_t));
 
-        len = DO_ALIGN(rows * sizeof(DOUBLE));
+        len = DO_ALIGN(rows * sizeof(double));
         for (j = 0; j < k; j++) {
-            (*enum_data)[i].nodes[j].w = (DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
+            (*enum_data)[i].nodes[j].w = (double*)aligned_alloc(ALIGN_SIZE, len);
             for (int l = 0; l < rows; l++) { (*enum_data)[i].nodes[j].w[l] = 0.0; }
         }
         (*enum_data)[i].k = k;
@@ -154,8 +154,8 @@ void free_enum_data(enum_level_t *enum_data, int cols) {
  *      -1: if LLL_params.stop_after_loops has been reached.
  */
 int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
-                DOUBLE *us,
-                DOUBLE** fipo,
+                double *us,
+                double** fipo,
                 int level, int max_steps) {
 
     int i;
@@ -165,24 +165,24 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
     int columns = lattice->num_cols;
     int rows = lattice->num_rows;
 
-    DOUBLE** bd = lattice->decomp.bd;
-    DOUBLE* c = lattice->decomp.c;
-    DOUBLE Fd = lattice->decomp.Fd;
-    DOUBLE Fqeps = lattice->decomp.Fqeps;
-    DOUBLE Fq = lattice->decomp.Fq;
+    double** bd = lattice->decomp.bd;
+    double* c = lattice->decomp.c;
+    double Fd = lattice->decomp.Fd;
+    double Fqeps = lattice->decomp.Fqeps;
+    double Fq = lattice->decomp.Fq;
 
     enum_level_t* ed = &(enum_data[level]);
     enum_node_t *node, *parent_node;
 
-    DOUBLE coeff = 0.0;
-    DOUBLE y = 0.0;
-    DOUBLE u;
-    DOUBLE u_previous = 0.0;
+    double coeff = 0.0;
+    double y = 0.0;
+    double u;
+    double u_previous = 0.0;
     long delta;
     long v;
     int eta;
     int d;
-    DOUBLE norm1;
+    double norm1;
 
     ed->num = 0;
     node = &(ed->nodes)[ed->num];
@@ -324,8 +324,8 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
 }
 
 int dfs(enum_level_t* enum_data, lattice_t* lattice,
-        DOUBLE *us,
-        DOUBLE** fipo,
+        double *us,
+        double** fipo,
         int level) {
 
     int pos;
@@ -403,8 +403,8 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
  *      2: No solution is possible
  */
 int lds(enum_level_t* enum_data, lattice_t* lattice,
-                DOUBLE *us,
-                DOUBLE** fipo,
+                double *us,
+                double** fipo,
                 int level,
                 int lds_k,
                 int lds_threshold) {
@@ -605,23 +605,23 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
     return exhausted;
 }
 
-void init_dualbounds(lattice_t *lattice, DOUBLE ***fipo) {
-    DOUBLE **muinv;
-    DOUBLE entry;
-    DOUBLE norm_1, norm_2;
-    DOUBLE norm_1_1, norm_1_2;
+void init_dualbounds(lattice_t *lattice, double ***fipo) {
+    double **muinv;
+    double entry;
+    double norm_1, norm_2;
+    double norm_1_1, norm_1_2;
 
     int i, j, l;
     int cols = lattice->num_cols;
     int rows = lattice->num_rows;
 
-    (*fipo) = (DOUBLE**)calloc(cols + 1, sizeof(DOUBLE*));
+    (*fipo) = (double**)calloc(cols + 1, sizeof(double*));
     for (i = 0; i <= cols; i++) {
-        (*fipo)[i] = (DOUBLE*)calloc(cols + 1, sizeof(DOUBLE));
+        (*fipo)[i] = (double*)calloc(cols + 1, sizeof(double));
     }
-    muinv = (DOUBLE**)calloc(cols, sizeof(DOUBLE*));
+    muinv = (double**)calloc(cols, sizeof(double*));
     for(i = 0; i < cols; ++i) {
-        muinv[i] = (DOUBLE*)calloc(rows, sizeof(DOUBLE));
+        muinv[i] = (double*)calloc(rows, sizeof(double));
     }
 
     /* determine inverse of mu */
@@ -674,7 +674,7 @@ void init_dualbounds(lattice_t *lattice, DOUBLE ***fipo) {
     free(muinv);
 }
 
-DOUBLE exhaustive_enumeration(lattice_t *lattice) {
+double exhaustive_enumeration(lattice_t *lattice) {
     /* local variables for |explicit_enumeration() */
     /*|__attribute((aligned(16)))|*/
 
@@ -684,10 +684,10 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
     size_t len;
 
     enum_level_t* enum_data;
-    DOUBLE *us;
+    double *us;
     mpz_t *swap_vec;
 
-    DOUBLE **fipo;
+    double **fipo;
     /* test the size of the basis */
     fprintf(stderr, "Dimension of solution space (k): %d compared to (columns - rank): %d\n",
                 lattice->num_cols, lattice->lgs_cols - lattice->lgs_rank + 1 + lattice->free_RHS);
@@ -716,19 +716,19 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
     lattice->decomp.firstp = (int*)calloc(lattice->num_cols + 1, sizeof(int));
 
     // Float
-    len = DO_ALIGN((lattice->num_cols + 1) * sizeof(DOUBLE));
-    lattice->decomp.bd_1norm = (DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
+    len = DO_ALIGN((lattice->num_cols + 1) * sizeof(double));
+    lattice->decomp.bd_1norm = (double*)aligned_alloc(ALIGN_SIZE, len);
     for (int j = 0; j < lattice->num_cols + 1; j++) { lattice->decomp.bd_1norm[j] = 0.0; }
 
-    len = DO_ALIGN((lattice->num_cols + 1) * sizeof(DOUBLE));
-    us = (DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
+    len = DO_ALIGN((lattice->num_cols + 1) * sizeof(double));
+    us = (double*)aligned_alloc(ALIGN_SIZE, len);
     for (int j = 0; j < lattice->num_cols + 1; j++) { us[j] = 0.0; }
 
-    len = DO_ALIGN((lattice->num_cols + 1) * sizeof(DOUBLE*));
-    lattice->decomp.mu_trans = (DOUBLE**)aligned_alloc(ALIGN_SIZE, len);
-    len = DO_ALIGN((lattice->num_cols + 1) * sizeof(DOUBLE));
+    len = DO_ALIGN((lattice->num_cols + 1) * sizeof(double*));
+    lattice->decomp.mu_trans = (double**)aligned_alloc(ALIGN_SIZE, len);
+    len = DO_ALIGN((lattice->num_cols + 1) * sizeof(double));
     for (i = 0; i <= lattice->num_cols; i++) {
-        lattice->decomp.mu_trans[i]=(DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
+        lattice->decomp.mu_trans[i]=(double*)aligned_alloc(ALIGN_SIZE, len);
         for (int j = 0; j < lattice->num_cols + 1; j++) { lattice->decomp.mu_trans[i][j] = 0.0; }
     }
     /* End of memory allocation*/
@@ -769,7 +769,7 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
     }
 
     /* set the simple pruning bounds */
-    lattice->decomp.Fq = (DOUBLE)mpz_get_d(lattice->max_norm);
+    lattice->decomp.Fq = (double)mpz_get_d(lattice->max_norm);
     lattice->decomp.Fd = (lattice->num_rows * lattice->decomp.Fq * lattice->decomp.Fq) * (1.0 + EPSILON);
     lattice->decomp.Fqeps = (1.0 + EPSILON) * lattice->decomp.Fq;        // Used with result of compute_w
     #if VERBOSE > 0
@@ -960,11 +960,11 @@ DOUBLE exhaustive_enumeration(lattice_t *lattice) {
     return num_solutions;
 }
 
-DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max) {
+double compute_y(double **mu_trans, double *us, int level, int level_max) {
     return double_dot(&(us[level+1]), &(mu_trans[level][level+1]), level_max - level);
 }
 
-DOUBLE compute_w2(DOUBLE *w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
+double compute_w2(double *w, double **bd, double alpha, int level, int rows) {
     #if defined(USE_AVX512)
     if (HAS_AVX512) {
         return daxpy_dasum_AVX512(alpha, bd[level], w, w, rows);
@@ -978,8 +978,8 @@ DOUBLE compute_w2(DOUBLE *w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
             return cblas_dasum(rows, w, 1);
         #else
             int i;
-            register DOUBLE norm1 = 0.0;
-            DOUBLE *b = &(bd[level][0]);
+            register double norm1 = 0.0;
+            double *b = &(bd[level][0]);
 
             for (i = rows - 1; i >= 0; --i) {
                 w[i] += alpha * b[i];
@@ -990,7 +990,7 @@ DOUBLE compute_w2(DOUBLE *w, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
     }
 }
 
-DOUBLE compute_w(DOUBLE *w, DOUBLE *w1, DOUBLE **bd, DOUBLE alpha, int level, int rows) {
+double compute_w(double *w, double *w1, double **bd, double alpha, int level, int rows) {
     #if defined(USE_AVX512)
     if (HAS_AVX512) {
         return daxpy_dasum_AVX512(alpha, bd[level], w1, w, rows);
@@ -1005,8 +1005,8 @@ DOUBLE compute_w(DOUBLE *w, DOUBLE *w1, DOUBLE **bd, DOUBLE alpha, int level, in
             return cblas_dasum(rows, w, 1);
         #else
             register int i;
-            register DOUBLE norm1 = 0.0;
-            DOUBLE *b = &(bd[level][0]);
+            register double norm1 = 0.0;
+            double *b = &(bd[level][0]);
 
             for (i = 0; i < rows; ++i) {
                 w[i] = w1[i] + alpha * b[i];
@@ -1017,15 +1017,15 @@ DOUBLE compute_w(DOUBLE *w, DOUBLE *w1, DOUBLE **bd, DOUBLE alpha, int level, in
     }
 }
 
-void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c) {
+void gramschmidt(lattice_t *lattice, int columns, int rows, double **mu, double **bd, double *c) {
     int i, l, j;
-    DOUBLE sum;
+    double sum;
 
     for (i = 0; i < columns; i++) {
-        for (l = 0; l < rows; l++) bd[i][l] = (DOUBLE)mpz_get_d(get_entry(lattice->basis, i, l));
+        for (l = 0; l < rows; l++) bd[i][l] = (double)mpz_get_d(get_entry(lattice->basis, i, l));
         for (j = 0; j < i; j++) {
             sum = 0.0;
-            for (l = 0; l < rows; l++) sum += (DOUBLE)mpz_get_d(get_entry(lattice->basis, i, l)) * bd[j][l];
+            for (l = 0; l < rows; l++) sum += (double)mpz_get_d(get_entry(lattice->basis, i, l)) * bd[j][l];
             mu[i][j] = sum / c[j];
             for (l = 0; l < rows; l++) bd[i][l] -= mu[i][j]*bd[j][l];
         }
@@ -1042,13 +1042,13 @@ void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE 
     return;
 }
 
-void givens(lattice_t *lattice, int columns, int rows, DOUBLE **mu,
-            DOUBLE **bd, DOUBLE *c) {
+void givens(lattice_t *lattice, int columns, int rows, double **mu,
+            double **bd, double *c) {
     int i,l,j;
     int mm;
-    DOUBLE d1,d2;
-    DOUBLE gc,gs;
-    DOUBLE t;
+    double d1,d2;
+    double gc,gs;
+    double t;
 
 
     /* The matrix |b| is copied to |mu|.
@@ -1056,7 +1056,7 @@ void givens(lattice_t *lattice, int columns, int rows, DOUBLE **mu,
     */
     for (i = 0; i < columns; i++) {
         for (l = 0; l < rows; l++) {
-            mu[i][l] = (DOUBLE)mpz_get_d(get_entry(lattice->basis, i, l));
+            mu[i][l] = (double)mpz_get_d(get_entry(lattice->basis, i, l));
         }
     }
 
@@ -1121,9 +1121,9 @@ void givens(lattice_t *lattice, int columns, int rows, DOUBLE **mu,
     return;
 }
 
-void inverse(DOUBLE **mu, DOUBLE **muinv, int columns) {
+void inverse(double **mu, double **muinv, int columns) {
     int i, j, k;
-    DOUBLE sum;
+    double sum;
 
     for (j = 0; j < columns; j++)
         for (i = j; i >= 0; i--) {
@@ -1139,7 +1139,7 @@ void inverse(DOUBLE **mu, DOUBLE **muinv, int columns) {
 }
 
 /* There are several pruning methods.*/
-int final_test(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
+int final_test(double *v, int rows, double Fq, double *us, lattice_t *lattice) {
     register int i;
     register int k;
 
@@ -1194,13 +1194,13 @@ int final_test(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
     Pruning according to H\"olders inequality
     Unused, pruning is done in compute_w and compute_w2
 */
-// int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps) {
+// int prune(double *w, double cs, int rows, double Fqeps) {
 //     #if BLAS
 //         if (cs < Fqeps * cblas_dasum(rows, w, 1)) {
 //             return 0;
 //         }
 //     #else
-//         register DOUBLE reseite;
+//         register double reseite;
 //         register int i;
 
 //         reseite = 0.0; /*|-cs/Fqeps;|*/ /* | * (1-eps) | */
@@ -1215,14 +1215,14 @@ int final_test(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice) {
 //     return 1;
 // }
 
-int prune_only_zeros(lattice_t *lattice, DOUBLE *w, DOUBLE *w1,
-        int level, int rows, DOUBLE Fq,
+int prune_only_zeros(lattice_t *lattice, double *w, double *w1,
+        int level, int rows, double Fq,
         //int *first_nonzero_in_column, int *firstp,
-        DOUBLE **bd, DOUBLE y, int columns) {
+        double **bd, double y, int columns) {
 
     int i;
     int f;
-    // DOUBLE u1, u2;
+    // double u1, u2;
 
     only_zeros_no++;
     for (i = 0; i < lattice->decomp.first_nonzero_in_column[lattice->decomp.firstp[level]]; i++) {
@@ -1260,7 +1260,7 @@ int prune_only_zeros(lattice_t *lattice, DOUBLE *w, DOUBLE *w1,
     return 0;
 }
 
-int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns) {
+int print_solution(lattice_t *lattice, double *w, int rows, double Fq, double *us, int columns) {
     int i, j, k;
     int upper;
     int end;

@@ -45,21 +45,21 @@ typedef struct {
     FILE* fp;
 } solution_t;
 
-extern DOUBLE exhaustive_enumeration(lattice_t *lattice);
+extern double exhaustive_enumeration(lattice_t *lattice);
 
-extern DOUBLE compute_y(DOUBLE **mu_trans, DOUBLE *us, int level, int level_max);
-extern DOUBLE compute_w2(DOUBLE *w, DOUBLE **bd, DOUBLE alpha, int level, int rows);
-extern DOUBLE compute_w(DOUBLE *w, DOUBLE *w1, DOUBLE **bd, DOUBLE alpha, int level, int rows);
-extern void gramschmidt(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c);
-extern void givens(lattice_t *lattice, int columns, int rows, DOUBLE **mu, DOUBLE **bd, DOUBLE *c);
-extern void inverse(DOUBLE **mu, DOUBLE **muinv, int columns);
-extern int final_test(DOUBLE *v, int rows, DOUBLE Fq, DOUBLE *us, lattice_t *lattice);
-// extern int prune(DOUBLE *w, DOUBLE cs, int rows, DOUBLE Fqeps);
-extern int prune_only_zeros(lattice_t *lattice, DOUBLE *w, DOUBLE *w1,
-                int level, int rows, DOUBLE Fq,
-                DOUBLE **bd, DOUBLE y, int columns);
+extern double compute_y(double **mu_trans, double *us, int level, int level_max);
+extern double compute_w2(double *w, double **bd, double alpha, int level, int rows);
+extern double compute_w(double *w, double *w1, double **bd, double alpha, int level, int rows);
+extern void gramschmidt(lattice_t *lattice, int columns, int rows, double **mu, double **bd, double *c);
+extern void givens(lattice_t *lattice, int columns, int rows, double **mu, double **bd, double *c);
+extern void inverse(double **mu, double **muinv, int columns);
+extern int final_test(double *v, int rows, double Fq, double *us, lattice_t *lattice);
+// extern int prune(double *w, double cs, int rows, double Fqeps);
+extern int prune_only_zeros(lattice_t *lattice, double *w, double *w1,
+                int level, int rows, double Fq,
+                double **bd, double y, int columns);
 
-extern int print_solution(lattice_t *lattice, DOUBLE *w, int rows, DOUBLE Fq, DOUBLE *us, int columns);
+extern int print_solution(lattice_t *lattice, double *w, int rows, double Fq, double *us, int columns);
 extern void print_num_solutions(long num_solutions);
 
 #endif

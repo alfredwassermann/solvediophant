@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gmp.h>
 
 #define SQRT sqrt
-#define DOUBLE double
+#define double double
 
 /**
  * @name coeff_t
@@ -61,15 +61,15 @@ typedef struct {
     int kernel;
 
     struct _lll {
-        DOUBLE delta_low;
-        DOUBLE delta_med;
-        DOUBLE delta_high;
-        DOUBLE delta_higher;
+        double delta_low;
+        double delta_med;
+        double delta_high;
+        double delta_higher;
     } lll;
 
     struct _bkz {
         int beta;
-        DOUBLE p;
+        double p;
     } bkz;
 
     struct _exhaustive_enum {
@@ -86,29 +86,29 @@ typedef struct {
 typedef struct {
     int bit_size;
 
-    DOUBLE *N;
-    DOUBLE *c;
-    DOUBLE **bd;
-    DOUBLE **mu, **mu_trans;
-    DOUBLE *bdMemory, *muMemory;
+    double *N;
+    double *c;
+    double **bd;
+    double **mu, **mu_trans;
+    double *bdMemory, *muMemory;
 
-    DOUBLE *h_beta;
-    DOUBLE **H;
-    DOUBLE **R;
+    double *h_beta;
+    double **H;
+    double **R;
     
 
-    DOUBLE Fd, Fq, Fqeps;
-    DOUBLE tmp;
+    double Fd, Fq, Fqeps;
+    double tmp;
     mpz_t *swap_vec;
 
-    DOUBLE stepWidth; // = 0.0;
-    DOUBLE old_coeff;
+    double stepWidth; // = 0.0;
+    double old_coeff;
 
-    DOUBLE *fipo;
-    DOUBLE **dual_basis;
-    DOUBLE *dual_bound;
+    double *fipo;
+    double **dual_basis;
+    double *dual_bound;
 
-    DOUBLE *bd_1norm;
+    double *bd_1norm;
 
     int *first_nonzero;
     int *first_nonzero_in_column;

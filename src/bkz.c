@@ -65,17 +65,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * Blockwise Korkine Zolotareff reduction
  */
-DOUBLE bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
+double bkz(lattice_t *lattice, int s, int z, double delta, int beta, double p,
             int enum_type, int max_tours,
             int (*solutiontest)(lattice_t *lattice, int k),
             int (*solutiontest_long)(lattice_t *lattice, int k)) {
 
-    DOUBLE **R     = lattice->decomp.R;
-    DOUBLE *h_beta = lattice->decomp.c;
-    DOUBLE **H     = lattice->decomp.H;
-    DOUBLE r_tt;
-    DOUBLE new_cj;
-    DOUBLE lD;
+    double **R     = lattice->decomp.R;
+    double *h_beta = lattice->decomp.c;
+    double **H     = lattice->decomp.H;
+    double r_tt;
+    double new_cj;
+    double lD;
 
     static mpz_t hv;
     int cnt;
@@ -385,15 +385,15 @@ void insert_vector_long(lattice_t *lattice, long *u, int start, int end, int z) 
 }
 
 void alloc_bkz_enum(bkz_enum_t *bkz_enum, int s) {
-    // bkz_enum->c = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
-    // bkz_enum->y = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
-    // bkz_enum->u_loc = (DOUBLE*)calloc(s+1,sizeof(DOUBLE));
+    // bkz_enum->c = (double*)calloc(s+1,sizeof(double));
+    // bkz_enum->y = (double*)calloc(s+1,sizeof(double));
+    // bkz_enum->u_loc = (double*)calloc(s+1,sizeof(double));
 
     // Float
-    size_t len = DO_ALIGN((s + 1) * sizeof(DOUBLE));
-    bkz_enum->c = (DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
-    bkz_enum->y = (DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
-    bkz_enum->u_loc = (DOUBLE*)aligned_alloc(ALIGN_SIZE, len);
+    size_t len = DO_ALIGN((s + 1) * sizeof(double));
+    bkz_enum->c = (double*)aligned_alloc(ALIGN_SIZE, len);
+    bkz_enum->y = (double*)aligned_alloc(ALIGN_SIZE, len);
+    bkz_enum->u_loc = (double*)aligned_alloc(ALIGN_SIZE, len);
     for (int j = 0; j < s + 1; j++) { bkz_enum->c[j] = 0.0; }
     for (int j = 0; j < s + 1; j++) { bkz_enum->y[j] = 0.0; }
     for (int j = 0; j < s + 1; j++) { bkz_enum->u_loc[j] = 0.0; }
@@ -416,14 +416,14 @@ void free_bkz_enum(bkz_enum_t *bkz_enum) {
 /**
  * Pruned Gauss-Enumeration.
  */
-DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
-                    int start_block, int end_block, DOUBLE improve_by, DOUBLE p,
+double enumerate(lattice_t *lattice, double **R, long *u, int s,
+                    int start_block, int end_block, double improve_by, double p,
                     bkz_enum_t *bkz_enum) {
 
-    DOUBLE *y, *c;
+    double *y, *c;
     long *delta, *d, *v;
-    DOUBLE *u_loc;
-    DOUBLE c_min;
+    double *u_loc;
+    double c_min;
 
     int i;
     int t, t_max;
@@ -554,15 +554,15 @@ DOUBLE enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     return (c_min);
 }
 
-DOUBLE lds_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
-                    int start_block, int end_block, DOUBLE improve_by, DOUBLE p,
+double lds_enumerate(lattice_t *lattice, double **R, long *u, int s,
+                    int start_block, int end_block, double improve_by, double p,
                     bkz_enum_t *bkz_enum) {
 
-    DOUBLE *y, *c;
+    double *y, *c;
     long *delta, *d, *v;
-    DOUBLE *u_loc;
+    double *u_loc;
 
-    DOUBLE c_min;
+    double c_min;
 
     int i, t, t_max;
     int found_improvement = 0;
@@ -743,7 +743,7 @@ lds_back:
 }
 
 /*
-void set_linear_pruning_const(DOUBLE *alpha, len, ) {
+void set_linear_pruning_const(double *alpha, len, ) {
     int i;
     if (len <= SCHNITT) {
         alpha = 1.0;
@@ -767,11 +767,11 @@ void set_linear_pruning_const(DOUBLE *alpha, len, ) {
     V_n(1) = pi^(n/2) / Gamma(n/2 + 1)
     Gamma(n/2 + 1) = sqrt(pi n) (n/2)^(n/2)*e^(-n/2)
  */
-DOUBLE GH(DOUBLE **R, int low, int up) {
+double GH(double **R, int low, int up) {
     int i, n, k;
-    DOUBLE log_det, V1;
-    static DOUBLE pi = 3.141592653589793238462643383;
-    //static DOUBLE e = 2.718281828459045235360287471352662497757247093;
+    double log_det, V1;
+    static double pi = 3.141592653589793238462643383;
+    //static double e = 2.718281828459045235360287471352662497757247093;
 
     for (i = low, log_det = 0.0; i < up; ++i) {
         log_det += log(R[i][i] * R[i][i]);
@@ -799,11 +799,11 @@ DOUBLE GH(DOUBLE **R, int low, int up) {
 /*
     Hoerners version of the Gaussian volume heuristics.
 */
-void hoerner(DOUBLE **R, int low, int up, double p, DOUBLE *eta) {
+void hoerner(double **R, int low, int up, double p, double *eta) {
     int i;
-    static DOUBLE pi = 3.141592653589793238462643383;
-    static DOUBLE e = 2.718281828459045235360287471352662497757247093;
-    DOUBLE c, x;
+    static double pi = 3.141592653589793238462643383;
+    static double e = 2.718281828459045235360287471352662497757247093;
+    double c, x;
     int t_up;
 
     c = R[low][low];
@@ -819,9 +819,9 @@ void hoerner(DOUBLE **R, int low, int up, double p, DOUBLE *eta) {
     }
 }
 
-DOUBLE set_prune_const(DOUBLE **R, int low, int up, int prune_type, DOUBLE p) {
-    DOUBLE gh, gh1;
-    DOUBLE alpha;
+double set_prune_const(double **R, int low, int up, int prune_type, double p) {
+    double gh, gh1;
+    double alpha;
 
     alpha = 1.05;
 

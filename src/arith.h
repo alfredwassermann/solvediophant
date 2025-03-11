@@ -32,8 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _ARITH_H
 
 typedef struct {
-    DOUBLE hi;
-    DOUBLE lo;
+    double hi;
+    double lo;
 } hiprec;
 
 /**
@@ -90,53 +90,53 @@ typedef struct {
     (lo)  = _mm256_fmsub_pd((a), (a), (hi)); \
 }
 
-extern hiprec twoSum(DOUBLE a, DOUBLE b);
-extern void   twoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo);
-extern void   fastTwoSum2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo);
-extern void   twoSum2i(DOUBLE *a, DOUBLE *b);
+extern hiprec twoSum(double a, double b);
+extern void   twoSum2(double a, double b, double *hi, double *lo);
+extern void   fastTwoSum2(double a, double b, double *hi, double *lo);
+extern void   twoSum2i(double *a, double *b);
 
-extern hiprec split(DOUBLE a);
-extern hiprec twoProd(DOUBLE a, DOUBLE b);
-extern void   twoProd2(DOUBLE a, DOUBLE b, DOUBLE *hi, DOUBLE *lo);
-extern hiprec twoSquare(DOUBLE a);
-extern void   twoSquare2(DOUBLE a, DOUBLE *x, DOUBLE *y);
+extern hiprec split(double a);
+extern hiprec twoProd(double a, double b);
+extern void   twoProd2(double a, double b, double *hi, double *lo);
+extern hiprec twoSquare(double a);
+extern void   twoSquare2(double a, double *x, double *y);
 
-extern DOUBLE hiprec_sqrt(DOUBLE T, DOUBLE t);
+extern double hiprec_sqrt(double T, double t);
 
-extern DOUBLE hiprec_sum2(DOUBLE* p, int n);
-extern DOUBLE hiprec_SUM(DOUBLE* p, int n);
-extern DOUBLE hiprec_sum_AVX(DOUBLE* p, int n);
-extern DOUBLE hiprec_sumK(DOUBLE* p, int n, int K);
-extern DOUBLE hiprec_norm_l1(DOUBLE* p, int n);
-extern DOUBLE hiprec_normK_l1(DOUBLE* p, int n, int K);
-extern DOUBLE hiprec_norm_l1_AVX(DOUBLE* p, int n);
+extern double hiprec_sum2(double* p, int n);
+extern double hiprec_SUM(double* p, int n);
+extern double hiprec_sum_AVX(double* p, int n);
+extern double hiprec_sumK(double* p, int n, int K);
+extern double hiprec_norm_l1(double* p, int n);
+extern double hiprec_normK_l1(double* p, int n, int K);
+extern double hiprec_norm_l1_AVX(double* p, int n);
 
-extern DOUBLE dotNaive(DOUBLE* x, DOUBLE* y, int n);
-extern DOUBLE dotNaiveQP(DOUBLE* x, DOUBLE* y, int n);
-extern DOUBLE hiprec_dot2(DOUBLE* x, DOUBLE* y, int n);
-extern DOUBLE hiprec_dot2_AVX(DOUBLE* x, DOUBLE* y, int n);
-extern DOUBLE hiprec_dot(DOUBLE *v, DOUBLE *w , int n);
-extern DOUBLE double_dot(DOUBLE *v, DOUBLE *w , int n);
-extern void double_copy(DOUBLE *to, DOUBLE *from , int n);
-extern void daxpy(DOUBLE a, DOUBLE *x, DOUBLE *y, int n);
-extern DOUBLE double_dot_inc(int n, DOUBLE *v, int inc_v, DOUBLE *w , int inc_w);
+extern double dotNaive(double* x, double* y, int n);
+extern double dotNaiveQP(double* x, double* y, int n);
+extern double hiprec_dot2(double* x, double* y, int n);
+extern double hiprec_dot2_AVX(double* x, double* y, int n);
+extern double hiprec_dot(double *v, double *w , int n);
+extern double double_dot(double *v, double *w , int n);
+extern void double_copy(double *to, double *from , int n);
+extern void daxpy(double a, double *x, double *y, int n);
+extern double double_dot_inc(int n, double *v, int inc_v, double *w , int inc_w);
 
-extern DOUBLE hiprec_dotK(DOUBLE* x, DOUBLE* y, int n, int K);
-extern DOUBLE hiprec_dot2_row(DOUBLE* x, int dx, DOUBLE* y, int dy, int n);
+extern double hiprec_dotK(double* x, double* y, int n, int K);
+extern double hiprec_dot2_row(double* x, int dx, double* y, int dy, int n);
 
-extern DOUBLE hiprec_normsq_l2(DOUBLE* x, int n);
-extern DOUBLE hiprec_normsq_l2_AVX(DOUBLE* x, int n);
-extern DOUBLE hiprec_norm_l2(DOUBLE* x, int n);
-extern DOUBLE hiprec_norm_l2_AVX(DOUBLE* x, int n);
-extern DOUBLE hiprec_normK_l2(DOUBLE* x, int n, int K);
+extern double hiprec_normsq_l2(double* x, int n);
+extern double hiprec_normsq_l2_AVX(double* x, int n);
+extern double hiprec_norm_l2(double* x, int n);
+extern double hiprec_norm_l2_AVX(double* x, int n);
+extern double hiprec_normK_l2(double* x, int n, int K);
 
-extern DOUBLE hiprec_daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n);
-extern DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n);
+extern double hiprec_daxpy_dasum_AVX(double a, double *x, double *y, double *res, int n);
+extern double daxpy_dasum_AVX(double a, double *x, double *y, double *res, int n);
 extern float saxpy_sasum_AVX(float a, float *x, float *y, float *res, int n);
-extern void double_copy_AVX(DOUBLE* to, DOUBLE* from, int n);
-extern void daxpy_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, int n);
+extern void double_copy_AVX(double* to, double* from, int n);
+extern void daxpy_AVX(double a, double *x, double *y, int n);
 
 #if defined(USE_AVX512)
-    extern DOUBLE daxpy_dasum_AVX512(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n);
+    extern double daxpy_dasum_AVX512(double a, double *x, double *y, double *res, int n);
 #endif
 #endif

@@ -83,8 +83,8 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 
     int i;
     int block_size;
-    DOUBLE lD = 0.0;
-    DOUBLE lDnew = 0.0;
+    double lD = 0.0;
+    double lDnew = 0.0;
     mpz_t *swap_vec;
 
     /**
@@ -421,13 +421,13 @@ int cutlattice(lattice_t *lattice) {
 
     // New start positions for the vectors in mu and bd.
     // This is necessary for BLAS access to it.
-    rows_aligned = DO_ALIGN(lattice->num_rows * sizeof(DOUBLE)) / sizeof(DOUBLE);
+    rows_aligned = DO_ALIGN(lattice->num_rows * sizeof(double)) / sizeof(double);
     for (i = 1; i < lattice->num_cols; i++) {
-        lattice->decomp.mu[i] = (DOUBLE*)(lattice->decomp.mu[0] + i * rows_aligned);
+        lattice->decomp.mu[i] = (double*)(lattice->decomp.mu[0] + i * rows_aligned);
     }
     int m = (lattice->num_rows > lattice->num_cols) ? lattice->num_rows : lattice->num_cols;
     for (i = 1; i < m; i++) {
-        lattice->decomp.bd[i] = (DOUBLE*)(lattice->decomp.bd[0] + i * rows_aligned);
+        lattice->decomp.bd[i] = (double*)(lattice->decomp.bd[0] + i * rows_aligned);
     }
 
     return 1;
@@ -629,11 +629,11 @@ int solutiontest_long(lattice_t *lattice, int position) {
 /**
  * LLL variants
  */
-void lll(lattice_t *lattice, int s, int z, DOUBLE quality, int reduction_type) {
-    DOUBLE **R = lattice->decomp.R;
-    DOUBLE *beta = lattice->decomp.c;
-    //DOUBLE *N = lattice->decomp.N;
-    DOUBLE **H = lattice->decomp.H;
+void lll(lattice_t *lattice, int s, int z, double quality, int reduction_type) {
+    double **R = lattice->decomp.R;
+    double *beta = lattice->decomp.c;
+    //double *N = lattice->decomp.N;
+    double **H = lattice->decomp.H;
     // int r;
     int bit_size;
 
@@ -644,16 +644,16 @@ void lll(lattice_t *lattice, int s, int z, DOUBLE quality, int reduction_type) {
     return;
 }
 
-DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE quality, int reduction_type) {
-    DOUBLE **R = lattice->decomp.R;
-    DOUBLE *beta = lattice->decomp.c;
-    //DOUBLE *N = lattice->decomp.N;
-    DOUBLE **H = lattice->decomp.H;
+double iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, double quality, int reduction_type) {
+    double **R = lattice->decomp.R;
+    double *beta = lattice->decomp.c;
+    //double *N = lattice->decomp.N;
+    double **H = lattice->decomp.H;
     int r, i, j, runs;
     int bit_size;
     mpz_t *swapvl;
     long *swap;
-    DOUBLE lD;
+    double lD;
 
     bit_size = get_bit_size(lattice);
 
@@ -714,12 +714,12 @@ DOUBLE iteratedlll(lattice_t *lattice, int s, int z, int no_iterates, DOUBLE qua
     return lD;
 }
 
-DOUBLE block_reduce(lattice_t *lattice, int s, int z, int block_size, DOUBLE quality, int reduction_type) {
-    DOUBLE **R = lattice->decomp.R;
-    DOUBLE *beta = lattice->decomp.c;
-    DOUBLE **H = lattice->decomp.H;
+double block_reduce(lattice_t *lattice, int s, int z, int block_size, double quality, int reduction_type) {
+    double **R = lattice->decomp.R;
+    double *beta = lattice->decomp.c;
+    double **H = lattice->decomp.H;
 
-    DOUBLE lD;
+    double lD;
     int start = 0, up, size, bit_size;
     mpz_t **basis_org;
 

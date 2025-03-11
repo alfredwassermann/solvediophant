@@ -37,11 +37,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "datastruct.h"
 #include "lattice.h"
 
-extern DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
+extern double dual_bkz(lattice_t *lattice, int s, int z, double delta, int beta, double p,
     int (*solutiontest)(lattice_t *lattice, int k));
-extern DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
+extern double self_dual_bkz(lattice_t *lattice, int s, int z, double delta, int beta, double p,
     int (*solutiontest)(lattice_t *lattice, int k));
-extern DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s, int start_block, int end_block,
-    DOUBLE improve_by, DOUBLE p, bkz_enum_t *bkz_enum);
+extern double dual_enumerate(lattice_t *lattice, double **R, long *u, int s, int start_block, int end_block,
+    double improve_by, double p, bkz_enum_t *bkz_enum);
 extern void dual_insert_vector(lattice_t *lattice, long *u, int start, int end, int z, mpz_t hv);
 #endif

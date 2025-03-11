@@ -48,16 +48,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "bkz.h"
 #include "dualbkz.h"
 
-DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
+double self_dual_bkz(lattice_t *lattice, int s, int z, double delta, int beta, double p,
                      int (*solutiontest)(lattice_t *lattice, int k)) {
-    DOUBLE **R     = lattice->decomp.R;
-    DOUBLE *h_beta = lattice->decomp.c;
-    // DOUBLE *N      = lattice->decomp.N;
-    DOUBLE **H     = lattice->decomp.H;
+    double **R     = lattice->decomp.R;
+    double *h_beta = lattice->decomp.c;
+    // double *N      = lattice->decomp.N;
+    double **H     = lattice->decomp.H;
 
-    DOUBLE r_tt;
-    DOUBLE new_cj;
-    DOUBLE lD;
+    double r_tt;
+    double new_cj;
+    double lD;
 
     static mpz_t hv;
     int cnt = 0;
@@ -160,19 +160,19 @@ DOUBLE self_dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, D
     return lD;
 }
 
-DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE p,
+double dual_bkz(lattice_t *lattice, int s, int z, double delta, int beta, double p,
                 int (*solutiontest)(lattice_t *lattice, int k)) {
-    DOUBLE **R     = lattice->decomp.R;
-    DOUBLE *h_beta = lattice->decomp.c;
-    // DOUBLE *N      = lattice->decomp.N;
-    DOUBLE **H     = lattice->decomp.H;
+    double **R     = lattice->decomp.R;
+    double *h_beta = lattice->decomp.c;
+    // double *N      = lattice->decomp.N;
+    double **H     = lattice->decomp.H;
 
-    DOUBLE r_tt;
-    DOUBLE new_cj;
+    double r_tt;
+    double new_cj;
     #if IS_USED
-    DOUBLE new_cj2;
+    double new_cj2;
     #endif
-    DOUBLE lD;
+    double lD;
 
     static mpz_t hv;
     int cnt;
@@ -268,14 +268,14 @@ DOUBLE dual_bkz(lattice_t *lattice, int s, int z, DOUBLE delta, int beta, DOUBLE
     return lD;
 }
 
-DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
-                      int start_block, int end_block, DOUBLE improve_by, DOUBLE p,
+double dual_enumerate(lattice_t *lattice, double **R, long *u, int s,
+                      int start_block, int end_block, double improve_by, double p,
                       bkz_enum_t *bkz_enum) {
 
-    DOUBLE *y, *c, *a;
+    double *y, *c, *a;
     long *delta, *d, *v;
-    DOUBLE *u_loc;
-    DOUBLE c_min;
+    double *u_loc;
+    double c_min;
 
     int i;
     int t, t_min;
@@ -291,8 +291,8 @@ DOUBLE dual_enumerate(lattice_t *lattice, DOUBLE **R, long *u, int s,
     v = bkz_enum->v;
     delta = bkz_enum->delta;
     u_loc = bkz_enum->u_loc;
-    // a = (DOUBLE*)calloc(s + 1, sizeof(DOUBLE));
-    a = (DOUBLE*)aligned_alloc(ALIGN_SIZE, DO_ALIGN((s + 1) * sizeof(DOUBLE)));
+    // a = (double*)calloc(s + 1, sizeof(double));
+    a = (double*)aligned_alloc(ALIGN_SIZE, DO_ALIGN((s + 1) * sizeof(double)));
 
     len = end_block + 1 - start_block;
     for (i = start_block; i <= end_block; i++) {

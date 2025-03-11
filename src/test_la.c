@@ -41,20 +41,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 bool HAS_AVX2;
 bool HAS_AVX512;
 
-DOUBLE *getArray(int len, int type) {
-    DOUBLE *p;
+double *getArray(int len, int type) {
+    double *p;
     int i, sgn;
 
-    // p = (DOUBLE *)calloc(len, sizeof(DOUBLE));
-    p = (DOUBLE *)malloc(len * sizeof(DOUBLE));
-    // p = (DOUBLE *)aligned_alloc(32, len * sizeof(DOUBLE));
+    // p = (double *)calloc(len, sizeof(double));
+    p = (double *)malloc(len * sizeof(double));
+    // p = (double *)aligned_alloc(32, len * sizeof(double));
     for (i = 0, sgn = 1.0; i < len; i++) {
         switch (type) {
             case 1:
-                p[i] = 1.0 * (DOUBLE)(sgn * i);
+                p[i] = 1.0 * (double)(sgn * i);
                 break;
             case 2:
-                p[i] = sgn * 2.0 / (DOUBLE)(i + 1);
+                p[i] = sgn * 2.0 / (double)(i + 1);
                 break;
             case 3:
                 p[i] = -1.0 / ((i+1) * (i+1));
@@ -71,9 +71,9 @@ DOUBLE *getArray(int len, int type) {
 //
 // Naive implementations for comparison
 //
-DOUBLE sumNaive(DOUBLE *p, int n)
+double sumNaive(double *p, int n)
 {
-    DOUBLE s;
+    double s;
     int i;
 
     for (i = 0, s = 0.0; i < n; i++)
@@ -86,11 +86,11 @@ DOUBLE sumNaive(DOUBLE *p, int n)
 /**
  * Naive summation using AVX
  */
-DOUBLE sumNaiveAVX(DOUBLE *p, int n)
+double sumNaiveAVX(double *p, int n)
 {
     long i = 0;
     long n_4 = n & -4;
-    DOUBLE s;
+    double s;
 
     __m256d sum = {0.0, 0.0, 0.0, 0.0};
     while (i < n_4)
@@ -117,9 +117,9 @@ DOUBLE sumNaiveAVX(DOUBLE *p, int n)
     return s;
 }
 
-DOUBLE dotNaive(DOUBLE *x, DOUBLE *y, int n)
+double dotNaive(double *x, double *y, int n)
 {
-    DOUBLE s;
+    double s;
     int i;
     if (n <= 0)
         return 0.0;
@@ -131,7 +131,7 @@ DOUBLE dotNaive(DOUBLE *x, DOUBLE *y, int n)
     return s;
 }
 
-DOUBLE dotNaiveQP(DOUBLE *x, DOUBLE *y, int n)
+double dotNaiveQP(double *x, double *y, int n)
 {
     _Float128 s;
     int i;
@@ -142,15 +142,15 @@ DOUBLE dotNaiveQP(DOUBLE *x, DOUBLE *y, int n)
     {
         s += x[i] * y[i];
     }
-    return (DOUBLE)s;
+    return (double)s;
 }
 
 int main(int argc, char *argv[])
 {
 
-    DOUBLE x = 0.00000000001;
-    DOUBLE y = 100000.0;
-    DOUBLE z;
+    double x = 0.00000000001;
+    double y = 100000.0;
+    double z;
     hiprec a;
     int n = 50000;
 
@@ -175,7 +175,7 @@ int main(int argc, char *argv[])
         y = 7.777777777;
         a = twoProd(x, y);
         printf("twoProd : %0.20lf %0.20lf\n", a.hi, a.lo);
-        DOUBLE x1, y1;
+        double x1, y1;
         twoProd2(x, y, &x1, &y1);
         printf("twoProd2: %0.20lf %0.20lf\n", x1, y1);
 
@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
     // Test summation
     #if 0
     {
-        DOUBLE *p = getArray(n, 2);
+        double *p = getArray(n, 2);
 
         printf("--------- Sum2s\n");
         printf("Start\n");
@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
     // Multiple summations
     #if 0
     {
-        DOUBLE *p = getArray(50000, 2);
+        double *p = getArray(50000, 2);
 
         printf("--------- Sum2s\n");
         printf("Start\n");
@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
     // Test l1 norm
     #if 0
     {
-        DOUBLE *p = getArray(n, 2);
+        double *p = getArray(n, 2);
 
         printf("hiprec l1  %0.20lf\n", hiprec_norm_l1(p, n));
         printf("hiprec l1  %0.20lf\n", hiprec_norm_l1_AVX(p, n));
@@ -278,9 +278,9 @@ int main(int argc, char *argv[])
         printf("--------- Dot\n");
         const int n = 60013;
 
-        DOUBLE q1;
-        DOUBLE *p = getArray(n, 2);
-        DOUBLE *q = getArray(n, 3);
+        double q1;
+        double *p = getArray(n, 2);
+        double *q = getArray(n, 3);
 
         printf("Naive  %0.20lf\n", dotNaive(p, q, n));
         printf("NaiQP  %0.20lf\n", dotNaiveQP(p, q, n));
@@ -303,8 +303,8 @@ int main(int argc, char *argv[])
         printf("--------- Norm\n");
         const int n = 60013;
 
-        DOUBLE q1 = 0.0;
-        DOUBLE *p = getArray(n, 2);
+        double q1 = 0.0;
+        double *p = getArray(n, 2);
 
         printf("normsq      %0.20lf\n", hiprec_normsq_l2(p, n));
         printf("normsqAVX   %0.20lf\n", hiprec_normsq_l2_AVX(p, n));
