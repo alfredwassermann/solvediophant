@@ -5,6 +5,7 @@ SRC=src
 PDF=pdf
 
 CFLAGS= -O3                  \
+  -g -pg \
   -DUSE_AVX                  \
   -fno-math-errno            \
   -ftree-vectorize           \
