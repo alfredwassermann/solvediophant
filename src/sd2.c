@@ -171,6 +171,8 @@ int main(int argc, char *argv[]) {
     int restart = 0;
     char *res;
 
+    fprintf(stderr, "SIZE %ld\n", sizeof(decomp_t));
+
     strcpy(sol_filename, "solutions");
 
     // if (__builtin_cpu_supports("avx512f")) {

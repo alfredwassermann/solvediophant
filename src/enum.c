@@ -535,10 +535,8 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
                 ed->nodes[pos].w[i] = (double)ed->nodes[pos].wfloat[i];
             }
             // Solution found
-            if (lds_k - pos == 0 &&
-                final_test(ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us, lattice) == 1) {
-                print_solution(lattice, ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us,
-                    lattice->num_cols);
+            if (lds_k - pos == 0 && final_test(ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us, lattice) == 1) {
+                print_solution(lattice, ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us, lattice->num_cols);
                 #if 0
                 int f = 0;
                 for (int j = lattice->num_cols - 1 ; j >= 0; j--) {
