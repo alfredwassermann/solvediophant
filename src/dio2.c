@@ -314,7 +314,6 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         return 0;
     }
 
-
     /**
      * explicit enumeration
      */
@@ -428,6 +427,11 @@ int cutlattice(lattice_t *lattice) {
     int m = (lattice->num_rows > lattice->num_cols) ? lattice->num_rows : lattice->num_cols;
     for (i = 1; i < m; i++) {
         lattice->decomp.bd[i] = (double*)(lattice->decomp.bd[0] + i * rows_aligned);
+    }
+    
+    rows_aligned = DO_ALIGN(lattice->num_rows * sizeof(float)) / sizeof(float);
+    for (i = 1; i < m; i++) {
+        lattice->decomp.bdfloat[i] = (float*)(lattice->decomp.bdfloat[0] + i * rows_aligned);
     }
 
     return 1;

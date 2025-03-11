@@ -81,7 +81,7 @@ typedef struct {
 
 /**
  * @name decomp_t
- * Helper arrays for Gram-Schmidt dcomposition and others
+ * Helper arrays for Gram-Schmidt decomposition and others
  */
 typedef struct {
     int bit_size;
@@ -90,12 +90,11 @@ typedef struct {
     double *c;
     double **bd;
     double **mu, **mu_trans;
-    double *bdMemory, *muMemory;
+    double *bdMemory, *muMemory; // Just for 32byte aligning
 
     double *h_beta;
     double **H;
     double **R;
-    
 
     double Fd, Fq, Fqeps;
     double tmp;
@@ -113,6 +112,10 @@ typedef struct {
     int *first_nonzero;
     int *first_nonzero_in_column;
     int *firstp;
+
+    float **bdfloat;
+    float **dummy1, **dummy2, **dummy3;  // Just for 32byte aligning
+
 } decomp_t; //  __attribute__ ((aligned (32))) ;
 
 /**

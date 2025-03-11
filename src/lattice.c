@@ -478,6 +478,26 @@ double** alloc_double_matrix(size_t cols, size_t rows) {
     return m;
 }
 
+float** alloc_float_matrix(size_t cols, size_t rows) {
+    int i;
+    size_t rows_aligned, rows_size;
+
+    float **m = (float**)aligned_alloc(ALIGN_SIZE, DO_ALIGN(cols * sizeof(float*)));
+
+    // Changes here have to be done in cutlattice(), too
+    rows_size = DO_ALIGN(rows * sizeof(float));
+    rows_aligned = rows_size / sizeof(float);
+    m[0] = (float*)aligned_alloc(ALIGN_SIZE, cols * rows_size);
+
+    for (i = 0; i < cols * rows_aligned; i++) {
+        m[0][i] = 0.0;
+    }
+    for (i = 1; i < cols; i++) {
+        m[i] = (float*)(m[0] + i * rows_aligned);
+    }
+    return m;
+}
+
 int alloc_decomp(lattice_t *lattice) {
     int j, m;
     size_t len;
@@ -498,6 +518,7 @@ int alloc_decomp(lattice_t *lattice) {
     d->mu = alloc_double_matrix(cols, rows);
     m = (rows > cols) ? rows : cols;
     d->bd = alloc_double_matrix(m, rows);
+    d->bdfloat = alloc_float_matrix(m, rows);
 
     // R, H and h_beta are only pointers to already existing arrays
     d->R = d->mu;

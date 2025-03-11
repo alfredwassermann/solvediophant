@@ -92,6 +92,7 @@ typedef struct {
     double cs;
     double us;
     double* w;
+    float* wfloat;
 } enum_node_t;
 
 typedef struct {
@@ -114,10 +115,13 @@ void alloc_enum_data(enum_level_t** enum_data, double **fipo, int cols, int rows
 
         (*enum_data)[i].nodes = (enum_node_t*)malloc(k * sizeof(enum_node_t));
 
-        len = DO_ALIGN(rows * sizeof(double));
         for (j = 0; j < k; j++) {
+            len = DO_ALIGN(rows * sizeof(double));
             (*enum_data)[i].nodes[j].w = (double*)aligned_alloc(ALIGN_SIZE, len);
             for (int l = 0; l < rows; l++) { (*enum_data)[i].nodes[j].w[l] = 0.0; }
+            len = DO_ALIGN(rows * sizeof(float));
+            (*enum_data)[i].nodes[j].wfloat = (float*)aligned_alloc(ALIGN_SIZE, len);
+            for (int l = 0; l < rows; l++) { (*enum_data)[i].nodes[j].wfloat[l] = 0.0; }
         }
         (*enum_data)[i].k = k;
         (*enum_data)[i].num = 0;
@@ -133,6 +137,7 @@ void free_enum_data(enum_level_t *enum_data, int cols) {
         k = enum_data[i].k;
         for (j = 0; j < k; j++) {
             free(enum_data[i].nodes[j].w);
+            free(enum_data[i].nodes[j].wfloat);
         }
         free(enum_data[i].nodes);
     }
@@ -166,6 +171,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
     int rows = lattice->num_rows;
 
     double** bd = lattice->decomp.bd;
+    float** bdfloat = lattice->decomp.bdfloat;
     double* c = lattice->decomp.c;
     double Fd = lattice->decomp.Fd;
     double Fqeps = lattice->decomp.Fqeps;
@@ -250,10 +256,12 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
             is_good = false;
         } else {
             if (is_new_node) {
-                norm1 = compute_w(node->w, parent_node->w, bd, coeff, level, rows);
+                // norm1 = compute_w(node->w, parent_node->w, bd, coeff, level, rows);
+                norm1 = compute_wfloat(node->wfloat, parent_node->wfloat, bdfloat, coeff, level, rows);
                 is_new_node = false;
             } else {
-                norm1 = compute_w2(node->w, bd, u - u_previous, level, rows);
+                // norm1 = compute_w2(node->w, bd, u - u_previous, level, rows);
+                norm1 = compute_w2float(node->wfloat, bdfloat, u - u_previous, level, rows);
             }
             u_previous = u;
             if (level > 0) {
@@ -271,10 +279,8 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                     }
                 } else {
                     // fprintf(stderr, "level=%d, cs=%0.5lf, n1=%0.5lf, diff=%0.5lf\n", level, node->cs, norm1, norm1-node->cs);
-                    i = prune_only_zeros(lattice, node->w, parent_node->w,
-                        level, rows,
-                        Fq,
-                        bd, y, columns);
+                    // i = prune_only_zeros(lattice, node->w, parent_node->w, level, rows, Fq, bd, y, columns);
+                    i = prune_only_zeros_float(lattice, node->wfloat, parent_node->wfloat, level, rows, Fq, bdfloat, y, columns);
                     // if (i < 0) {
                     //     goto_back = true;
                     // } else
@@ -340,6 +346,9 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
         ed->pos = pos;
 
         if (level == 0) {
+            for (int i = 0; i < lattice->num_rows; i++) {
+                ed->nodes[pos].w[i] = (double)ed->nodes[pos].wfloat[i];
+            }
             // Solution found
             if (final_test(ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us, lattice) == 1) {
               #if TRUE
@@ -522,6 +531,9 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
         // printf("pos=%d\n", pos);
         us[level] = ed->nodes[pos].us;
         if (level == 0) {
+            for (int i = 0; i < lattice->num_rows; i++) {
+                ed->nodes[pos].w[i] = (double)ed->nodes[pos].wfloat[i];
+            }
             // Solution found
             if (lds_k - pos == 0 &&
                 final_test(ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us, lattice) == 1) {
@@ -792,11 +804,15 @@ double exhaustive_enumeration(lattice_t *lattice) {
         }
     }
 
-    /* Compute 1-norm of orthogonal basis */
+    /*
+       Compute 1-norm of orthogonal basis and
+       convert bd to float
+    */
     for (i = 0; i <= lattice->num_cols; ++i) {
         lattice->decomp.bd_1norm[i] = 0.0;
         for (j = 0; j < lattice->num_rows; ++j) {
             lattice->decomp.bd_1norm[i] += fabs(lattice->decomp.bd[i][j]);
+            lattice->decomp.bdfloat[i][j] = (float)lattice->decomp.bd[i][j];
         }
         lattice->decomp.bd_1norm[i] *= lattice->decomp.Fqeps / lattice->decomp.c[i];
     }
@@ -1015,6 +1031,14 @@ double compute_w(double *w, double *w1, double **bd, double alpha, int level, in
             return norm1;
         #endif
     }
+}
+
+double compute_w2float(float *w, float **bd, double alpha, int level, int rows) {
+    return saxpy_sasum_AVX((float)alpha, bd[level], w, w, rows);
+}
+
+double compute_wfloat(float *w, float *w1, float **bd, double alpha, int level, int rows) {
+    return saxpy_sasum_AVX((float)alpha, bd[level], w1, w, rows);
 }
 
 void gramschmidt(lattice_t *lattice, int columns, int rows, double **mu, double **bd, double *c) {
@@ -1252,6 +1276,58 @@ int prune_only_zeros(lattice_t *lattice, double *w, double *w1,
             // }
 
             if (fabs(w[f]) > Fq * (1 + EPSILON)) {
+                only_zeros_success++;
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+int prune_only_zeros_float(lattice_t *lattice, float *w, float *w1,
+                           int level, int rows, double Fq,
+                           // int *first_nonzero_in_column, int *firstp,
+                           float **bd,
+                           double y, int columns)
+{
+
+    int i;
+    int f;
+    // double u1, u2;
+
+    only_zeros_no++;
+    for (i = 0; i < lattice->decomp.first_nonzero_in_column[lattice->decomp.firstp[level]]; i++)
+    {
+        f = lattice->decomp.first_nonzero_in_column[lattice->decomp.firstp[level] + 1 + i];
+        // u1 = ( Fq - w1[f]) / bd[level][f] - y;
+        // u2 = (-Fq - w1[f]) / bd[level][f] - y;
+
+        if (lattice->is_zero_one)
+        {
+            // if (fabs(u1 - round(u1)) > EPSILON && fabs(u2 - round(u2)) > EPSILON) {
+            //     only_zeros_success++;
+            //     return -1;
+            // }
+
+            if (fabs(fabs(w[f]) - (float)Fq) > EPSILON)
+            {
+                only_zeros_success++;
+                return 1;
+            }
+        }
+        else
+        { /* Not zero-one */
+
+            /* Here we have to be very conservative */
+            // if (u2 - u1 <= 1.0 + EPSILON &&
+            //         fabs(w[f]) < UINT32_MAX &&
+            //         fabs(w[f] - round(w[f])) > 0.001) {
+            //     only_zeros_success++;
+            //     return -1;
+            // }
+
+            if (fabs(w[f]) > (float)(Fq * (1 + EPSILON)))
+            {
                 only_zeros_success++;
                 return 1;
             }

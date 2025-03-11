@@ -1047,9 +1047,9 @@ double daxpy_dasum_AVX(double a, double *x, double *y, double *res, int n) {
     for (i = n_4; i < n; i++) {
         *res = fma(a, *x, *y);
         s += fabs(*res);
+        res++;
         x++;
         y++;
-        res++;
     }
 
     return s;
@@ -1070,7 +1070,8 @@ float saxpy_sasum_AVX(float a, float *x, float *y, float *res, int n) {
     size_t n_32 = n & -32;
     size_t n_8 = n & -8;
 
-    __m256 msk = {-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0}; // Used for fabs()
+    // __m256 msk = {-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0}; // Used for fabs()
+    __m256 msk = _mm256_set1_ps(-0.0f);
 
     __m256 sum1 = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     __m256 sum2 = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
@@ -1115,15 +1116,15 @@ float saxpy_sasum_AVX(float a, float *x, float *y, float *res, int n) {
     }
 
     // Add up the horizontal sum
-    s = sum1[0] + sum1[1] + sum1[2] + sum1[3];
-
+    s = sum1[0] + sum1[1] + sum1[2] + sum1[3] + sum1[4] + sum1[5] + sum1[6] + sum1[7];
+    
     // Handle the trailing entries
     for (i = n_8; i < n; i++) {
         *res = fma(a, *x, *y);
         s += fabs(*res);
+        res++;
         x++;
         y++;
-        res++;
     }
 
     return s;

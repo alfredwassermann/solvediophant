@@ -50,6 +50,8 @@ extern double exhaustive_enumeration(lattice_t *lattice);
 extern double compute_y(double **mu_trans, double *us, int level, int level_max);
 extern double compute_w2(double *w, double **bd, double alpha, int level, int rows);
 extern double compute_w(double *w, double *w1, double **bd, double alpha, int level, int rows);
+extern double compute_w2float(float *w, float **bd, double alpha, int level, int rows);
+extern double compute_wfloat(float *w, float *w1, float **bd, double alpha, int level, int rows);
 extern void gramschmidt(lattice_t *lattice, int columns, int rows, double **mu, double **bd, double *c);
 extern void givens(lattice_t *lattice, int columns, int rows, double **mu, double **bd, double *c);
 extern void inverse(double **mu, double **muinv, int columns);
@@ -58,7 +60,10 @@ extern int final_test(double *v, int rows, double Fq, double *us, lattice_t *lat
 extern int prune_only_zeros(lattice_t *lattice, double *w, double *w1,
                 int level, int rows, double Fq,
                 double **bd, double y, int columns);
-
+extern int prune_only_zeros_float(lattice_t *lattice, float *w, float *w1,
+    int level, int rows, double Fq,
+    float **bd, double y, int columns);
+    
 extern int print_solution(lattice_t *lattice, double *w, int rows, double Fq, double *us, int columns);
 extern void print_num_solutions(long num_solutions);
 
