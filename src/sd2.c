@@ -127,6 +127,9 @@ int DUMP_REQUIRED;
 bool HAS_AVX2;
 bool HAS_AVX512;
 
+// Used in dio2.c
+int do_dump = 0;
+
 /**
  * Main program
  * @param  argc number of command line arguments
@@ -292,6 +295,9 @@ int main(int argc, char *argv[]) {
         } else if (get_param(argc, argv, i, "-delta_high", suffix) != 0) {
             lattice.LLL_params.lll.delta_high = strtod(suffix, &endptr);
 
+        } else if (get_param(argc, argv, i, "-dump", suffix) != 0) {
+            do_dump = 1;
+
         } else if (get_param(argc, argv, i, "-restart", suffix) != 0) {
             strcpy(restart_filename, suffix);
             restart = 1;
@@ -317,6 +323,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr,"\t-time{num} stop program after num seconds\n");
             fprintf(stderr,"\t-silent do not write solutions to stdout and solution file\n");
             fprintf(stderr,"\t-printntl write (shortened) lattice after third reduction in NTL format to stdout\n");
+            fprintf(stderr,"\t-dump If this flag is supplied, write lattice to file 'dump_lattice.b' after the reduction phase\n");
             fprintf(stderr,"\t-restart{string} Read dumped lattice basis from file 'string' and jump to third reduction phase\n");
             fprintf(stderr,"\t-lds{num} Use LDS enumeration up to num discrepancies, otherwise use dfs (default=dfs)\n");
             fprintf(stderr,"Signals:\n");

@@ -68,6 +68,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Defined in datastruct.h
 extern long num_solutions;
 
+// Defined in sd2.c
+extern int do_dump;
+
 // Defined in enum.h
 extern solution_t solution;
 
@@ -274,7 +277,9 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
         #endif
         fprintf(stderr, "Third reduction successful\n"); fflush(stderr);
 
-        dump_lattice(lattice);
+        if (do_dump) {
+            dump_lattice(lattice);
+        }
 
         /*
          * Undo scaling of last rows
