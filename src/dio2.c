@@ -69,7 +69,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern long num_solutions;
 
 // Defined in sd2.c
-extern int do_dump;
+extern bool do_dump;
 
 // Defined in enum.h
 extern solution_t solution;

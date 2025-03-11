@@ -128,7 +128,7 @@ bool HAS_AVX2;
 bool HAS_AVX512;
 
 // Used in dio2.c
-int do_dump = 0;
+bool do_dump = false;
 
 /**
  * Main program
