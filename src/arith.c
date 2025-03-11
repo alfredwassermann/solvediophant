@@ -1055,6 +1055,80 @@ DOUBLE daxpy_dasum_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, DOUBLE *res, int n) {
     return s;
 }
 
+
+/**
+ * Combine saxpy and sasum in one loop, feeding 4 pipes.
+ * Seems to be the fastest one. Use AVX2.
+ */
+float saxpy_sasum_AVX(float a, float *x, float *y, float *res, int n) {
+    size_t i = 0;
+    float s = 0.0;
+    __m256 va, vp1, vp2, vp3, vp4;
+
+    if (n <= 0) return 0.0;
+
+    size_t n_32 = n & -32;
+    size_t n_8 = n & -8;
+
+    __m256 msk = {-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0}; // Used for fabs()
+
+    __m256 sum1 = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    __m256 sum2 = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    __m256 sum3 = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    __m256 sum4 = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+    va = _mm256_broadcast_ss(&a);
+
+    for (i = 0; i < n_32; i += 32) {
+        vp1 = _mm256_fmadd_ps(va, _mm256_load_ps(x),      _mm256_load_ps(y));
+        vp2 = _mm256_fmadd_ps(va, _mm256_load_ps(x + 8),  _mm256_load_ps(y + 8));
+        vp3 = _mm256_fmadd_ps(va, _mm256_load_ps(x + 16), _mm256_load_ps(y + 16));
+        vp4 = _mm256_fmadd_ps(va, _mm256_load_ps(x + 24), _mm256_load_ps(y + 24));
+
+        sum1 = _mm256_add_ps(sum1, _mm256_andnot_ps(msk, vp1));
+        sum2 = _mm256_add_ps(sum2, _mm256_andnot_ps(msk, vp2));
+        sum3 = _mm256_add_ps(sum3, _mm256_andnot_ps(msk, vp3));
+        sum4 = _mm256_add_ps(sum4, _mm256_andnot_ps(msk, vp4));
+
+        _mm256_store_ps(res, vp1);
+        _mm256_store_ps(res + 8, vp2);
+        _mm256_store_ps(res + 16, vp3);
+        _mm256_store_ps(res + 24, vp4);
+
+        res += 32;
+        x += 32;
+        y += 32;
+    }
+
+    sum1 = _mm256_add_ps(sum1, sum2);
+    sum3 = _mm256_add_ps(sum3, sum4);
+    sum1 = _mm256_add_ps(sum1, sum3);
+
+    for (i = n_32; i < n_8; i += 8) {
+        vp1 = _mm256_fmadd_ps(va, _mm256_load_ps(x), _mm256_load_ps(y));
+        _mm256_store_ps(res, vp1);
+        sum1 = _mm256_add_ps(sum1, _mm256_andnot_ps(msk, vp1));
+
+        res += 8;
+        x += 8;
+        y += 8;
+    }
+
+    // Add up the horizontal sum
+    s = sum1[0] + sum1[1] + sum1[2] + sum1[3];
+
+    // Handle the trailing entries
+    for (i = n_8; i < n; i++) {
+        *res = fma(a, *x, *y);
+        s += fabs(*res);
+        x++;
+        y++;
+        res++;
+    }
+
+    return s;
+}
+
 void daxpy_AVX(DOUBLE a, DOUBLE *x, DOUBLE *y, int n) {
     if (n <= 0) return;
 
@@ -1347,7 +1421,7 @@ void daxpy(DOUBLE a, DOUBLE *x, DOUBLE *y, int n) {
     }
 }
 
-/* -------------  Experiments with pipes --------------------- */
+/* -------------  Experiments with number of pipes --------------------- */
 
 /**
  * Combine daxpy and dasum in one loop, simple loop.
