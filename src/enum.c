@@ -163,7 +163,7 @@ void free_enum_data(enum_level_t *enum_data, int cols) {
 int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                 double *us,
                 double** fipo,
-                int level, 
+                int level,
                 int max_steps,
                 bool use_float) {
 
@@ -191,7 +191,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
     long delta;
     long v;
     int eta;
-    int d;
+    long d;
     double norm1;
 
     ed->num = 0;
@@ -231,12 +231,11 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
         }
 
         #if VERBOSE > -1
-        if (loops % 100000000 ==0) {
+        if (loops % 100000000 == 0) {
             fprintf(stderr, "%ld loops, solutions: %ld",
                 loops, num_solutions);
-            fprintf(stderr, ", dual bounds: %ld ", dual_bound_success);
-            fprintf(stderr, "\n");
-            fflush(stderr);
+            fprintf(stderr, ", dual bounds: %ld \n", dual_bound_success);
+            // fflush(stderr);
         }
         #endif
 
@@ -260,18 +259,16 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
             is_good = false;
         } else {
             if (is_new_node) {
-                if (use_float) {
-                    norm1 = compute_wfloat(node->wfloat, parent_node->wfloat, bdfloat, coeff, level, rows);
-                } else {
-                    norm1 = compute_w(node->w, parent_node->w, bd, coeff, level, rows);
-                }
+                norm1 = (use_float) ?
+                    compute_wfloat(node->wfloat, parent_node->wfloat, bdfloat, coeff, level, rows)
+                    :
+                    compute_w(node->w, parent_node->w, bd, coeff, level, rows);
                 is_new_node = false;
             } else {
-                if (use_float) {
-                    norm1 = compute_w2float(node->wfloat, bdfloat, u - u_previous, level, rows);
-                } else {
-                    norm1 = compute_w2(node->w, bd, u - u_previous, level, rows);
-                }
+                norm1 = (use_float) ?
+                    compute_w2float(node->wfloat, bdfloat, u - u_previous, level, rows)
+                    :
+                    compute_w2(node->w, bd, u - u_previous, level, rows);
             }
             u_previous = u;
             if (level > 0) {
@@ -282,21 +279,17 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                         goto_back = true;
                     } else {
                         eta = 1;
-                        delta *= -1;
+                        delta = -delta;
                         if (delta * d >= 0) delta += d;
                         u = v + delta;
                         continue;
                     }
                 } else {
                     // fprintf(stderr, "level=%d, cs=%0.5lf, n1=%0.5lf, diff=%0.5lf\n", level, node->cs, norm1, norm1-node->cs);
-                    if (use_float) {
-                        i = prune_only_zeros_float(lattice, node->wfloat, parent_node->wfloat, level, rows, Fq, bdfloat, y, columns);
-                    } else {
-                        i = prune_only_zeros(lattice, node->w, parent_node->w, level, rows, Fq, bd, y, columns);
-                    }
-                    // if (i < 0) {
-                    //     goto_back = true;
-                    // } else
+                    i = (use_float) ?
+                        prune_only_zeros_float(lattice, node->wfloat, parent_node->wfloat, level, rows, Fq, bdfloat, y, columns)
+                        :
+                        prune_only_zeros(lattice, node->w, parent_node->w, level, rows, Fq, bd, y, columns);
                     if (i > 0) {
                         is_good = false;
                     }
@@ -329,10 +322,8 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
             chosen.
         */
         if (eta == 0) {
-            delta *= -1;
-            if (delta * d >= 0) {
-                delta += d;
-            }
+            delta = -delta;
+            if (delta * d >= 0) delta += d;
         } else {
             delta += d * ((delta * d >= 0) ? 1: -1);
         }
