@@ -246,7 +246,8 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
 
         /* compute new |cs| */
         coeff = u + y;
-        node->cs = parent_node->cs + coeff * coeff * c[level];
+        // node->cs = parent_node->cs + coeff * coeff * c[level];
+        node->cs = fma(coeff * coeff, c[level], parent_node->cs);
 
         if (node->cs >= Fd)  {
             goto_back = true;
@@ -1259,11 +1260,13 @@ int prune_only_zeros(lattice_t *lattice, double *w, double *w1,
 
     int i;
     int f;
+    int firstp = lattice->decomp.firstp[level];
+    int len = lattice->decomp.first_nonzero_in_column[firstp];
     // double u1, u2;
 
     only_zeros_no++;
-    for (i = 0; i < lattice->decomp.first_nonzero_in_column[lattice->decomp.firstp[level]]; i++) {
-        f = lattice->decomp.first_nonzero_in_column[lattice->decomp.firstp[level] + 1 + i];
+    for (i = 0; i < len; i++) {
+        f = lattice->decomp.first_nonzero_in_column[firstp + 1 + i];
         // u1 = ( Fq - w1[f]) / bd[level][f] - y;
         // u2 = (-Fq - w1[f]) / bd[level][f] - y;
 
@@ -1306,12 +1309,14 @@ int prune_only_zeros_float(lattice_t *lattice, float *w, float *w1,
 
     int i;
     int f;
+    int firstp = lattice->decomp.firstp[level];
+    int len = lattice->decomp.first_nonzero_in_column[firstp];
     // double u1, u2;
 
     only_zeros_no++;
-    for (i = 0; i < lattice->decomp.first_nonzero_in_column[lattice->decomp.firstp[level]]; i++)
+    for (i = 0; i < len; i++)
     {
-        f = lattice->decomp.first_nonzero_in_column[lattice->decomp.firstp[level] + 1 + i];
+        f = lattice->decomp.first_nonzero_in_column[firstp + 1 + i];
         // u1 = ( Fq - w1[f]) / bd[level][f] - y;
         // u2 = (-Fq - w1[f]) / bd[level][f] - y;
 
