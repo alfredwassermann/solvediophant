@@ -254,21 +254,22 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
             /* Use (1, -1, 0, ...) as linear combination in Hoelder pruning */
             goto_back = true;
             ++hoelder2_success;
-        } else if (fabs(u) > fipo[0][level] || fabs(u + 1) > fipo[1][level]) {
+        } else if (fabs(u + 1) > fipo[1][level] || fabs(u) > fipo[0][level]) {
             dual_bound_success++;
             is_good = false;
         } else {
-            if (is_new_node) {
-                norm1 = (use_float) ?
-                    compute_wfloat(node->wfloat, parent_node->wfloat, bdfloat, coeff, level, rows)
-                    :
-                    compute_w(node->w, parent_node->w, bd, coeff, level, rows);
-                is_new_node = false;
+            if (use_float) {
+                if (is_new_node) {
+                    norm1 = compute_wfloat(node->wfloat, parent_node->wfloat, bdfloat, coeff, level, rows);
+                } else {
+                    norm1 = compute_w2float(node->wfloat, bdfloat, u - u_previous, level, rows);
+                }
             } else {
-                norm1 = (use_float) ?
-                    compute_w2float(node->wfloat, bdfloat, u - u_previous, level, rows)
-                    :
-                    compute_w2(node->w, bd, u - u_previous, level, rows);
+                if (is_new_node) {
+                    norm1 = compute_w(node->w, parent_node->w, bd, coeff, level, rows);
+                } else {
+                    norm1 = compute_w2(node->w, bd, u - u_previous, level, rows);
+                }
             }
             u_previous = u;
             if (level > 0) {
@@ -286,10 +287,11 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                     }
                 } else {
                     // fprintf(stderr, "level=%d, cs=%0.5lf, n1=%0.5lf, diff=%0.5lf\n", level, node->cs, norm1, norm1-node->cs);
-                    i = (use_float) ?
-                        prune_only_zeros_float(lattice, node->wfloat, parent_node->wfloat, level, rows, Fq, bdfloat, y, columns)
-                        :
-                        prune_only_zeros(lattice, node->w, parent_node->w, level, rows, Fq, bd, y, columns);
+                    if (use_float) {
+                        i = prune_only_zeros_float(lattice, node->wfloat, parent_node->wfloat, level, rows, Fq, bdfloat, y, columns);
+                    } else {
+                        i = prune_only_zeros(lattice, node->w, parent_node->w, level, rows, Fq, bd, y, columns);
+                    }
                     if (i > 0) {
                         is_good = false;
                     }
