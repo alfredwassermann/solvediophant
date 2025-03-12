@@ -129,6 +129,8 @@ bool HAS_AVX512;
 
 // Used in dio2.c
 bool do_dump = false;
+// Used in enum.c
+bool force_double = false;
 
 /**
  * Main program
@@ -170,8 +172,6 @@ int main(int argc, char *argv[]) {
     char restart_filename[1024];
     int restart = 0;
     char *res;
-
-    fprintf(stderr, "SIZE %ld\n", sizeof(decomp_t));
 
     strcpy(sol_filename, "solutions");
 
@@ -304,6 +304,9 @@ int main(int argc, char *argv[]) {
             strcpy(restart_filename, suffix);
             restart = 1;
 
+        } else if (get_param(argc, argv, i, "-double", suffix) != 0) {
+            force_double = true;
+
         } else if (strcmp(argv[i], "-?") == 0 || strcmp(argv[i], "-h") == 0) {
             fprintf(stderr,"sd2 --- multiple precision version --- \n");
             fprintf(stderr,"Usage:\n\tsd2 options inputfile\n");
@@ -327,6 +330,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr,"\t-printntl write (shortened) lattice after third reduction in NTL format to stdout\n");
             fprintf(stderr,"\t-dump If this flag is supplied, write lattice to file 'dump_lattice.b' after the reduction phase\n");
             fprintf(stderr,"\t-restart{string} Read dumped lattice basis from file 'string' and jump to third reduction phase\n");
+            fprintf(stderr,"\t-double Do not use floats in enumeration\n");
             fprintf(stderr,"\t-lds{num} Use LDS enumeration up to num discrepancies, otherwise use dfs (default=dfs)\n");
             fprintf(stderr,"Signals:\n");
             fprintf(stderr,"\t 10: print lattice, e.g. kill -10 PID\n");

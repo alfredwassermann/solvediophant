@@ -67,6 +67,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Global variable, also used in dio2
 long num_solutions;
+extern bool force_double;
 
 // Defined in enum.h
 solution_t solution;
@@ -77,6 +78,7 @@ solution_t solution;
 int MAX_DUAL_BOUNDS = 8192; // 8192; //1024;
 int level_max;
 long loops;
+int FLOAT_THRESHOLD = 10;
 
 /*|mpz_t *upb,*lowb;|*/
 long dual_bound_success;
@@ -161,7 +163,9 @@ void free_enum_data(enum_level_t *enum_data, int cols) {
 int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                 double *us,
                 double** fipo,
-                int level, int max_steps) {
+                int level, 
+                int max_steps,
+                bool use_float) {
 
     int i;
     bool goto_back;
@@ -256,12 +260,18 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
             is_good = false;
         } else {
             if (is_new_node) {
-                // norm1 = compute_w(node->w, parent_node->w, bd, coeff, level, rows);
-                norm1 = compute_wfloat(node->wfloat, parent_node->wfloat, bdfloat, coeff, level, rows);
+                if (use_float) {
+                    norm1 = compute_wfloat(node->wfloat, parent_node->wfloat, bdfloat, coeff, level, rows);
+                } else {
+                    norm1 = compute_w(node->w, parent_node->w, bd, coeff, level, rows);
+                }
                 is_new_node = false;
             } else {
-                // norm1 = compute_w2(node->w, bd, u - u_previous, level, rows);
-                norm1 = compute_w2float(node->wfloat, bdfloat, u - u_previous, level, rows);
+                if (use_float) {
+                    norm1 = compute_w2float(node->wfloat, bdfloat, u - u_previous, level, rows);
+                } else {
+                    norm1 = compute_w2(node->w, bd, u - u_previous, level, rows);
+                }
             }
             u_previous = u;
             if (level > 0) {
@@ -279,8 +289,11 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                     }
                 } else {
                     // fprintf(stderr, "level=%d, cs=%0.5lf, n1=%0.5lf, diff=%0.5lf\n", level, node->cs, norm1, norm1-node->cs);
-                    // i = prune_only_zeros(lattice, node->w, parent_node->w, level, rows, Fq, bd, y, columns);
-                    i = prune_only_zeros_float(lattice, node->wfloat, parent_node->wfloat, level, rows, Fq, bdfloat, y, columns);
+                    if (use_float) {
+                        i = prune_only_zeros_float(lattice, node->wfloat, parent_node->wfloat, level, rows, Fq, bdfloat, y, columns);
+                    } else {
+                        i = prune_only_zeros(lattice, node->w, parent_node->w, level, rows, Fq, bd, y, columns);
+                    }
                     // if (i < 0) {
                     //     goto_back = true;
                     // } else
@@ -332,12 +345,13 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
 int dfs(enum_level_t* enum_data, lattice_t* lattice,
         double *us,
         double** fipo,
-        int level) {
+        int level,
+        bool use_float) {
 
     int pos;
     enum_level_t* ed = &(enum_data[level]);
 
-    if (-1 == enumLevel(enum_data, lattice, us, fipo, level, -1)) {
+    if (-1 == enumLevel(enum_data, lattice, us, fipo, level, -1, use_float)) {
         return -1;
     }
 
@@ -346,8 +360,10 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
         ed->pos = pos;
 
         if (level == 0) {
-            for (int i = 0; i < lattice->num_rows; i++) {
-                ed->nodes[pos].w[i] = (double)ed->nodes[pos].wfloat[i];
+            if (use_float) {
+                for (int i = 0; i < lattice->num_rows; i++) {
+                    ed->nodes[pos].w[i] = (double)ed->nodes[pos].wfloat[i];
+                }
             }
             // Solution found
             if (final_test(ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us, lattice) == 1) {
@@ -381,7 +397,7 @@ int dfs(enum_level_t* enum_data, lattice_t* lattice,
                 }
             }
         } else {
-            if (-1 == dfs(enum_data, lattice, us, fipo, level - 1)) {
+            if (-1 == dfs(enum_data, lattice, us, fipo, level - 1, use_float)) {
                 return -1;
             }
         }
@@ -416,7 +432,8 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
                 double** fipo,
                 int level,
                 int lds_k,
-                int lds_threshold) {
+                int lds_threshold,
+                bool use_float) {
 
     int start, end;
     int pos;
@@ -449,10 +466,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
     //     return exhausted;
     // }
 
-    if (-1 == enumLevel(enum_data, lattice,
-            us,
-            fipo,
-            level, max_steps)) {
+    if (-1 == enumLevel(enum_data, lattice, us, fipo, level, max_steps, use_float)) {
 
         // enumLevel reached max. num of solutions
         return -1;
@@ -531,8 +545,10 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
         // printf("pos=%d\n", pos);
         us[level] = ed->nodes[pos].us;
         if (level == 0) {
-            for (int i = 0; i < lattice->num_rows; i++) {
-                ed->nodes[pos].w[i] = (double)ed->nodes[pos].wfloat[i];
+            if (use_float) {
+                for (int i = 0; i < lattice->num_rows; i++) {
+                    ed->nodes[pos].w[i] = (double)ed->nodes[pos].wfloat[i];
+                }
             }
             // Solution found
             if (lds_k - pos == 0 && final_test(ed->nodes[pos].w, lattice->num_rows, lattice->decomp.Fq, us, lattice) == 1) {
@@ -577,7 +593,7 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
 
             ret = lds(enum_data, lattice,
                     us, fipo, level - 1,
-                    next_lds_k, lds_threshold);
+                    next_lds_k, lds_threshold, use_float);
 
             if (ret == -1) {
                 return -1;
@@ -594,7 +610,6 @@ int lds(enum_level_t* enum_data, lattice_t* lattice,
             exhausted = 1;
         }
     }
-
 
     level++;
     // if (level >= lattice->num_cols) {
@@ -688,6 +703,7 @@ double exhaustive_enumeration(lattice_t *lattice) {
     /* local variables for |explicit_enumeration() */
     /*|__attribute((aligned(16)))|*/
 
+    bool use_float = false;
     int level;
     int i, j, l, k;
     int result;
@@ -760,6 +776,12 @@ double exhaustive_enumeration(lattice_t *lattice) {
         i++;
     fprintf(stderr, "Number of nonzero entries in the last row: %d\n", i);
     fprintf(stderr, "Max bit size: %d\n", lattice->decomp.bit_size);
+    if (!force_double && lattice->decomp.bit_size < FLOAT_THRESHOLD) {
+        use_float = true;
+        fprintf(stderr, "Use floats in enumeration\n");
+    } else {
+        fprintf(stderr, "Use doubles in enumeration\n");
+    }
     fflush(stderr);
 
     // Move basis lattice->num_cols which have a nonzero entry in the last row to the end.
@@ -889,7 +911,7 @@ double exhaustive_enumeration(lattice_t *lattice) {
             fprintf(stderr, "lds_k=%d\n", k); fflush(stderr);
             // result = lds(enum_data, lattice, us, fipo, level, k, lattice->num_cols / 6);
             // result = lds(enum_data, lattice, us, fipo, level, k, 3);
-            result = lds(enum_data, lattice, us, fipo, level, k, 0);
+            result = lds(enum_data, lattice, us, fipo, level, k, 0, use_float);
 
             if (result == -1) {
                 fprintf(stderr, "max_solutions or max_loops reached for lds_k=%d\n\n", k);
@@ -902,7 +924,7 @@ double exhaustive_enumeration(lattice_t *lattice) {
     } else {
         /* -------- DFS -------- */
         while (0 <= level && level < lattice->num_cols) {
-            level = dfs(enum_data, lattice, us, fipo, level);
+            level = dfs(enum_data, lattice, us, fipo, level, use_float);
         }
     }
 

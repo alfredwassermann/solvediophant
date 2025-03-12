@@ -5,18 +5,19 @@ SRC=src
 PDF=pdf
 
 CFLAGS= -O3                  \
-  -g -pg \
   -DUSE_AVX                  \
   -fno-math-errno            \
   -ftree-vectorize           \
   -msse3 -mssse3 -msse4.1    \
   -Wall
 
-HASWELL_CFLAGS= -mavx -mavx2 -march=haswell
+HASWELL_CFLAGS= -mavx -mavx2 -march=skylake
 # ICELAKE_CFLAGS= -mavx512f -mavx512dq -march=
 SAPPHIRERAPIDS_CFLAGS= -mavx512f -mavx512dq -march=sapphirerapids
+ARCH_CFLAGS= $(HASWELL_CFLAGS)
 
 # Profile:   -pg \
+#  -g -pg \
 # Find memory leaks
 #  -fsanitize=address         \
 
@@ -64,11 +65,11 @@ PDFFILES=$(PDF)/bkz.pdf $(PDF)/dio2.pdf $(PDF)/dualbkz.pdf $(PDF)/enum.pdf $(PDF
 all: $(BIN)/sd2 tags $(PDFFILES) $(BIN)/test_la
 
 $(SRC)/%.o: $(SRC)/%.c $(SRC)/%.h $(SRC)/datastruct.h $(SRC)/const.h
-	$(CC) $(CFLAGS) $(HASWELL_CFLAGS) $(PGO_CFLAGS) -D$(GSA_OUT) -D$(BLAS) -I$(BLASINC) -c $< $(GMPINC) -o $@
+	$(CC) $(CFLAGS) $(ARCH_CFLAGS) $(PGO_CFLAGS) -D$(GSA_OUT) -D$(BLAS) -I$(BLASINC) -c $< $(GMPINC) -o $@
 	@echo "Compiled "$<" successfully!"
 
 $(BIN)/sd2: $(OBJFILES)
-	$(CC) $(CFLAGS) $(HASWELL_CFLAGS) $(LDFLAGS) $(PGO_LDFLAGS) \
+	$(CC) $(CFLAGS) $(ARCH_CFLAGS) $(LDFLAGS) $(PGO_LDFLAGS) \
 		-o $(BIN)/sd2 $(OBJFILES) \
 		-static $(BLASLIB) \
 		-lgmp $(GMPLIB) $(GMPINC) -lm -lc
@@ -86,11 +87,11 @@ pgo:
 	./profiledmake.sh
 
 $(SRC)/test_la.o: $(SRC)/test_la.c
-	$(CC) $(CFLAGS) $(HASWELL_CFLAGS) $(PGO_CFLAGS) -D$(GSA_OUT) -D$(BLAS) -I$(BLASINC) -c $< $(GMPINC) -o $@
+	$(CC) $(CFLAGS) $(ARCH_CFLAGS) $(PGO_CFLAGS) -D$(GSA_OUT) -D$(BLAS) -I$(BLASINC) -c $< $(GMPINC) -o $@
 	@echo "Compiled "$<" successfully!"
 
 $(BIN)/test_la: $(SRC)/test_la.o $(SRC)/arith.o
-	$(CC) $(CFLAGS) $(HASWELL_CFLAGS) -o $(BIN)/test_la $(SRC)/test_la.o $(SRC)/arith.o -static $(BLASLIB) -lm -lc
+	$(CC) $(CFLAGS) $(ARCH_CFLAGS) -o $(BIN)/test_la $(SRC)/test_la.o $(SRC)/arith.o -static $(BLASLIB) -lm -lc
 
 tags: $(SRC) Makefile
 	ctags $</*.c $</*.h
