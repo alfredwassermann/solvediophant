@@ -220,6 +220,7 @@ int main(int argc, char *argv[]) {
     lattice.LLL_params.silent = SILENT = 0;
     lattice.LLL_params.print_ntl = 0;
     lattice.LLL_params.kernel = 0;
+    lattice.LLL_params.stop_after_solutions = 0;
     PRINT_REQUIRED = 0;
     DUMP_REQUIRED = 0;
 
@@ -265,6 +266,9 @@ int main(int argc, char *argv[]) {
 
         } else if (get_param(argc, argv, i, "-time", suffix) != 0) {
             maxruntime = (int)strtol(suffix, &endptr, 10);
+
+        } else if (get_param(argc, argv, i, "-t", suffix) != 0) {
+            lattice.LLL_params.stop_after_solutions = (int)strtol(suffix, &endptr, 10);
 
         } else if (get_param(argc, argv, i, "-c", suffix) != 0) {
             #if 1
@@ -326,6 +330,7 @@ int main(int argc, char *argv[]) {
 
             fprintf(stderr,"\t-o{string} write solutions to file 'string' (default='solutions')\n");
             fprintf(stderr,"\t-time{num} stop program after num seconds\n");
+            fprintf(stderr,"\t-t{num} stop program after num solutions. Overwritten by line '%% stopafter num' in input file\n");
             fprintf(stderr,"\t-silent do not write solutions to stdout and solution file\n");
             fprintf(stderr,"\t-printntl write (shortened) lattice after third reduction in NTL format to stdout\n");
             fprintf(stderr,"\t-dump If this flag is supplied, write lattice to file 'dump_lattice.b' after the reduction phase\n");
@@ -431,7 +436,6 @@ int main(int argc, char *argv[]) {
     lattice.free_RHS = 0;
     lattice.cut_after = -1;
     lattice.LLL_params.stop_after_loops = 0;
-    lattice.LLL_params.stop_after_solutions = 0;
     do {
         res = fgets(zeile, ZLENGTH, txt);
         if (res == NULL) {
