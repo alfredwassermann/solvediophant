@@ -271,9 +271,6 @@ int main(int argc, char *argv[]) {
         } else if (get_param(argc, argv, i, "-t", suffix) != 0) {
             lattice.LLL_params.stop_after_solutions = strtol(suffix, &endptr, 10);
 
-        } else if (get_param(argc, argv, i, "-d", suffix) != 0) {
-            lattice.LLL_params.report_interval = strtol(suffix, &endptr, 10);
-
         } else if (get_param(argc, argv, i, "-c", suffix) != 0) {
             #if 1
                 mpz_set_str(lattice.matrix_factor, suffix, 10);  /* Regular version */
@@ -314,6 +311,9 @@ int main(int argc, char *argv[]) {
 
         } else if (get_param(argc, argv, i, "-double", suffix) != 0) {
             force_double = true;
+
+        } else if (get_param(argc, argv, i, "-d", suffix) != 0) {
+            lattice.LLL_params.report_interval = strtol(suffix, &endptr, 10);
 
         } else if (strcmp(argv[i], "-?") == 0 || strcmp(argv[i], "-h") == 0) {
             fprintf(stderr,"sd2 --- multiple precision version --- \n");
