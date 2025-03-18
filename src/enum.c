@@ -231,7 +231,7 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
         }
 
         #if VERBOSE > -1
-        if (loops % 100000000 == 0) {
+        if (loops % lattice->LLL_params.report_interval == 0) {
             fprintf(stderr, "%ld loops, solutions: %ld",
                 loops, num_solutions);
             fprintf(stderr, ", dual bounds: %ld \n", dual_bound_success);

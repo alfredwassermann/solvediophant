@@ -57,8 +57,10 @@ typedef struct {
     int silent;
     long stop_after_solutions;
     long stop_after_loops;
-    int print_ntl;
+    long report_interval;
+    int print_ntl;  
     int kernel;
+
 
     struct _lll {
         double delta_low;
