@@ -83,6 +83,7 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
 
     int i;
     int block_size;
+    int max_tours;
     double lD = 0.0;
     double lDnew = 0.0;
     mpz_t *swap_vec;
@@ -124,7 +125,6 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
     if (lattice->LLL_params.silent) fprintf(solution.fp, "SILENT\n");
     fflush(solution.fp);
 
-
     #if 1 // Do reduction
 
         /**
@@ -164,7 +164,6 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
             /*
              * Cut the lattice
              */
-            fprintf(stderr, "Before cutting\n");
             if (cutlattice(lattice)) {
                 fprintf(stderr, "First reduction successful\n"); fflush(stderr);
             } else {
@@ -227,23 +226,25 @@ long diophant(lgs_t *LGS, lattice_t *lattice, FILE* solfile, int restart, char *
                     lattice->LLL_params.lll.delta_high, POT_LLL);
         } else if (lattice->LLL_params.type == PROGBKZ) {
             // ---------- Progressive BKZ
+            max_tours = (lattice->LLL_params.bkz.max_tours > 0) ? lattice->LLL_params.bkz.max_tours : 30;
             for (block_size = 4; block_size <= lattice->LLL_params.bkz.beta; block_size += 4) {
                 lD = lDnew;
                 shufflelattice(lattice);
                 lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
                             lattice->LLL_params.lll.delta_higher,
                             block_size, lattice->LLL_params.bkz.p,
-                            ENUM_BLOCK, 30,
+                            ENUM_BLOCK, max_tours,
                             solutiontest, solutiontest_long);
                 fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
             }
         } else {
             // ---------- BKZ
+            max_tours = (lattice->LLL_params.bkz.max_tours > 0) ? lattice->LLL_params.bkz.max_tours : 10;
             // shufflelattice(lattice);
             lDnew = bkz(lattice, lattice->num_cols, lattice->num_rows,
                         lattice->LLL_params.lll.delta_higher,
                         lattice->LLL_params.bkz.beta, lattice->LLL_params.bkz.p,
-                        ENUM_BLOCK, 10,
+                        ENUM_BLOCK, max_tours,
                         solutiontest, solutiontest_long);
             fprintf(stderr, "BKZ improvement: %0.3lf %0.3lf %0.3lf\n",lD, lDnew, lD - lDnew);
 

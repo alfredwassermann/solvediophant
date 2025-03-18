@@ -70,6 +70,7 @@ typedef struct {
 
     struct _bkz {
         int beta;
+        int max_tours;
         double p;
     } bkz;
 

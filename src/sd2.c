@@ -222,6 +222,8 @@ int main(int argc, char *argv[]) {
     lattice.LLL_params.kernel = 0;
     lattice.LLL_params.stop_after_solutions = 0;
     lattice.LLL_params.report_interval = 100000000;
+    lattice.LLL_params.bkz.beta = 24;
+    lattice.LLL_params.bkz.max_tours = -1;
     PRINT_REQUIRED = 0;
     DUMP_REQUIRED = 0;
 
@@ -258,6 +260,9 @@ int main(int argc, char *argv[]) {
         // } else if (get_param(argc, argv, i, "-p", suffix) != 0) {
         //     strcpy(suffix, argv[i] + 2);
         //     lattice.LLL_params.bkz.p = strtod(suffix, &endptr);
+    
+        } else if (get_param(argc, argv, i, "-tours", suffix) != 0) {
+            lattice.LLL_params.bkz.max_tours = (int)strtol(suffix, &endptr, 10);
 
         } else if (get_param(argc, argv, i, "-lds", suffix) != 0) {
             lattice.LLL_params.exhaustive_enum.lds = 1;
@@ -322,7 +327,8 @@ int main(int argc, char *argv[]) {
             fprintf(stderr,"\t inputfile: file name or '-'  for stdin\n");
             fprintf(stderr,"\t-iterate{num} do num LLL calls with delta=delta_high\n");
             fprintf(stderr,"\t-bkz -beta{num} do BKZ with blocksize num\n");
-            fprintf(stderr,"\t-pbkz -beta{num} do progressive BKZ with blocksize num\n");
+            fprintf(stderr,"\t-pbkz -beta{num} do progressive BKZ with max. blocksize num\n");
+            fprintf(stderr,"\t-tours{num} maximum number of tours in a bkz call\n");
             fprintf(stderr,"\t-c{num} scale equations by num (default=1099511627776=2**40)\n");
             fprintf(stderr,"\t-C{num} scale equations by 2^num (default=1099511627776=2**40)\n");
             fprintf(stderr,"\t-scalelastline{num} scale last line by num (default=1024)\n");
