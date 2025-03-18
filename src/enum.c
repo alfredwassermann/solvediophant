@@ -234,8 +234,20 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
         if (loops % lattice->LLL_params.report_interval == 0) {
             fprintf(stderr, "%ld loops, solutions: %ld",
                 loops, num_solutions);
-            fprintf(stderr, ", dual bounds: %ld \n", dual_bound_success);
-            // fflush(stderr);
+            fprintf(stderr, ", dual bounds: %ld", dual_bound_success);
+            {
+                // Print progress
+                int j;
+                double f = 0.0, fd = 1.0;
+                for (j = level_max; j >= level; j--) {
+                    if (enum_data[j].num > 0) {
+                        fd *= enum_data[j].num;
+                        f += enum_data[j].pos / fd;
+                    }
+                }
+                fprintf(stderr, ", done: %.12lf", f + 0.5 / fd);
+            }
+            fprintf(stderr, "\n");
         }
         #endif
 

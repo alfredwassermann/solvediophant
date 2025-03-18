@@ -61,7 +61,6 @@ typedef struct {
     int print_ntl;  
     int kernel;
 
-
     struct _lll {
         double delta_low;
         double delta_med;
