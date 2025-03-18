@@ -78,7 +78,7 @@ solution_t solution;
 int MAX_DUAL_BOUNDS = 8192; // 8192; //1024;
 int level_max;
 long loops;
-int FLOAT_THRESHOLD = 10;
+int FLOAT_THRESHOLD = 8; // Conservative bounds on the bit size, when to use floats in enumeration
 
 /*|mpz_t *upb,*lowb;|*/
 long dual_bound_success;
@@ -259,18 +259,23 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
             dual_bound_success++;
             is_good = false;
         } else {
+            // double MARGIN = 1.0e3;
             if (use_float) {
                 if (is_new_node) {
                     norm1 = compute_wfloat(node->wfloat, parent_node->wfloat, bdfloat, coeff, level, rows);
                 } else {
                     norm1 = compute_w2float(node->wfloat, bdfloat, u - u_previous, level, rows);
                 }
+                // norm1 *= Fq * (1 + MARGIN * rows * 5.960464477539063e-08); // 2^-24
+                // fprintf(stderr, "%.16lf\n", MARGIN * rows * 5.960464477539063e-08);
             } else {
                 if (is_new_node) {
                     norm1 = compute_w(node->w, parent_node->w, bd, coeff, level, rows);
                 } else {
                     norm1 = compute_w2(node->w, bd, u - u_previous, level, rows);
                 }
+                // norm1 *= Fq * (1 + MARGIN * rows * 1.1102230246251565e-16); // 2^-53
+                // fprintf(stderr, "%.16lf\n", MARGIN * rows * 1.1102230246251565e-16);
             }
             u_previous = u;
             if (level > 0) {
@@ -797,6 +802,7 @@ double exhaustive_enumeration(lattice_t *lattice) {
     /* set the simple pruning bounds */
     lattice->decomp.Fq = (double)mpz_get_d(lattice->max_norm);
     lattice->decomp.Fd = (lattice->num_rows * lattice->decomp.Fq * lattice->decomp.Fq) * (1.0 + EPSILON);
+    // EPSILON should be larger than rows * u, where u=2^-24 for floats and u=2^-53 for doubles
     lattice->decomp.Fqeps = (1.0 + EPSILON) * lattice->decomp.Fq;        // Used with result of compute_w
     #if VERBOSE > 0
         fprintf(stderr, "Fq: %f\n", (double)lattice->decomp.Fq);
