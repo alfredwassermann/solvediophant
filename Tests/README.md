@@ -29,7 +29,7 @@ Difficult to compute basis of kernel, if prec_low < 0.88 and c large
 * KM_PGL_2_25_7_9.txt:
 - There must be a solution since there are solutions for PGGL
 - 7-(26, 8, 54) designs.
-0/1 problem, ? solutions
+0/1 problem, >= 1 solutions, found with lds
 
 * unitals_v1.txt:
 0/1 problems, 78 solutions
