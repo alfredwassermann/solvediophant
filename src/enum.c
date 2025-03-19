@@ -230,6 +230,11 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
             return -1;
         }
 
+        /* compute new |cs| */
+        coeff = u + y;
+        // node->cs = parent_node->cs + coeff * coeff * c[level];
+        node->cs = fma(coeff * coeff, c[level], parent_node->cs);
+
         #if VERBOSE > -1
         if (loops % lattice->LLL_params.report_interval == 0) {
             fprintf(stderr, "%ld loops, solutions: %ld",
@@ -243,6 +248,8 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
                     if (enum_data[j].num > 0) {
                         fd *= enum_data[j].num;
                         f += enum_data[j].pos / fd;
+                        // fd *= Fd;
+                        // f += enum_data[j].nodes[enum_data[j].pos].cs / fd;
                     }
                 }
                 fprintf(stderr, ", done: %.12lf", f + 0.5 / fd);
@@ -255,11 +262,6 @@ int enumLevel(enum_level_t* enum_data, lattice_t* lattice,
 
         goto_back = false;
         is_good = true;
-
-        /* compute new |cs| */
-        coeff = u + y;
-        // node->cs = parent_node->cs + coeff * coeff * c[level];
-        node->cs = fma(coeff * coeff, c[level], parent_node->cs);
 
         if (node->cs >= Fd)  {
             goto_back = true;
