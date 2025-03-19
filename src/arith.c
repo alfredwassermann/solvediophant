@@ -520,7 +520,7 @@ double hiprec_norm_l1_AVX(double* p, int n) {
  * Dot product of arrays x and y of length n with high precision.
  */
 double hiprec_dot2(double* x, double* y, int n) {
-    if (HAS_AVX2) {
+    if (has_avx2) {
         return hiprec_dot2_AVX(x, y, n);
     } else {
         double S, h, s, r, sigma;
@@ -700,7 +700,7 @@ hiprec hiprec_normsq_l2_kernel(double* x, int n) {
  * dot product of array x with itself of length n with high precision.
  */
 double hiprec_normsq_l2(double* x, int n) {
-    if (HAS_AVX2) {
+    if (has_avx2) {
         return hiprec_normsq_l2_AVX(x, n);
     } else {
         hiprec s = hiprec_normsq_l2_kernel(x, n);
@@ -714,7 +714,7 @@ double hiprec_normsq_l2(double* x, int n) {
  * Siegfried M. Rump (2007)
  */
 double hiprec_norm_l2(double* x, int n) {
-    if (HAS_AVX2) {
+    if (has_avx2) {
         return hiprec_norm_l2_AVX(x, n);
     } else {
         hiprec s = hiprec_normsq_l2_kernel(x, n);
@@ -1332,7 +1332,7 @@ double daxpy_dasum_AVX512(double a, double *x, double *y, double *res, int n) {
 #endif
 
 double hiprec_dot(double *v, double *w , int n) {
-    if (HAS_AVX2) {
+    if (has_avx2) {
         return hiprec_dot2_AVX(v, w, n);
     } else {
         return hiprec_dot2(v, w, n);
@@ -1340,7 +1340,7 @@ double hiprec_dot(double *v, double *w , int n) {
 }
 
 double double_dot(double *v, double *w , int n) {
-    if (HAS_AVX2) {
+    if (has_avx2) {
         return double_dot_AVX(v, w, n);
     } else {
         #if BLAS
@@ -1393,7 +1393,7 @@ double double_dot_inc(int n, double *v, int inc_v, double *w , int inc_w) {
 }
 
 void double_copy(double *to, double *from , int n) {
-    if (HAS_AVX2) {
+    if (has_avx2) {
         double_copy_AVX(to, from, n);
     } else {
         #if BLAS
@@ -1407,7 +1407,7 @@ void double_copy(double *to, double *from , int n) {
 }
 
 void daxpy(double a, double *x, double *y, int n) {
-    if (HAS_AVX2) {
+    if (has_avx2) {
         daxpy_AVX(a, x, y, n);
     } else {
         #if BLAS

@@ -81,7 +81,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern int SILENT;
 extern int PRINT_REQUIRED;
 extern int DUMP_REQUIRED;
-extern bool HAS_AVX2;
+extern bool has_avx2;
 extern bool HAS_AVX512;
 
 #define ROUND(r) ceil(r-0.5)

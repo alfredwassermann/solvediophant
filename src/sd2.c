@@ -124,7 +124,7 @@ int get_param(int argc, char *argv[], int i, char *name, char *suffix) {
 int SILENT;
 int PRINT_REQUIRED;
 int DUMP_REQUIRED;
-bool HAS_AVX2;
+bool has_avx2;
 bool HAS_AVX512;
 
 // Used in dio2.c
@@ -188,14 +188,14 @@ int main(int argc, char *argv[]) {
     if (__builtin_cpu_supports("avx2")) {
         #if USE_AVX
             fprintf(stderr, "CPU supports AVX2\n");
-            HAS_AVX2 = true;
+            has_avx2 = true;
         #else
             fprintf(stderr, "AVX2 not enabled during compilation\n");
-            HAS_AVX2 = false;
+            has_avx2 = false;
         #endif
     } else {
         fprintf(stderr, "CPU does not support AVX2\n");
-        HAS_AVX2 = false;
+        has_avx2 = false;
     }
 
     /**

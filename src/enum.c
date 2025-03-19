@@ -789,7 +789,7 @@ double exhaustive_enumeration(lattice_t *lattice) {
         i++;
     fprintf(stderr, "Number of nonzero entries in the last row: %d\n", i);
     fprintf(stderr, "Max bit size: %d\n", lattice->decomp.bit_size);
-    if (!force_double && lattice->decomp.bit_size < FLOAT_THRESHOLD) {
+    if (!force_double && has_avx2 && lattice->decomp.bit_size < FLOAT_THRESHOLD) {
         use_float = true;
         fprintf(stderr, "Use floats in enumeration\n");
     } else {
@@ -1020,7 +1020,7 @@ double compute_w2(double *w, double **bd, double alpha, int level, int rows) {
         return daxpy_dasum_AVX512(alpha, bd[level], w, w, rows);
     } else
     #endif
-    if (HAS_AVX2) {
+    if (has_avx2) {
         return daxpy_dasum_AVX(alpha, bd[level], w, w, rows);
     } else {
         #if BLAS
@@ -1046,7 +1046,7 @@ double compute_w(double *w, double *w1, double **bd, double alpha, int level, in
         return daxpy_dasum_AVX512(alpha, bd[level], w1, w, rows);
     } else
     #endif
-    if (HAS_AVX2) {
+    if (has_avx2) {
         return daxpy_dasum_AVX(alpha, bd[level], w1, w, rows);
     } else {
         #if BLAS
