@@ -71,3 +71,16 @@ With lds: 13 solutions
 - precision_problem.txt
 Huge 0/1 problem with 37071 equations and 2673 variables.
 Probably no solution
+
+- 45-5-1g8-3om.sd
+  orbit matrix problem, there ought to be solutions.
+  dfs enumeration seems to be endless
+
+- 45-5-1g8-3om-new.sd
+  8064 solutions
+  - -pbkz -beta40: 3:37h on btmdx2  
+  - -pbkz -beta48: 7:13h on btmdx2  
+
+- 3-22-4-1g7om22.sd
+  There > 1100 solutions. 
+  - Solvable by dlx3 but not sd2
