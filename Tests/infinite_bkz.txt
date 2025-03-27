@@ -1,4 +1,3 @@
-% stopafter 1
 % ../sd3 -bkz -beta44 -lds -time7200
 % degree: 19
 % order: 0
