@@ -6,6 +6,7 @@ PDF=pdf
 
 CFLAGS= -O3                  \
   -DUSE_AVX                  \
+  -flto                      \
   -fno-math-errno            \
   -ftree-vectorize           \
   -msse3 -mssse3 -msse4.1    \

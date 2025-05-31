@@ -649,8 +649,8 @@ void init_dualbounds(lattice_t *lattice, double ***fipo) {
     double norm_1_1, norm_1_2;
 
     int i, j, l;
-    int cols = lattice->num_cols;
-    int rows = lattice->num_rows;
+    size_t cols = lattice->num_cols;
+    size_t rows = lattice->num_rows;
 
     (*fipo) = (double**)calloc(cols + 1, sizeof(double*));
     for (i = 0; i <= cols; i++) {
