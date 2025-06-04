@@ -269,6 +269,8 @@ int main(int argc, char *argv[]) {
             if (strlen(suffix) > 0) {
                 lattice.LLL_params.exhaustive_enum.lds_k_max = (int)strtol(suffix, &endptr, 10);
             }
+        } else if (get_param(argc, argv, i, "-dfs", suffix) != 0) {
+            lattice.LLL_params.exhaustive_enum.lds = 0;
 
         } else if (get_param(argc, argv, i, "-time", suffix) != 0) {
             maxruntime = (int)strtol(suffix, &endptr, 10);
@@ -347,6 +349,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr,"\t-dump If this flag is supplied, write lattice to file 'dump_lattice.b' after the reduction phase\n");
             fprintf(stderr,"\t-restart{string} Read dumped lattice basis from file 'string' and jump to third reduction phase\n");
             fprintf(stderr,"\t-double Do not use floats in enumeration\n");
+            fprintf(stderr,"\t-dfs Use depth first enumeration (default)\n");
             fprintf(stderr,"\t-lds{num} Use LDS enumeration up to num discrepancies, otherwise use dfs (default=dfs)\n");
             fprintf(stderr,"Signals:\n");
             fprintf(stderr,"\t 10: print lattice, e.g. kill -10 PID\n");
