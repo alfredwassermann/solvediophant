@@ -74,7 +74,7 @@ solution_t solution;
 /**
  * Globals for enumeration
  */
-int MAX_DUAL_BOUNDS = 8192; // 8192; //1024;
+int MAX_DUAL_BOUNDS = 8192; // 1048576; // 65536; // 8192; // 8192; //1024;
 int level_max;
 long loops;
 int FLOAT_THRESHOLD = 8; // Conservative bounds on the bit size, when to use floats in enumeration
