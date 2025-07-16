@@ -468,7 +468,7 @@ int main(int argc, char *argv[]) {
             lattice.free_RHS = 1;
         }
     }
-    while (zeile[0]=='%');
+    while (zeile[0]=='%' || zeile[0]=='#');
 
     /**
      * Read problem size
