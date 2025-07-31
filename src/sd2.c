@@ -342,8 +342,8 @@ int main(int argc, char *argv[]) {
         } else if (strcmp(argv[i], "-?") == 0 || strcmp(argv[i], "-h") == 0) {
             fprintf(stderr,"sd2 --- multiple precision version --- \n");
             fprintf(stderr,"Usage:\n\tsd2 options inputfile\n");
-            fprintf(stderr,"Options:\n");
             fprintf(stderr,"\t inputfile: file name or '-'  for stdin\n");
+            fprintf(stderr,"Options:\n");
             fprintf(stderr,"\t-iterate{num} do num LLL calls with delta=delta_high\n");
             fprintf(stderr,"\t-bkz -beta{num} do BKZ with blocksize num\n");
             fprintf(stderr,"\t-pbkz -beta{num} do progressive BKZ with max. blocksize num\n");
