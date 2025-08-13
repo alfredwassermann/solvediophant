@@ -99,7 +99,7 @@ Start the program (here from the root folder):
 bin/sd2 Tests/in_sd.txt
 ```
 
-The output to __stdout__ contains the solutions
+The output to __stdout__ consists of all solutions
 
 ```
 1 1 1 2 2 2 1 1 1 2 
@@ -128,9 +128,10 @@ The output to __stdout__ contains the solutions
 2 0 0 3 2 2 1 0 1 3 
 2 0 2 1 0 4 1 0 3 1 
 ```
+
 Additionally. the solutions are written to the output file `solutions`. This can be changed with the parameter `-o`.
 
-The output to __stderr__ contains additional information:
+The output to __stderr__ gives additional information:
 
 ```
 CPU supports AVX2
@@ -239,5 +240,5 @@ Signals:
 
 ## License
 
-The software is license under a variant of the 3-clause BSD license, see the file `LICENSE`.
+The software is licensed under a variant of the 3-clause BSD license, see the file `LICENSE`.
 
