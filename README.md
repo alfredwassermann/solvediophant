@@ -239,5 +239,5 @@ Signals:
 
 ## License
 
-See the file `LICENSE`.
+The software is license under a variant of the 3-clause BSD license, see the file `LICENSE`.
 
