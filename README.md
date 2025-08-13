@@ -1,7 +1,11 @@
 # Solvediophant
 
 This program searches for solutions a linear system\
-$$    Ax = d, A\in \mathbb{Z}^{m\times n}, d\in \mathbb{Z}^m, $$
+
+```math
+Ax = d, A\in \mathbb{Z}^{m\times n}, d\in \mathbb{Z}^m,
+```
+
 where $x$ is a non-negative integer vector. The unknowns $x_i$ can be bounded by $0\leq x_i\leq r_i\in\mathbb{Z}$, the default is $r_i=1$, i.e. binary variables.
 
 The algorithm is based on lattice basis reduction followed by lattice enumeration (either depth first search or limited discrepancy search).
