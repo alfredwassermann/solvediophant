@@ -1,14 +1,15 @@
 # Solvediophant
 
-This program searches for solutions a linear system\
+This program searches for solutions of a system of linear equations of the form
 
 ```math
-Ax = d, A\in \mathbb{Z}^{m\times n}, d\in \mathbb{Z}^m,
+Ax = d, \quad A\in \mathbb{Z}^{m\times n}, d\in \mathbb{Z}^m,
 ```
 
-where $x$ is a non-negative integer vector. The unknowns $x_i$ can be bounded by $0\leq x_i\leq r_i\in\mathbb{Z}$, the default is $r_i=1$, i.e. binary variables.
+where $x$ is a vector of non-negative integers. The unknowns $x_i$ can be bounded by $0\leq x_i\leq r_i\in\mathbb{Z}$, the default is $r_i=1$, i.e. binary variables.
 
-The algorithm is based on lattice basis reduction followed by lattice enumeration (either depth first search or limited discrepancy search).
+The algorithm is based on lattice basis reduction followed by lattice enumeration (either depth first search or limited discrepancy search). The problem is known to be NP-complete, i.e. in general, solving instances might be difficult. The success rate of the algorithm is difficult to predict. In the search of combinatorial substructures, solvediophant successfully solves systems up to 1500 unknowns. The subfolder `QOBLIB` contains instances of the market split problem, see 
+[Quantum Optimization Benchmark Library - The Intractable Decathlon](https://arxiv.org/abs/2504.03832).
 
 Please, cite the algorithm with
 
