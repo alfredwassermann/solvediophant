@@ -1,5 +1,0 @@
-- Refactor bkz: calls of LLLH (reduction_type carries deepinsert size)
-- Weak size reduction: eta and theta as parameters
-- Experiment with sdbkz
-- Reestablish fast and good "pruned enumeration"
-- lds in pruned enumeration
