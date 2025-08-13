@@ -1,7 +1,8 @@
 # Test QOBLIB market split instances
 
-Apply solvediophant `sd2` the the marketz split instances of the
-Quantum Optimization Benchmark Library (QOBLIB) <https://arxiv.org/abs/2504.03832>
+Apply solvediophant (`sd2`) to the market split instances of the
+Quantum Optimization Benchmark Library (QOBLIB), see 
+[Quantum Optimization Benchmark Library - The Intractable Decathlon](https://arxiv.org/abs/2504.03832).
 
 Instances are in folder `01-marketsplit/instances`
 
