@@ -89,6 +89,8 @@ BOUNDS 10
 2 2 3 3 4 4 3 3 3 4 
 ```
 
+If no upper bounds are given, the upper bound $1$ is assumed.
+
 ## Running solvediophant
 
 Start the program (here from the root folder):
@@ -235,5 +237,7 @@ Signals:
 	 12 Dump lattice to file 'dump_lattice.b', e.g. kill -12 PID
 ```
 
+## License
 
+See the file `LICENSE`.
 
