@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <sys/times.h>  /* For run time measurements */
 #include <unistd.h>
 #include <gmp.h>
@@ -118,6 +119,22 @@ int get_param(int argc, char *argv[], int i, char *name, char *suffix) {
         strcpy(suffix, argv[i + 1]);
     }
 
+    return 1;
+}
+
+/**
+ * Check if a string contains whitespace only or is null string.
+ */
+int is_empty(const char *s)
+{
+    while (*s != '\0')
+    {
+        if (!isspace((unsigned char)*s))
+        {
+            return 0;
+        }
+        s++;
+    }
     return 1;
 }
 
@@ -325,8 +342,8 @@ int main(int argc, char *argv[]) {
         } else if (strcmp(argv[i], "-?") == 0 || strcmp(argv[i], "-h") == 0) {
             fprintf(stderr,"sd2 --- multiple precision version --- \n");
             fprintf(stderr,"Usage:\n\tsd2 options inputfile\n");
-            fprintf(stderr,"Options:\n");
             fprintf(stderr,"\t inputfile: file name or '-'  for stdin\n");
+            fprintf(stderr,"Options:\n");
             fprintf(stderr,"\t-iterate{num} do num LLL calls with delta=delta_high\n");
             fprintf(stderr,"\t-bkz -beta{num} do BKZ with blocksize num\n");
             fprintf(stderr,"\t-pbkz -beta{num} do progressive BKZ with max. blocksize num\n");
@@ -455,6 +472,7 @@ int main(int argc, char *argv[]) {
         if (res == NULL) {
             exit(EXIT_ERR_INPUT);
         }
+
         if (strstr(zeile,"% stopafter")!=NULL) {
             sscanf(zeile,"%% stopafter %ld",&(lattice.LLL_params.stop_after_solutions));
         }
@@ -468,7 +486,7 @@ int main(int argc, char *argv[]) {
             lattice.free_RHS = 1;
         }
     }
-    while (zeile[0]=='%');
+    while (zeile[0]=='%' || zeile[0]=='#' || is_empty(zeile));
 
     /**
      * Read problem size
