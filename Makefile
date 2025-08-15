@@ -13,8 +13,8 @@ CFLAGS= -O3                  \
   -Wall
 
 HASWELL_CFLAGS= -mavx -mavx2 -march=skylake
-# ICELAKE_CFLAGS= -mavx512f -mavx512dq -march=
-SAPPHIRERAPIDS_CFLAGS= -mavx512f -mavx512dq -march=sapphirerapids
+# ICELAKE_CFLAGS= -mavx512f -mavx512dq -march=                       # Not yet supported
+SAPPHIRERAPIDS_CFLAGS= -mavx512f -mavx512dq -march=sapphirerapids    # Not yet supported
 ARCH_CFLAGS= $(HASWELL_CFLAGS)
 
 # Profile:   -pg \
@@ -34,7 +34,7 @@ BLAS=NOBLAS
 BLASINC=.
 BLASLIB=
 #
-# ------  Second option: use OpenBLAS as installed in ubuntu.
+# ------  Second option: use OpenBLAS as installed in e.g. ubuntu.
 # Uncomment BLAS, BLASINC and BLASLIB:
 # Modern machine:
 #BLAS=USE_BLAS
@@ -81,9 +81,9 @@ $(PDF)/%.pdf: $(SRC)/%.c
 	rm $*.ps
 	@echo "Converted "$<" to LaTeX successfully!"
 
-.PHONY: pgo
-# Do profile generated optimization
+# Generate a binary with profile generated optimization
 # This is recommended for the final executable
+.PHONY: pgo
 pgo:
 	./profiledmake.sh
 
