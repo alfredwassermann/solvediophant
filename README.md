@@ -212,33 +212,33 @@ sd2 --- multiple precision version ---
 Usage:
 	sd2 options inputfile
 Options:
-	 inputfile: file name or '-'  for stdin
-	-iterate{num} do num LLL calls with delta=delta_high
-	-bkz -beta{num} do BKZ with blocksize num
-	-pbkz -beta{num} do progressive BKZ with max. blocksize num
-	-tours{num} maximum number of tours in a bkz call
-	-c{num} scale equations by num (default=1099511627776=2**40)
-	-C{num} scale equations by 2^num (default=1099511627776=2**40)
+	 inputfile:       file name or '-'  for stdin
+	-iterate{num}     do num LLL calls with delta=delta_high
+	-bkz -beta{num}   do BKZ with blocksize num
+	-pbkz -beta{num}  do progressive BKZ with max. blocksize num
+	-tours{num}       maximum number of tours in a bkz call
+	-c{num}           scale equations by num (default=1099511627776=2**40)
+	-C{num}           scale equations by 2^num (default=1099511627776=2**40)
 	-scalelastline{num} scale last line by num (default=1024)
-	-maxnorm* ???? default=1
-	-delta_low{num} delta for first LLL reduction
-	-delta_med{num} delta for second reduction
-	-delta_high{num} delta for second reduction and for third reduction in case of -iterate
+	-maxnorm*         ???? default=1
+	-delta_low{num}   delta for first LLL reduction
+	-delta_med{num}   delta for second reduction
+	-delta_high{num}  delta for second reduction and for third reduction in case of -iterate
 	-delta_higher{num} delta for bkz reduction
-	-o{string} write solutions to file 'string' (default='solutions')
-	-time{num} stop program after num seconds
-	-t{num} stop program after num solutions. Overwritten by line '% stopafter num' in input file
-	-d{num} Print progress report in enumeration after that many steps
-	-silent do not write solutions to stdout and solution file
-	-printntl write (shortened) lattice after third reduction in NTL format to stdout
-	-dump If this flag is supplied, write lattice to file 'dump_lattice.b' after the reduction phase
-	-restart{string} Read dumped lattice basis from file 'string' and jump to third reduction phase
-	-double Do not use floats in enumeration
-	-dfs Use depth first enumeration (default)
-	-lds{num} Use LDS enumeration up to num discrepancies, otherwise use dfs (default=dfs)
+	-o{string}        write solutions to file 'string' (default='solutions')
+	-time{num}        stop program after num seconds
+	-t{num}           stop program after num solutions. Overwritten by line '% stopafter num' in input file
+	-d{num}           Print progress report in enumeration after that many steps
+	-silent           do not write solutions to stdout and solution file
+	-printntl         write (shortened) lattice after third reduction in NTL format to stdout
+	-dump             if this flag is supplied, write lattice to file 'dump_lattice.b' after the reduction phase
+	-restart{string}  read dumped lattice basis from file 'string' and jump to third reduction phase
+	-double           do not use floats in enumeration
+	-dfs              use depth first enumeration (default)
+	-lds{num}         use LDS enumeration up to num discrepancies, otherwise use dfs (default=dfs)
 Signals:
 	 10: print lattice, e.g. kill -10 PID
-	 12 Dump lattice to file 'dump_lattice.b', e.g. kill -12 PID
+	 12: dump lattice to file 'dump_lattice.b', e.g. kill -12 PID
 ```
 
 ## License
