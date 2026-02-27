@@ -93,11 +93,13 @@ void read_linear_system(FILE *txt, lgs_t *LGS) {
         for (i = 0; i < LGS->num_cols; i++) {
             res = mpz_inp_str(LGS->matrix[j][i], txt, 10);
             if (res == 0) {
+                fprintf(stderr, "Could not read col=%d of %d; row=%d of %d \n", i, LGS->num_cols, j, LGS->num_rows);
                 incorrect_input_file();
             }
         }
         res = mpz_inp_str(LGS->rhs[j], txt, 10);
         if (res == 0) {
+            fprintf(stderr, "Could not rhs row=%d of %d \n", j, LGS->num_rows);
             incorrect_input_file();
         }
     }
